@@ -47,6 +47,8 @@ const KEYWORDS: Record<IntentType, string[]> = {
     'dairy', 'grocery', 'kirana', 'store', 'workshop', 'manufacturing', 'production',
     'trade', 'trading', 'income generating', 'self employment', 'livelihood',
     'handicraft', 'animal husbandry', 'poultry', 'agriculture', 'farming',
+    'saas', 'software', 'tech', 'b2b', 'it services', 'supplier', 'suppliers', 'supply',
+    'dealership', 'distributor', 'agency', 'wholesale', 'transport', 'hotel', 'restaurant',
     'व्यवसाय', 'दुकान', 'धंदा', 'व्यापार', 'बिजनेस', 'उद्योग', 'रोजगार',
     'स्वरोजगार', 'किराना', 'सिलाई', 'डेयरी', 'हस्तशिल्प', 'खेती',
     'व्यापार', 'उद्योग', 'धंदा', 'शेती', 'कुटीर उद्योग',
@@ -54,8 +56,10 @@ const KEYWORDS: Record<IntentType, string[]> = {
   scheme_recommendation: [
     'recommend', 'suggest', 'which scheme', 'suitable scheme', 'best scheme',
     'which loan', 'need a loan', 'want loan', 'apply for loan', 'financial assistance',
-    'लोन चाहिए', 'ऋण चाहिए', 'कर्ज चाहिए', 'कौन सी योजना', 'योजना बताएं',
-    'कुठली योजना', 'कर्ज हवे', 'कर्ज द्या', 'योग्य योजना',
+    'what money can i get', 'how much money', 'what money', 'get money', 'funding', 'funds',
+    'capital', 'subsidy', 'subsidized loan', 'available schemes', 'loan options',
+    'लोन चाहिए', 'ऋण चाहिए', 'कर्ज चाहिए', 'कौन सी योजना', 'योजना बताएं', 'कितना पैसा',
+    'कुठली योजना', 'कर्ज हवे', 'कर्ज द्या', 'योग्य योजना', 'पैसे मिळतील',
   ],
   scheme_eligibility: [
     'eligible', 'eligibility', 'qualify', 'am i eligible', 'do i qualify',
@@ -115,14 +119,21 @@ export function detectLanguage(text: string): Language {
 
   if (totalChars === 0 || devanagariChars / totalChars < 0.1) return 'en';
 
-  // Marathi-specific function words
-  const marathiMarkers = ['आहे', 'आहेत', 'मला', 'हवे', 'आहे', 'सुरू', 'करायचे', 'व्हायचे', 'आहे का'];
-  if (marathiMarkers.some((w) => text.includes(w))) return 'mr';
+  // Grammatical markers for distinguishing Hindi and Marathi
+  const hindiMarkers = ['मुझे', 'चाहिए', 'है', 'हैं', 'करना', 'रहा', 'रही', 'था', 'थी', 'के लिए', 'सकता', 'सकती', 'नमस्ते', 'धन्यवाद', 'में', 'का', 'की', 'के'];
+  const marathiMarkers = ['मला', 'हवे', 'आहे', 'आहेत', 'करायचे', 'व्हायचे', 'आहे का', 'नाही', 'पाहिजे', 'नमस्कार', 'मध्ये', 'चे', 'च्या', 'सुरू'];
 
+  const hindiScore = hindiMarkers.filter((w) => text.includes(w)).length;
+  const marathiScore = marathiMarkers.filter((w) => text.includes(w)).length;
+
+  if (marathiScore > hindiScore) return 'mr';
   return 'hi';
 }
 
-export function classifyIntent(message: string): ClassificationResult {
+export function classifyIntent(
+  message: string,
+  sessionContext?: { lastIntent?: string; hasEntities?: boolean }
+): ClassificationResult {
   const normalized = message.toLowerCase().trim();
   const detectedLanguage = detectLanguage(message);
 
@@ -140,11 +151,29 @@ export function classifyIntent(message: string): ClassificationResult {
 
   const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
 
+  // If the top intent is 'greeting' but the user also mentioned a business/loan/scheme topic or asked a longer question (> 4 words), prioritize the domain intent
+  if (sorted.length > 0 && sorted[0][0] === 'greeting') {
+    const domainIntent = sorted.find(([intent]) => intent !== 'greeting');
+    const wordCount = message.trim().split(/\s+/).length;
+    if (domainIntent && domainIntent[1] >= 1) {
+      // Re-sort domain intent to the top
+      sorted.splice(sorted.indexOf(domainIntent), 1);
+      sorted.unshift(domainIntent);
+    } else if (wordCount > 5) {
+      // It's a full inquiry that just started with a hello/namaste
+      sorted.shift(); // remove pure greeting
+    }
+  }
+
   if (sorted.length === 0) {
-    // Try to detect implicit scheme request: any message with money amounts
-    const hasAmount = /[\d,]+\s*(lakh|lacs?|rupees?|rs\.?|₹|लाख|रुपए|रुपये)/i.test(message);
-    if (hasAmount) {
-      return { intent: 'scheme_recommendation', confidence: 0.65, detectedLanguage };
+    // Detect numbers, LPA, lakh, or answers to previous questions
+    const hasFinancialDetails =
+      /[\d,]+\s*(lakh|lacs?|lpa|k|cr|rupees?|rs\.?|₹|लाख|रुपए|रुपये)/i.test(message) ||
+      /\b(purpose|income|loan|amount|location|city|district|amravati|nagpur|pune|mumbai|महिला|सिलाई|व्यवसाय|दुकान)\b/i.test(message) ||
+      /^\s*1\s*[-–:]/m.test(message);
+
+    if (hasFinancialDetails || sessionContext?.lastIntent === 'scheme_recommendation' || sessionContext?.lastIntent === 'business_loan') {
+      return { intent: 'scheme_recommendation', confidence: 0.75, detectedLanguage };
     }
     return { intent: 'fallback', confidence: 0.5, detectedLanguage };
   }

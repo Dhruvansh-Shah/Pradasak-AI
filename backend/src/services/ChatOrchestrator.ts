@@ -104,28 +104,31 @@ async function handleGreeting(session: Session): Promise<ChatApiResponse> {
 async function handleSchemeRecommendation(session: Session, categoryHint?: string): Promise<ChatApiResponse> {
   const { entities } = session;
 
-  // Run recommendation engine with entities
-  const schemes = await recommendSchemes(entities, categoryHint);
+  // If loan amount is high (> ₹2L), don't restrict to micro_finance
+  const effectiveCategoryHint =
+    categoryHint === 'micro_finance' && entities.loan_amount_rs && entities.loan_amount_rs > 200000
+      ? undefined
+      : categoryHint;
 
-  if (schemes.length === 0) {
-    const msg = await llmReply(
-      `The user inquired about loan assistance. However, no direct scheme match was found for their criteria. Explain kindly and suggest they consider related NSFDC schemes or visit their state SC finance corporation.`,
-      session.language
-    );
-    return {
-      sessionId: session.id,
-      message: msg,
-      type: 'text',
-      detectedLanguage: session.language,
-      intent: 'scheme_recommendation',
-    };
-  }
+  // Run recommendation engine with entities
+  const schemes = await recommendSchemes(entities, effectiveCategoryHint);
 
   // Save in session
   session.recommendedSchemes = schemes as unknown as Record<string, unknown>[];
-  session.selectedScheme = schemes[0] as unknown as Record<string, unknown>;
+  session.selectedScheme = (schemes[0] || {}) as unknown as Record<string, unknown>;
 
-  const top = schemes[0];
+  const top = schemes[0] || {
+    name: 'Term Loan (TL)',
+    category: 'term_loan',
+    interest_rate_min: 6,
+    interest_rate_max: 8,
+    max_loan_lakh: 27,
+    max_income_lakh: 5,
+    moratorium_months_min: 6,
+    moratorium_months_max: 12,
+    max_tenure_months: 120,
+    coverage_percent: 90,
+  };
 
   const hasIncome = Boolean(entities.family_income_rs);
   const hasAmount = Boolean(entities.loan_amount_rs);
@@ -133,31 +136,40 @@ async function handleSchemeRecommendation(session: Session, categoryHint?: strin
 
   const missingQuestions: string[] = [];
   if (!hasAmount) missingQuestions.push('estimated loan amount required');
-  if (!hasIncome) missingQuestions.push('annual family income (income limit is ≤ ₹5.00 Lakh/year)');
-  if (!hasLocation) missingQuestions.push('your city or district to locate the nearest partner branch');
+  if (!hasIncome) missingQuestions.push('annual family income (standard NSFDC threshold is ≤ ₹5.00 Lakh/year)');
+  if (!hasLocation) missingQuestions.push('your city or district to find your nearest partner branch');
+
+  let partnerContext = '';
+  if (hasLocation && entities.location) {
+    const pt = await geocode(entities.location);
+    if (pt) {
+      const nearby = await findNearbyPartners(pt, top.category, 150, 2);
+      if (nearby.length > 0) {
+        partnerContext = `\nNearest Authorized Partner: ${nearby[0].name} (${nearby[0].partner_type}, ${nearby[0].city}, ~${nearby[0].distance_km} km away)`;
+      }
+    }
+  }
 
   const prompt = `
 User Inquiry: "${session.conversationHistory[session.conversationHistory.length - 1]?.content || 'Loan inquiry'}"
-Recognized goal/purpose: ${entities.purpose || categoryHint || 'Self-employment / Education'}
-Known details: Loan required: ${entities.loan_amount_rs ? '₹' + entities.loan_amount_rs : 'Not specified yet'}, Family income: ${entities.family_income_rs ? '₹' + entities.family_income_rs : 'Not specified yet'}, Location: ${entities.location || 'Not specified yet'}
+Recognized goal/purpose: ${entities.purpose || effectiveCategoryHint || 'Business venture / Enterprise'}
+Known details: Loan required: ${entities.loan_amount_rs ? '₹' + entities.loan_amount_rs.toLocaleString('en-IN') : 'Not specified yet'}, Family income: ${entities.family_income_rs ? '₹' + entities.family_income_rs.toLocaleString('en-IN') + ' (₹' + (entities.family_income_rs/100000).toFixed(1) + ' Lakh/yr)' : 'Not specified yet'}, Location: ${entities.location || 'Not specified yet'}${partnerContext}
 
-Top Matching Official Scheme:
-- Scheme Name: ${top.name}
-- Category: ${top.category}
+Top Matching Official Schemes:
+1. ${top.name} (${top.category})
 - Subsidized Interest Rate: ${top.interest_rate_min}%–${top.interest_rate_max}% p.a.
-- Maximum Loan Limit: ₹${(top.max_loan_lakh * 100000).toLocaleString('en-IN')} (₹${top.max_loan_lakh} Lakh)
-- Annual Income Threshold: ≤ ₹${top.max_income_lakh} Lakh/year
-- Moratorium Grace Period: ${top.moratorium_months_min}–${top.moratorium_months_max} months
-- Maximum Repayment Tenure: ${top.max_tenure_months} months
-- Project Cost Coverage: ${top.coverage_percent || 90}%
+- Max Loan Limit: Up to ₹${(top.max_loan_lakh * 100000).toLocaleString('en-IN')} (₹${top.max_loan_lakh} Lakh)
+- Official Income Threshold: ≤ ₹${top.max_income_lakh} Lakh/year
+- Repayment Tenure: Up to ${top.max_tenure_months} months with ${top.moratorium_months_min}–${top.moratorium_months_max} months moratorium
 
-Missing user parameters to ask next: ${missingQuestions.join(', ') || 'None'}
+Missing user parameters to ask (if any): ${missingQuestions.join(', ') || 'None'}
 
 Instructions:
-1. First, warmly appreciate their business idea, educational venture, or inquiry.
-2. Introduce the top matching scheme (**${top.name}**) and highlight its subsidized interest rate (${top.interest_rate_min}%–${top.interest_rate_max}%) and loan limit.
-3. ${missingQuestions.length > 0 ? `Politely ask 1-2 counter-questions for missing info (${missingQuestions.slice(0, 2).join(' and ')}) so we can check exact eligibility and calculate monthly EMIs.` : 'Mention they can proceed to calculate monthly EMIs or locate the nearest branch.'}
-4. DO NOT say "Based on your profile" if income/amount is unknown. Keep the response concise, encouraging, and clear.
+1. Warmly acknowledge and validate their venture, initiative, or goals.
+2. Present the matching scheme (**${top.name}**) with its low subsidized interest rate (${top.interest_rate_min}%–${top.interest_rate_max}%) and loan terms.
+3. If family income exceeds ₹5L, transparently explain that standard NSFDC concessional criteria target income up to ₹5.00 Lakh/yr, but they can still review the scheme parameters and consult the channel partner for eligibility or credit linkage.
+4. ${missingQuestions.length > 0 ? `Politely ask 1-2 quick follow-up questions (${missingQuestions.slice(0, 2).join(' and ')}) to calculate exact EMIs and connect them to the branch.` : 'Guide them to calculate their subsidized EMI or locate their nearest partner branch.'}
+5. Keep the tone inspiring, professional, and clear.
   `.trim();
 
   const explanation = await llmReply(prompt, session.language, entities.purpose || undefined, 450);
@@ -170,7 +182,7 @@ Instructions:
     quickActions: [
       { label: 'Calculate EMI', labelHi: 'EMI गणना', message: `Calculate EMI for ${top.name}` },
       { label: 'Required documents', labelHi: 'दस्तावेज', message: `What documents do I need for ${top.name}?` },
-      { label: 'Find nearest partner', labelHi: 'पार्टनर खोजें', message: 'Where can I apply near me?' },
+      { label: 'Find nearest partner', labelHi: 'पार्टनर खोजें', message: entities.location ? `Where can I apply near ${entities.location}?` : 'Where can I apply near me?' },
       { label: 'Compare other schemes', labelHi: 'तुलना करें', message: 'Compare with other loan schemes' },
     ],
     disclaimer: DISCLAIMER[session.language],
@@ -183,10 +195,12 @@ async function handleEMICalculation(session: Session): Promise<ChatApiResponse> 
   const { entities } = session;
   const scheme = session.selectedScheme as unknown as Scheme | undefined;
 
-  const principal = entities.loan_amount_rs || (scheme ? scheme.max_loan_lakh * 100000 * 0.75 : 200000);
-  const rate = entities.interest_rate_pct || (scheme ? (scheme.interest_rate_min + scheme.interest_rate_max) / 2 : 6);
-  const tenure = entities.tenure_months || (scheme ? scheme.max_tenure_months : 60);
-  const moratorium = entities.moratorium_months || (scheme ? scheme.moratorium_months_min : 0);
+  const principal = Number(entities.loan_amount_rs) || (scheme ? Number(scheme.max_loan_lakh) * 100000 * 0.75 : 200000);
+  const minRate = scheme ? Number(scheme.interest_rate_min) || 6 : 6;
+  const maxRate = scheme ? Number(scheme.interest_rate_max) || minRate : 6;
+  const rate = Number(entities.interest_rate_pct) || ((minRate + maxRate) / 2);
+  const tenure = Number(entities.tenure_months) || (scheme ? Number(scheme.max_tenure_months) || 60 : 60);
+  const moratorium = Number(entities.moratorium_months) || (scheme ? Number(scheme.moratorium_months_min) || 0 : 0);
 
   let effectivePrincipal = principal;
   if (moratorium > 0) {
@@ -240,9 +254,9 @@ async function handlePartnerLocator(session: Session): Promise<ChatApiResponse> 
 
   if (!entities.location) {
     const qs: Record<Language, string> = {
-      en: "Which city or district are you located in? (e.g. Pune, Delhi, Lucknow, Patna, Jaipur, Bengaluru). I will locate your nearest authorized State Channelizing Agency (SCA) or Rural Bank branch.",
-      hi: "आप किस शहर या जिले में स्थित हैं? (उदा. पुणे, दिल्ली, लखनऊ, पटना, जयपुर)। मैं आपकी निकटतम अधिकृत राज्य एजेंसी (SCA) या ग्रामीण बैंक शाखा खोजूँगा।",
-      mr: "तुम्ही कोणत्या शहरात किंवा जिल्ह्यात आहात? (उदा. पुणे, मुंबई, नागपूर, नाशिक). मी तुमच्या जवळचे अधिकृत राज्य महामंडळ किंवा बँक शाखा शोधून देतो.",
+      en: "Which city or district are you located in? (e.g. Pune, Amravati, Nagpur, Delhi, Lucknow, Patna). I will locate your nearest authorized State Channelizing Agency (SCA) or Rural Bank branch.",
+      hi: "आप किस शहर या जिले में स्थित हैं? (उदा. अमरावती, नागपुर, पुणे, दिल्ली, लखनऊ)। मैं आपकी निकटतम अधिकृत राज्य एजेंसी (SCA) या ग्रामीण बैंक शाखा खोजूँगा।",
+      mr: "तुम्ही कोणत्या शहरात किंवा जिल्ह्यात आहात? (उदा. अमरावती, नागपूर, पुणे, मुंबई, नाशिक). मी तुमच्या जवळचे अधिकृत राज्य महामंडळ किंवा बँक शाखा शोधून देतो.",
       unknown: "Please tell me your city or district name to find nearby channel partners.",
     };
     return {
@@ -250,10 +264,10 @@ async function handlePartnerLocator(session: Session): Promise<ChatApiResponse> 
       message: qs[session.language] || qs.en,
       type: 'question',
       quickActions: [
+        { label: '📍 Amravati', labelHi: 'अमरावती', message: 'Find partners in Amravati' },
+        { label: '📍 Nagpur', labelHi: 'नागपुर', message: 'Find partners in Nagpur' },
         { label: '📍 Pune', labelHi: 'पुणे', message: 'Find partners in Pune' },
         { label: '📍 Delhi NCR', labelHi: 'दिल्ली', message: 'Find partners in Delhi' },
-        { label: '📍 Lucknow', labelHi: 'लखनऊ', message: 'Find partners in Lucknow' },
-        { label: '📍 Patna', labelHi: 'पटना', message: 'Find partners in Patna' },
       ],
       detectedLanguage: session.language,
       intent: 'partner_locator',
@@ -282,7 +296,7 @@ async function handlePartnerLocator(session: Session): Promise<ChatApiResponse> 
   const prompt = `
 Location search: ${entities.location}
 Partners found: ${partners.length} authorized channel partners
-Top partner: ${partners[0]?.name || 'State Agency'} (${partners[0]?.partner_type}, ${partners[0]?.distance_km || 5} km away)
+Top partner: ${partners[0]?.name || 'State Agency'} (${partners[0]?.partner_type}, ${partners[0]?.city}, ${partners[0]?.distance_km || 5} km away)
 
 Write 2 friendly sentences explaining that verified channel partners were located near ${entities.location} where the beneficiary can submit documents.
   `.trim();
@@ -404,12 +418,17 @@ Keep it warm and concise (4-5 sentences).
 }
 
 async function handleFallback(session: Session): Promise<ChatApiResponse> {
+  // If we already have any entities (loan amount, purpose, or location), auto-route to scheme recommendation
+  if (session.entities.loan_amount_rs || session.entities.purpose || session.entities.location) {
+    return handleSchemeRecommendation(session);
+  }
+
   const lastUserMsg = session.conversationHistory[session.conversationHistory.length - 1]?.content || '';
   
-  // Use Gemini 2.5 Flash to generate a smart, responsive fallback answering the user's inquiry
   const prompt = `
 The user asked: "${lastUserMsg}"
-You are the NSFDC Financial Assistant. Respond warmly, acknowledge their idea or question, and connect it to government concessional loans, subsidized interest rates, or channel partner branches. Ask a friendly clarifying question if needed.
+Known details so far: ${JSON.stringify(session.entities)}
+You are the NSFDC Financial Assistant. Respond warmly, acknowledge their venture/inquiry, and explain how NSFDC concessional loans and subsidized interest rates (4%-8%) can help them. Ask for their required loan amount or business activity to find the best matching scheme.
   `.trim();
 
   const message = await llmReply(prompt, session.language, undefined, 350);
@@ -443,12 +462,15 @@ export async function process(message: string, sessionId?: string): Promise<Chat
   // Update conversation history
   session.conversationHistory.push({ role: 'user', content: message });
 
-  // Extract entities via Gemini
-  const entities = await extractEntities(message);
+  // Extract entities via Gemini with multi-turn conversation context
+  const entities = await extractEntities(message, session.conversationHistory);
   mergeEntities(session, entities);
 
-  // Classify intent
-  const { intent, confidence } = classifyIntent(message);
+  // Classify intent with session context
+  const { intent, confidence } = classifyIntent(message, {
+    lastIntent: session.lastIntent,
+    hasEntities: Object.keys(session.entities).length > 0,
+  });
   session.lastIntent = intent;
 
   let response: ChatApiResponse;
@@ -464,8 +486,6 @@ export async function process(message: string, sessionId?: string): Promise<Chat
       response = await handleSchemeRecommendation(session, 'education_loan');
       break;
     case 'business_loan':
-      response = await handleSchemeRecommendation(session, 'micro_finance');
-      break;
     case 'scheme_recommendation':
     case 'scheme_eligibility':
       response = await handleSchemeRecommendation(session);

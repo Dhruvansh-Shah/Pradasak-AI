@@ -9,7 +9,11 @@ router.use(optionalUser);
 
 // POST /api/chat
 router.post('/', async (req: UserAuthRequest, res: Response) => {
-  const { message, chatId: incomingChatId } = req.body as { message?: string; chatId?: string };
+  const { message, chatId: incomingChatId, sessionId: incomingSessionId } = req.body as {
+    message?: string;
+    chatId?: string;
+    sessionId?: string;
+  };
 
   if (!message?.trim()) {
     res.status(400).json({ error: 'message is required' });
@@ -18,6 +22,7 @@ router.post('/', async (req: UserAuthRequest, res: Response) => {
 
   const userId = req.userId;
   let chatId = incomingChatId;
+  const activeSessionId = chatId || incomingSessionId || undefined;
 
   try {
     // If authenticated, persist the chat
@@ -50,8 +55,8 @@ router.post('/', async (req: UserAuthRequest, res: Response) => {
       );
     }
 
-    // Use chatId as sessionId for conversation continuity
-    const response = await orchestrate(message.trim(), chatId || undefined);
+    // Use activeSessionId (chatId or incomingSessionId) for multi-turn session continuity
+    const response = await orchestrate(message.trim(), activeSessionId);
 
     if (userId && chatId) {
       // Save assistant response to DB

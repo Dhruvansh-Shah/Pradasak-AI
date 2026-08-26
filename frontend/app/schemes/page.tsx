@@ -225,15 +225,28 @@ export default function SchemesPage() {
 
   useEffect(() => {
     fetch(`${BASE}/schemes`)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error('Failed to fetch');
+        return r.json();
+      })
       .then((d) => {
-        setSchemes(d.schemes || d || []);
+        if (Array.isArray(d)) {
+          setSchemes(d);
+        } else if (Array.isArray(d?.schemes)) {
+          setSchemes(d.schemes);
+        } else {
+          setSchemes([]);
+        }
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => {
+        setSchemes([]);
+        setLoading(false);
+      });
   }, []);
 
-  const filtered = schemes.filter((s) => {
+  const schemeList = Array.isArray(schemes) ? schemes : [];
+  const filtered = schemeList.filter((s) => {
     if (search) {
       const q = search.toLowerCase();
       const m =

@@ -57,19 +57,72 @@ export async function fetchSchemeByName(name: string): Promise<Scheme | null> {
 }
 
 function purposeMatchScore(scheme: Scheme, purpose: string | undefined): number {
-  if (!purpose) return 5; // neutral — no info
-  const p = purpose.toLowerCase();
-  const types = (scheme.eligible_project_types || []).map((t) => t.toLowerCase());
+  const p = (purpose || '').toLowerCase().replace(/[-_]/g, ' ');
+  const rawTypes = scheme.eligible_project_types || [];
+  const normalizedTypes = rawTypes.map((t) => t.toLowerCase().replace(/[-_]/g, ' '));
 
-  if (types.some((t) => p.includes(t) || t.includes(p))) return 30;
+  // Semantic groups (Multilingual support for English, Hindi, and Marathi terms)
+  const sanitationWords = ['waste', 'recycling', 'sanitation', 'garbage', 'sewage', 'toilet', 'scavenger', 'cleaning', 'safai', 'सफाई', 'कचरा', 'शौचालय', 'स्वच्छता'];
+  const greenWords = ['green', 'electric', 'rickshaw', 'solar', 'biogas', 'polyhouse', 'organic', 'eco', 'renewable', 'ev', 'ई-रिक्शा', 'सौर', 'पर्यावरण'];
+  const artisanWords = ['artisan', 'handicraft', 'weaving', 'craft', 'pottery', 'woodwork', 'sculpture', 'textile', 'carpet', 'embroidery', 'शिल्पकार', 'बुनकर', 'हस्तकला', 'हस्तशिल्प'];
+  const businessWords = ['tailoring', 'shop', 'grocery', 'kirana', 'trade', 'enterprise', 'business', 'store', 'restaurant', 'hotel', 'manufacturing', 'repair', 'सिलाई', 'दुकान', 'व्यापार', 'व्यवसाय', 'शिलाई', 'उद्योग'];
+  const agriWords = ['agriculture', 'farming', 'poultry', 'animal', 'cattle', 'horticulture', 'dairy', 'crop', 'fisheries', 'खेती', 'कृषि', 'डेयरी', 'पशुपालन', 'शेतकरी'];
+  const techWords = ['saas', 'software', 'tech', 'it', 'b2b', 'supplier', 'suppliers', 'supply', 'logistics', 'services', 'agency', 'wholesale', 'सॉफ्टवेयर', 'तकनीक', 'सप्लायर'];
 
-  // Semantic groups
-  const businessWords = ['tailoring', 'shop', 'dairy', 'grocery', 'kirana', 'trade', 'enterprise', 'business', 'handicraft', 'weaving'];
-  const agriWords = ['agriculture', 'farming', 'poultry', 'animal', 'cattle'];
-  if (businessWords.some((w) => p.includes(w)) && types.some((t) => businessWords.some((w) => t.includes(w)))) return 25;
-  if (agriWords.some((w) => p.includes(w)) && types.some((t) => agriWords.some((w) => t.includes(w)))) return 25;
+  const isSanitationScheme = scheme.name.includes('Swachhta') || scheme.name.includes('SUY');
+  const isGreenScheme = scheme.name.includes('Green') || scheme.name.includes('GBS');
+  const isArtisanScheme = scheme.name.includes('Shilpi') || scheme.name.includes('SSY');
+  const isAgriScheme = scheme.name.includes('Kisan') || scheme.name.includes('MKY');
 
-  return 0;
+  if (p) {
+    if (sanitationWords.some((w) => p.includes(w))) {
+      if (isSanitationScheme) return 50;
+      return 5;
+    }
+    if (greenWords.some((w) => p.includes(w))) {
+      if (isGreenScheme) return 50;
+      return 10;
+    }
+    if (artisanWords.some((w) => p.includes(w))) {
+      if (isArtisanScheme) return 50;
+      return 10;
+    }
+    if (agriWords.some((w) => p.includes(w))) {
+      if (isAgriScheme) return 50;
+      if (scheme.name.includes('Term Loan')) return 30;
+      return 5;
+    }
+    if (techWords.some((w) => p.includes(w))) {
+      if (scheme.name.includes('Term Loan') || scheme.name.includes('Utkarsh') || normalizedTypes.includes('services') || normalizedTypes.includes('it services')) {
+        return 40;
+      }
+      return 5;
+    }
+    if (businessWords.some((w) => p.includes(w))) {
+      if (isAgriScheme) return -30; // Kisan schemes are strictly for agriculture/farming
+      if (isSanitationScheme || isArtisanScheme) return -15;
+      if (p.includes('सिलाई') || p.includes('tailoring') || p.includes('शिलाई')) {
+        if (scheme.name.includes('Mahila Samriddhi')) return 50;
+        if (normalizedTypes.some((t) => t.includes('tailoring'))) return 45;
+      }
+      if (normalizedTypes.some((t) => businessWords.some((w) => p.includes(w) && t.includes(w)))) return 45;
+      if (scheme.name.includes('Term Loan') || scheme.name.includes('Micro Credit Finance') || scheme.name.includes('Laghu Vyavasaya') || scheme.name.includes('Mahila Samriddhi')) {
+        return 40;
+      }
+      return 15;
+    }
+
+    // Direct token overlap
+    const pWords = p.split(/\s+/).filter((w) => w.length > 2);
+    const typeWords = normalizedTypes.flatMap((t) => t.split(/\s+/));
+    if (pWords.some((w) => typeWords.includes(w))) return 35;
+  }
+
+  // If user didn't specify purpose, don't randomly prioritize niche schemes
+  if (isSanitationScheme || isArtisanScheme || isAgriScheme) return -30;
+  if (isGreenScheme) return -15;
+
+  return 15;
 }
 
 function incomeScore(scheme: Scheme, incomeRs: number | undefined): { score: number; warning?: string } {
@@ -78,13 +131,13 @@ function incomeScore(scheme: Scheme, incomeRs: number | undefined): { score: num
 
   if (incomeLakh > scheme.max_income_lakh) {
     return {
-      score: -50,
-      warning: `Your income (₹${(incomeLakh).toFixed(1)}L) exceeds the limit (₹${scheme.max_income_lakh}L) for this scheme`,
+      score: -10,
+      warning: `Annual family income (₹${incomeLakh.toFixed(1)}L) exceeds the standard NSFDC concessional limit (₹${scheme.max_income_lakh}L/yr). Official guidelines apply.`,
     };
   }
   if (scheme.min_income_lakh && incomeLakh < scheme.min_income_lakh) {
     return {
-      score: -20,
+      score: -5,
       warning: `Your income may be below the minimum requirement for this scheme`,
     };
   }
@@ -97,30 +150,31 @@ function loanAmountScore(scheme: Scheme, amountRs: number | undefined): { score:
 
   if (amountLakh > scheme.max_loan_lakh) {
     return {
-      score: 0,
-      warning: `Your required amount (₹${amountLakh.toFixed(1)}L) exceeds this scheme's limit (₹${scheme.max_loan_lakh}L)`,
+      score: -20,
+      warning: `Required amount (₹${amountLakh.toFixed(1)}L) exceeds this scheme's maximum limit (₹${scheme.max_loan_lakh}L)`,
     };
   }
   if (scheme.min_loan_lakh && amountLakh < scheme.min_loan_lakh) {
-    return { score: 5, warning: `Your requirement is below the minimum loan for this scheme` };
+    return { score: -10, warning: `Your requirement is below the minimum loan for this scheme` };
   }
-  return { score: 20 };
+  return { score: 25 };
 }
 
 function educationScore(scheme: Scheme, isEducation: boolean): number {
-  if (isEducation && scheme.education_required) return 15;
-  if (isEducation && !scheme.education_required) return -10;
-  if (!isEducation && scheme.education_required) return -30;
+  if (isEducation && scheme.education_required) return 50;
+  if (isEducation && !scheme.education_required) return -40;
+  if (!isEducation && scheme.education_required) return -150;
   return 5;
 }
 
 function genderScore(scheme: Scheme, gender: string | undefined): { score: number; warning?: string } {
-  if (!gender) return { score: 0 };
-  if (scheme.gender_eligibility === 'women_only' && gender !== 'female') {
-    return { score: -100, warning: 'This scheme is exclusively for women applicants' };
-  }
-  if (scheme.gender_eligibility === 'women_only' && gender === 'female') {
-    return { score: 10 };
+  const isWomenOnly = scheme.gender_eligibility === 'women_only' || scheme.name.toLowerCase().includes('mahila');
+  if (isWomenOnly) {
+    if (gender === 'female') {
+      return { score: 25 };
+    }
+    // Strictly penalize for male or unspecified applicants so Mahila schemes are only offered to women
+    return { score: -300, warning: 'This scheme is exclusively for women applicants' };
   }
   return { score: 0 };
 }
@@ -132,7 +186,7 @@ export function scoreSchemes(schemes: Scheme[], entities: UserEntities): ScoredS
     entities.course
   );
 
-  return schemes
+  const scored = schemes
     .map((scheme): ScoredScheme => {
       let score = 0;
       const matchReasons: string[] = [];
@@ -140,17 +194,17 @@ export function scoreSchemes(schemes: Scheme[], entities: UserEntities): ScoredS
 
       const pScore = purposeMatchScore(scheme, entities.purpose);
       score += pScore;
-      if (pScore >= 25) matchReasons.push('Your purpose matches this scheme\'s eligible activities');
+      if (pScore >= 30) matchReasons.push('Purpose matches this scheme\'s eligible activities');
 
       const { score: iScore, warning: iWarn } = incomeScore(scheme, entities.family_income_rs);
       score += iScore;
       if (iWarn) warnings.push(iWarn);
-      else if (entities.family_income_rs) matchReasons.push('Your income falls within eligibility range');
+      else if (entities.family_income_rs) matchReasons.push('Income falls within eligible threshold');
 
       const { score: lScore, warning: lWarn } = loanAmountScore(scheme, entities.loan_amount_rs);
       score += lScore;
       if (lWarn) warnings.push(lWarn);
-      else if (entities.loan_amount_rs) matchReasons.push('Your loan requirement fits within scheme limits');
+      else if (entities.loan_amount_rs) matchReasons.push('Loan requirement fits within scheme limits');
 
       const eScore = educationScore(scheme, isEducation);
       score += eScore;
@@ -159,18 +213,24 @@ export function scoreSchemes(schemes: Scheme[], entities: UserEntities): ScoredS
       const { score: gScore, warning: gWarn } = genderScore(scheme, entities.gender);
       score += gScore;
       if (gWarn) warnings.push(gWarn);
+      else if (entities.gender === 'female' && gScore > 0) matchReasons.push('Exclusive concessional scheme for women entrepreneurs');
 
-      // Prefer lower interest rates
-      score += Math.max(0, (10 - scheme.interest_rate_min) * 2);
+      // Prefer lower interest rates slightly
+      score += Math.max(0, (10 - Number(scheme.interest_rate_min || 6)) * 2);
 
       return { ...scheme, score, matchReasons, warnings };
     })
     .filter((s) => s.score > -30)
     .sort((a, b) => b.score - a.score);
+
+  return scored;
 }
 
 export async function recommendSchemes(entities: UserEntities, categoryHint?: string): Promise<ScoredScheme[]> {
   const all = await fetchActiveSchemes(categoryHint);
   const scored = scoreSchemes(all, entities);
+  if (scored.length === 0) {
+    return all.slice(0, 3).map((s) => ({ ...s, score: 50, matchReasons: ['Official NSFDC Concessional Scheme'], warnings: [] }));
+  }
   return scored.slice(0, 3);
 }

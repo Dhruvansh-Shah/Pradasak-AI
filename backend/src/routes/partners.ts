@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../db/pool';
-import { geocodeCity } from '../services/LocationService';
+import { geocode, geocodeCity } from '../services/LocationService';
 
 const router = Router();
 
@@ -25,9 +25,9 @@ router.get('/nearby', async (req: Request, res: Response) => {
   let resolvedCity = city;
 
   if (city) {
-    const point = geocodeCity(city);
+    const point = await geocode(city);
     if (!point) {
-      res.status(400).json({ error: `City "${city}" not found. Try a major Indian city name.` });
+      res.status(400).json({ error: `Location "${city}" not found. Try a nearby district or state name.` });
       return;
     }
     latitude = point.lat;
@@ -74,8 +74,26 @@ router.get('/nearby', async (req: Request, res: Response) => {
       ]
     );
 
+    let partners = result.rows;
+    if (partners.length === 0) {
+      const fallback = await pool.query(
+        `SELECT
+           id, name, partner_type, address, city, state, phone, email, website,
+           eligible_categories, npa_percent, fund_utilization_percent,
+           ROUND((ST_Distance(location, ST_GeographyFromText($1)) / 1000)::numeric, 1) AS distance_km,
+           ST_X(location::geometry) AS longitude,
+           ST_Y(location::geometry) AS latitude
+         FROM partners
+         WHERE is_active = TRUE
+         ORDER BY ST_Distance(location, ST_GeographyFromText($1)) ASC
+         LIMIT $2`,
+        [`SRID=4326;POINT(${longitude} ${latitude})`, MAX_RESULTS]
+      );
+      partners = fallback.rows;
+    }
+
     res.json({
-      partners: result.rows,
+      partners,
       location: resolvedCity ? { city: resolvedCity } : { lat: latitude, lng: longitude },
       filters: {
         lat: latitude,
