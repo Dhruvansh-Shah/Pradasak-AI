@@ -3,14 +3,24 @@
 import { useEffect, useState, useCallback } from 'react';
 import { listChats, deleteChat } from '@/lib/api';
 import type { ChatSummary } from '@/lib/api';
-import { MessageSquare, Trash2, Plus, LogIn, Sparkles, Clock } from 'lucide-react';
+import {
+  MessageSquare,
+  Trash2,
+  Plus,
+  LogIn,
+  Sparkles,
+  History,
+  X
+} from 'lucide-react';
 import Link from 'next/link';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface Props {
   token: string | null;
   currentChatId: string | null;
   onSelectChat: (chatId: string) => void;
   onNewChat: () => void;
+  onClose?: () => void;
   refreshSignal?: number;
 }
 
@@ -46,8 +56,10 @@ export default function Sidebar({
   currentChatId,
   onSelectChat,
   onNewChat,
+  onClose,
   refreshSignal,
 }: Props) {
+  const { t } = useLanguage();
   const [chats, setChats] = useState<ChatSummary[]>([]);
   const [deleting, setDeleting] = useState<string | null>(null);
 
@@ -78,79 +90,236 @@ export default function Sidebar({
   const groups = groupByDate(chats);
 
   return (
-    <div className="flex flex-col h-full bg-slate-900 text-white w-full">
-      
-      {/* Sidebar Header */}
-      <div className="p-4 border-b border-white/10 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Clock className="w-4 h-4 text-amber-400" />
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
-            Recent Chats
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        background: '#ffffff',
+        borderRight: '1.5px solid #e2e8f0',
+        width: '100%',
+        boxShadow: '4px 0 24px rgba(11, 31, 58, 0.08)',
+      }}
+    >
+      {/* ── Top Header ────────────────────────────────────────────────────── */}
+      <div
+        style={{
+          padding: '16px 20px',
+          borderBottom: '1px solid #e2e8f0',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: '#f8fafc',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              background: '#eef3f9',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#0b1f3a',
+            }}
+          >
+            <History size={16} />
+          </div>
+          <span style={{ fontSize: 14, fontWeight: 800, color: '#0b1f3a' }}>
+            {t('chat.past_chats', 'Past Chats')}
           </span>
         </div>
 
-        <button
-          onClick={onNewChat}
-          className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white transition-colors cursor-pointer"
-          title="Start new conversation"
-        >
-          <Plus className="w-4 h-4" />
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button
+            onClick={onNewChat}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              background: '#0b1f3a',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: 8,
+              padding: '6px 10px',
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: '0 1px 4px rgba(11,31,58,0.15)',
+            }}
+            title="Start new conversation"
+          >
+            <Plus size={13} color="#fbbf24" />
+            <span>New</span>
+          </button>
+
+          {onClose && (
+            <button
+              onClick={onClose}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#64748b',
+                padding: '6px',
+                borderRadius: 8,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              title="Close sidebar"
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Chat History List */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-4">
+      {/* ── Chat List Stream ──────────────────────────────────────────────── */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         {!token ? (
-          <div className="p-5 text-center bg-white/5 rounded-2xl border border-white/10 space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">
-              <Sparkles className="w-5 h-5" />
+          <div
+            style={{
+              background: '#f8fafc',
+              border: '1.5px solid #e2e8f0',
+              borderRadius: 16,
+              padding: '24px 16px',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 12,
+              marginTop: 8,
+            }}
+          >
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 12,
+                background: '#fff7ed',
+                border: '1px solid #fed7aa',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#ea580c',
+              }}
+            >
+              <Sparkles size={20} />
             </div>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              Sign in to save your conversation history across devices.
-            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <strong style={{ fontSize: 13.5, color: '#0f172a' }}>
+                Sign In to Save History
+              </strong>
+              <p style={{ fontSize: 12, color: '#64748b', margin: 0, lineHeight: 1.5 }}>
+                Sync and revisit your past loan inquiries and matched schemes across sessions.
+              </p>
+            </div>
+
             <Link
               href="/auth"
-              className="inline-flex items-center justify-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white transition-colors w-full"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                padding: '9px 16px',
+                borderRadius: 10,
+                background: '#e87722',
+                color: '#ffffff',
+                fontSize: 13,
+                fontWeight: 700,
+                textDecoration: 'none',
+                width: '100%',
+                boxShadow: '0 2px 6px rgba(232,119,34,0.3)',
+              }}
             >
-              <LogIn className="w-3.5 h-3.5" />
-              Sign In
+              <LogIn size={14} />
+              <span>{t('nav.signin', 'Sign In')}</span>
             </Link>
           </div>
         ) : chats.length === 0 ? (
-          <div className="text-center py-10 text-slate-400 text-xs">
-            No saved sessions yet.
+          <div style={{ textAlign: 'center', padding: '48px 16px', color: '#94a3b8', fontSize: 13 }}>
+            No previous conversations yet.
           </div>
         ) : (
           Object.entries(groups).map(([group, items]) =>
             items.length === 0 ? null : (
-              <div key={group} className="space-y-1">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 py-1">
+              <div key={group} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <span
+                  style={{
+                    fontSize: 10.5,
+                    fontWeight: 800,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    color: '#94a3b8',
+                    padding: '0 6px',
+                  }}
+                >
                   {group}
-                </div>
-                {items.map((chat) => (
-                  <div
-                    key={chat.id}
-                    onClick={() => onSelectChat(chat.id)}
-                    className={`group flex items-center gap-2.5 px-3 py-2.5 rounded-xl cursor-pointer transition-all ${
-                      currentChatId === chat.id
-                        ? 'bg-amber-500/20 text-white border border-amber-500/30'
-                        : 'text-slate-300 hover:bg-white/10 hover:text-white'
-                    }`}
-                  >
-                    <MessageSquare className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                    <span className="flex-1 text-xs font-medium truncate">
-                      {chat.title || 'Inquiry Session'}
-                    </span>
-                    <button
-                      onClick={(e) => handleDelete(e, chat.id)}
-                      disabled={deleting === chat.id}
-                      className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-400 transition-opacity"
-                      title="Delete chat"
+                </span>
+
+                {items.map((chat) => {
+                  const isCurrent = currentChatId === chat.id;
+                  return (
+                    <div
+                      key={chat.id}
+                      onClick={() => onSelectChat(chat.id)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 8,
+                        padding: '10px 12px',
+                        borderRadius: 10,
+                        cursor: 'pointer',
+                        background: isCurrent ? '#eef3f9' : 'transparent',
+                        border: isCurrent ? '1.5px solid #0b1f3a' : '1px solid transparent',
+                        color: isCurrent ? '#0b1f3a' : '#334155',
+                        transition: 'all 150ms ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isCurrent) {
+                          (e.currentTarget as HTMLElement).style.background = '#f8fafc';
+                          (e.currentTarget as HTMLElement).style.borderColor = '#e2e8f0';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isCurrent) {
+                          (e.currentTarget as HTMLElement).style.background = 'transparent';
+                          (e.currentTarget as HTMLElement).style.borderColor = 'transparent';
+                        }
+                      }}
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden', flex: 1 }}>
+                        <MessageSquare size={14} color={isCurrent ? '#0b1f3a' : '#94a3b8'} style={{ flexShrink: 0 }} />
+                        <span style={{ fontSize: 13, fontWeight: isCurrent ? 700 : 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {chat.title || 'Inquiry Session'}
+                        </span>
+                      </div>
+
+                      <button
+                        onClick={(e) => handleDelete(e, chat.id)}
+                        disabled={deleting === chat.id}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#94a3b8',
+                          cursor: 'pointer',
+                          padding: 4,
+                        }}
+                        title="Delete chat"
+                        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#ef4444'; }}
+                        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#94a3b8'; }}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )
           )

@@ -14,25 +14,16 @@ import {
   Calculator,
   MapPin,
   Plus,
-  ChevronRight,
+  History,
+  ClipboardList,
   CheckCircle2,
   Circle,
   Lightbulb,
-  ClipboardList,
-  PanelLeftClose,
-  PanelLeftOpen,
-  PanelRightClose,
-  PanelRightOpen,
-  Sparkles
+  X
 } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
 
 type TabId = 'chat' | 'emi' | 'partners';
-
-const TABS: { id: TabId; label: string; Icon: React.ElementType }[] = [
-  { id: 'chat',     label: 'AI Assistant',     Icon: Bot },
-  { id: 'emi',      label: 'EMI Calculator',   Icon: Calculator },
-  { id: 'partners', label: 'Channel Partners', Icon: MapPin },
-];
 
 const JOURNEY_STEPS = [
   { label: 'Describe Requirement', key: 'eligibility' },
@@ -44,6 +35,13 @@ const JOURNEY_STEPS = [
 function ChatPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useLanguage();
+
+  const TABS: { id: TabId; label: string; Icon: React.ElementType }[] = [
+    { id: 'chat',     label: t('chat.tab_ai', 'AI Scheme Assistant'), Icon: Bot },
+    { id: 'emi',      label: t('chat.tab_emi', 'EMI Calculator'),      Icon: Calculator },
+    { id: 'partners', label: t('chat.tab_partners', 'Channel Partners'),    Icon: MapPin },
+  ];
 
   const [tab, setTab] = useState<TabId>('chat');
   const [token, setToken] = useState<string | null>(null);
@@ -52,9 +50,10 @@ function ChatPage() {
   const [initialMessages, setInitialMessages] = useState<ChatMessage[]>([]);
   const [refreshSignal, setRefreshSignal] = useState(0);
   const [journeyDone, setJourneyDone] = useState<Record<string, boolean>>({});
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [journeyOpen, setJourneyOpen] = useState(false);
-  const pendingRef = useRef<string | null>(null);
+
+  const queryParam = searchParams.get('q');
 
   useEffect(() => {
     const t = localStorage.getItem('auth_token');
@@ -70,11 +69,6 @@ function ChatPage() {
     if (tabParam === 'emi') setTab('emi');
     if (tabParam === 'partners') setTab('partners');
 
-    const q = searchParams.get('q');
-    if (q) {
-      pendingRef.current = q;
-      setTab('chat');
-    }
     const cid = searchParams.get('chatId');
     if (cid) loadChat(cid, t || null);
   }, [searchParams]);
@@ -85,6 +79,7 @@ function ChatPage() {
       const data = await getChat(id, t);
       setChatId(id);
       setInitialMessages(data.messages || []);
+      setSidebarOpen(false);
     } catch {}
   }
 
@@ -114,66 +109,125 @@ function ChatPage() {
   const progressPct = Math.round((completedCount / JOURNEY_STEPS.length) * 100);
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-slate-50">
+    <div className="h-screen flex flex-col overflow-hidden bg-slate-50 text-slate-900">
       <NavBar />
 
-      {/* ── Sub Navigation Tab Bar ────────────────────────────────────────── */}
-      <div className="bg-white border-b border-slate-200 px-4 sm:px-6 h-14 flex items-center justify-between shadow-xs flex-shrink-0 z-20">
-        <div className="flex items-center gap-1 sm:gap-2">
+      {/* ── Segmented Navigation Subheader ─────────────────────────────────── */}
+      <div
+        style={{
+          background: '#ffffff',
+          borderBottom: '1px solid #e2e8f0',
+          padding: '0 24px',
+          minHeight: 56,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexShrink: 0,
+          zIndex: 20,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+        }}
+      >
+        {/* Left: Section Segment Control */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {tab === 'chat' && (
             <button
               onClick={() => setSidebarOpen((v) => !v)}
-              className="p-2 text-slate-500 hover:text-[#0b1f3a] hover:bg-slate-100 rounded-lg transition-colors mr-1 cursor-pointer"
-              title={sidebarOpen ? 'Hide history sidebar' : 'Show history sidebar'}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '7px 14px',
+                borderRadius: 10,
+                border: '1px solid',
+                borderColor: sidebarOpen ? '#0b1f3a' : '#cbd5e1',
+                background: sidebarOpen ? '#0b1f3a' : '#ffffff',
+                color: sidebarOpen ? '#ffffff' : '#334155',
+                fontSize: 12.5,
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 150ms ease',
+              }}
             >
-              {sidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
+              <History size={14} color={sidebarOpen ? '#fbbf24' : '#e87722'} />
+              <span>Past Chats</span>
             </button>
           )}
 
-          {TABS.map(({ id, label, Icon }) => {
-            const active = tab === id;
-            return (
-              <button
-                key={id}
-                onClick={() => setTab(id)}
-                className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
-                  active
-                    ? 'bg-[#0b1f3a] text-white shadow-sm'
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                }`}
-              >
-                <Icon className={`w-4 h-4 ${active ? 'text-amber-400' : 'text-slate-400'}`} />
-                <span>{label}</span>
-              </button>
-            );
-          })}
+          <div style={{ display: 'flex', alignItems: 'center', background: '#f1f5f9', padding: '3px', borderRadius: 10 }}>
+            {TABS.map(({ id, label, Icon }) => {
+              const active = tab === id;
+              return (
+                <button
+                  key={id}
+                  onClick={() => setTab(id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '6px 14px',
+                    borderRadius: 8,
+                    fontSize: 12.5,
+                    fontWeight: active ? 700 : 500,
+                    border: 'none',
+                    background: active ? '#ffffff' : 'transparent',
+                    color: active ? '#0b1f3a' : '#64748b',
+                    boxShadow: active ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
+                    cursor: 'pointer',
+                    transition: 'all 150ms ease',
+                  }}
+                >
+                  <Icon size={14} color={active ? '#e87722' : '#94a3b8'} />
+                  <span>{label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Right Tools in Bar */}
-        <div className="flex items-center gap-3">
+        {/* Right: Actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {tab === 'chat' && (
             <>
-              {/* Progress pill button */}
               <button
                 onClick={() => setJourneyOpen((v) => !v)}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
-                  journeyOpen
-                    ? 'bg-amber-50 border-amber-300 text-amber-900'
-                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                }`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '7px 14px',
+                  borderRadius: 10,
+                  border: '1px solid',
+                  borderColor: journeyOpen ? '#fed7aa' : '#e2e8f0',
+                  background: journeyOpen ? '#fff7ed' : '#ffffff',
+                  color: journeyOpen ? '#9a3412' : '#475569',
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
               >
-                <ClipboardList className="w-3.5 h-3.5 text-amber-600" />
-                <span className="hidden sm:inline">Progress:</span>
-                <span className="font-bold text-amber-700">{progressPct}%</span>
-                {journeyOpen ? <PanelRightClose className="w-3.5 h-3.5" /> : <PanelRightOpen className="w-3.5 h-3.5" />}
+                <ClipboardList size={14} color="#ea580c" />
+                <span>Checklist: <strong style={{ color: '#c2410c' }}>{progressPct}%</strong></span>
               </button>
 
               <button
                 onClick={handleNewChat}
-                className="bg-[#0b1f3a] hover:bg-[#132e54] text-white text-xs font-bold px-3 sm:px-4 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '7px 14px',
+                  borderRadius: 10,
+                  border: 'none',
+                  background: '#0b1f3a',
+                  color: '#ffffff',
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 6px rgba(11,31,58,0.18)',
+                }}
               >
-                <Plus className="w-3.5 h-3.5 text-amber-400" />
-                <span>New Session</span>
+                <Plus size={14} color="#fbbf24" />
+                <span>New Chat</span>
               </button>
             </>
           )}
@@ -183,27 +237,37 @@ function ChatPage() {
       {/* ── Main Workspace Body ───────────────────────────────────────────── */}
       <div className="flex-1 flex overflow-hidden relative">
         
-        {/* Collapsible Left Sidebar */}
+        {/* Sliding Left History Drawer */}
         {tab === 'chat' && sidebarOpen && (
-          <div className="w-64 sm:w-72 border-r border-slate-200 bg-white flex-shrink-0 flex flex-col z-10 animate-slide-left shadow-sm">
+          <div className="absolute inset-y-0 left-0 z-30 w-72 sm:w-80 shadow-2xl animate-slide-left">
             <Sidebar
               token={token}
               currentChatId={chatId}
               refreshSignal={refreshSignal}
               onSelectChat={handleChatSelect}
               onNewChat={handleNewChat}
+              onClose={() => setSidebarOpen(false)}
             />
           </div>
         )}
 
+        {/* Backdrop for Sidebar */}
+        {sidebarOpen && (
+          <div
+            onClick={() => setSidebarOpen(false)}
+            className="absolute inset-0 bg-slate-900/30 backdrop-blur-xs z-20 transition-opacity"
+          />
+        )}
+
         {/* Central Workspace Canvas */}
-        <main className="flex-1 flex flex-col overflow-hidden bg-slate-50 min-w-0">
+        <main className="flex-1 flex flex-col overflow-hidden bg-slate-50 w-full min-w-0">
           {tab === 'chat' && (
             <ChatInterface
               chatId={chatId}
               token={token}
               onChatCreated={handleChatCreated}
               initialMessages={initialMessages}
+              initialQuery={queryParam}
             />
           )}
 
@@ -220,73 +284,161 @@ function ChatPage() {
           )}
         </main>
 
-        {/* Collapsible Right Journey Panel */}
+        {/* Sliding Right Journey Drawer */}
         {tab === 'chat' && journeyOpen && (
-          <aside className="w-72 sm:w-80 border-l border-slate-200 bg-white flex-shrink-0 flex flex-col z-10 animate-slide-right shadow-sm p-5 space-y-6 overflow-y-auto">
-            
+          <aside
+            style={{
+              position: 'absolute',
+              insetBlock: 0,
+              right: 0,
+              zIndex: 30,
+              width: 350,
+              background: '#ffffff',
+              borderLeft: '1.5px solid #e2e8f0',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '-4px 0 24px rgba(11, 31, 58, 0.1)',
+            }}
+            className="animate-slide-right"
+          >
             {/* Header */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <ClipboardList className="w-4 h-4 text-[#0b1f3a]" />
-                  <h3 className="text-sm font-bold text-slate-900">Application Checklist</h3>
-                </div>
-                <span className="text-xs font-extrabold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                  {progressPct}% Done
-                </span>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+            <div
+              style={{
+                padding: '16px 20px',
+                borderBottom: '1px solid #e2e8f0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: '#f8fafc',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div
-                  className="h-full bg-gradient-to-r from-amber-500 to-emerald-500 rounded-full transition-all duration-500"
-                  style={{ width: `${progressPct}%` }}
-                />
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
+                    background: '#eff6ff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#1e40af',
+                  }}
+                >
+                  <ClipboardList size={16} />
+                </div>
+                <h3 style={{ fontSize: 14.5, fontWeight: 800, color: '#0b1f3a', margin: 0 }}>
+                  Application Checklist
+                </h3>
               </div>
+              <button
+                onClick={() => setJourneyOpen(false)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#64748b',
+                  padding: '6px',
+                  borderRadius: 8,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <X size={16} />
+              </button>
             </div>
 
-            {/* Checklist Items */}
-            <div className="space-y-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                Steps to Follow
-              </span>
-              {JOURNEY_STEPS.map((step) => {
-                const isDone = journeyDone[step.key];
-                return (
+            <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+              {/* Progress Box */}
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, #0b1f3a, #16345d)',
+                  borderRadius: 16,
+                  padding: '16px 18px',
+                  color: '#ffffff',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 10,
+                  boxShadow: '0 4px 12px rgba(11,31,58,0.15)',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12.5, fontWeight: 700 }}>
+                  <span style={{ color: 'rgba(255,255,255,0.8)' }}>Application Progress</span>
+                  <span style={{ color: '#fbbf24', fontSize: 14, fontWeight: 900 }}>{progressPct}% Done</span>
+                </div>
+                <div style={{ height: 8, width: '100%', background: 'rgba(255,255,255,0.2)', borderRadius: 4, overflow: 'hidden' }}>
                   <div
-                    key={step.key}
-                    onClick={() => markStep(step.key)}
-                    className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
-                      isDone
-                        ? 'bg-emerald-50/70 border-emerald-200 text-emerald-900'
-                        : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      {isDone ? (
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                      ) : (
-                        <Circle className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                      )}
-                      <span className={`text-xs font-semibold ${isDone ? 'line-through opacity-75' : ''}`}>
-                        {step.label}
-                      </span>
-                    </div>
-                    <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Quick Guidance Tip */}
-            <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-4 space-y-2">
-              <div className="flex items-center gap-2 text-amber-800">
-                <Lightbulb className="w-4 h-4 text-amber-600 flex-shrink-0" />
-                <span className="text-xs font-bold">Pro Tip</span>
+                    style={{
+                      height: '100%',
+                      width: `${progressPct}%`,
+                      background: 'linear-gradient(90deg, #fbbf24, #34d399)',
+                      borderRadius: 4,
+                      transition: 'width 400ms ease',
+                    }}
+                  />
+                </div>
               </div>
-              <p className="text-[11px] text-amber-900 leading-relaxed">
-                Mentioning your annual family income (e.g. ₹2.5L) and required amount helps the AI filter out ineligible schemes instantly.
-              </p>
+
+              {/* Checklist Items */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#94a3b8', paddingLeft: 4 }}>
+                  Steps to Follow
+                </span>
+                {JOURNEY_STEPS.map((step) => {
+                  const isDone = journeyDone[step.key];
+                  return (
+                    <div
+                      key={step.key}
+                      onClick={() => markStep(step.key)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '12px 14px',
+                        borderRadius: 12,
+                        cursor: 'pointer',
+                        background: isDone ? '#ecfdf5' : '#f8fafc',
+                        border: isDone ? '1.5px solid #a7f3d0' : '1px solid #e2e8f0',
+                        color: isDone ? '#065f46' : '#334155',
+                        transition: 'all 150ms ease',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        {isDone ? (
+                          <CheckCircle2 size={16} color="#059669" style={{ flexShrink: 0 }} />
+                        ) : (
+                          <Circle size={16} color="#cbd5e1" style={{ flexShrink: 0 }} />
+                        )}
+                        <span style={{ fontSize: 13, fontWeight: isDone ? 700 : 500, textDecoration: isDone ? 'line-through' : 'none' }}>
+                          {step.label}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Pro Tip Box */}
+              <div
+                style={{
+                  background: '#fff7ed',
+                  border: '1px solid #fed7aa',
+                  borderRadius: 14,
+                  padding: '16px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 6,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#9a3412', fontSize: 12.5, fontWeight: 800 }}>
+                  <Lightbulb size={15} color="#ea580c" />
+                  <span>Beneficiary Guidance</span>
+                </div>
+                <p style={{ fontSize: 12, color: '#7c2d12', lineHeight: 1.55, margin: 0 }}>
+                  State Channelizing Agencies (SCAs) disburse up to ₹50 Lakh. Microfinance partners handle quick loans up to ₹1.4 Lakh.
+                </p>
+              </div>
             </div>
           </aside>
         )}

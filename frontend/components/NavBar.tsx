@@ -3,29 +3,34 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Globe, ChevronDown, Menu, X, Landmark, Bot, Layers, MapPin, ShieldCheck, User } from 'lucide-react';
+import {
+  Globe,
+  ChevronDown,
+  Menu,
+  X,
+  Landmark,
+  Bot,
+  Layers,
+  MapPin,
+  User,
+} from 'lucide-react';
 import type { UserProfile } from '@/lib/api';
+import { useLanguage } from '@/context/LanguageContext';
+import type { Language } from '@/lib/translations';
 
-const NAV_LINKS = [
-  { label: 'Explore Schemes', href: '/schemes', icon: Layers },
-  { label: 'AI Assistant', href: '/chat', icon: Bot },
-  { label: 'Partner Locator', href: '/partners', icon: MapPin },
-  { label: 'Admin Portal', href: '/admin', icon: ShieldCheck },
-];
-
-const LANGS = [
-  { code: 'en', label: 'English' },
-  { code: 'hi', label: 'हिंदी (Hindi)' },
-  { code: 'mr', label: 'मराठी (Marathi)' },
+const LANGS: { code: Language; label: string; name: string }[] = [
+  { code: 'en', label: 'English', name: 'English' },
+  { code: 'hi', label: 'हिंदी (Hindi)', name: 'हिंदी' },
+  { code: 'mr', label: 'मराठी (Marathi)', name: 'मराठी' },
 ];
 
 export default function NavBar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { lang, setLang, t } = useLanguage();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
-  const [currentLang, setCurrentLang] = useState('English');
 
   useEffect(() => {
     const u = localStorage.getItem('auth_user');
@@ -54,159 +59,295 @@ export default function NavBar() {
   const isActive = (href: string) =>
     pathname === href || (href !== '/' && pathname.startsWith(href));
 
+  const currentLangObj = LANGS.find((l) => l.code === lang) || LANGS[0];
+
+  const navLinks = [
+    { label: t('nav.schemes', 'Explore Schemes'), href: '/schemes', icon: Layers },
+    { label: t('nav.chat', 'AI Assistant'),       href: '/chat',    icon: Bot },
+    { label: t('nav.partners', 'Partner Locator'), href: '/partners', icon: MapPin },
+  ];
+
   return (
-    <header className="sticky top-0 z-50 bg-[#0b1f3a] text-white border-b border-white/10 shadow-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
-        
-        {/* Brand Logo */}
+    <header
+      style={{
+        background: '#0b1f3a',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 50,
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+        width: '100%',
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 1200,
+          margin: '0 auto',
+          padding: '0 24px',
+          height: 72,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
+        {/* ── Brand Logo (Left) ────────────────────────────────────────────── */}
         <Link
           href="/"
-          className="flex items-center gap-3.5 group text-decoration-none py-2"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            textDecoration: 'none',
+          }}
         >
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-white/20 to-white/5 border border-white/20 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform">
-            <Landmark className="w-5 h-5 text-amber-400" />
+          <div
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: 12,
+              background: 'linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0.05))',
+              border: '1px solid rgba(255,255,255,0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#fbbf24',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            }}
+          >
+            <Landmark size={20} />
           </div>
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2">
-              <span className="font-extrabold text-base tracking-tight text-white group-hover:text-amber-300 transition-colors">
-                Pradarshak AI
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 18, fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em' }}>
+                {t('brand.name', 'Pradarshak AI')}
               </span>
-              <span className="hidden sm:inline-block text-[10px] uppercase font-bold tracking-widest bg-amber-500/20 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 rounded">
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  background: 'rgba(251, 191, 36, 0.2)',
+                  border: '1px solid rgba(251, 191, 36, 0.35)',
+                  color: '#fbbf24',
+                  padding: '2px 6px',
+                  borderRadius: 4,
+                }}
+              >
                 SIH • NSFDC
               </span>
             </div>
-            <span className="text-[11px] text-slate-300 tracking-wide font-normal">
-              Channel Finance &amp; Concessional Loans
+            <span style={{ fontSize: 11.5, color: '#94a3b8', fontWeight: 500, letterSpacing: '0.01em' }}>
+              {t('brand.subtitle', 'Channel Finance & Concessional Loans')}
             </span>
           </div>
         </Link>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-1 lg:gap-2">
-          {NAV_LINKS.map(({ label, href, icon: Icon }) => {
+        {/* ── Desktop Navigation Links (Center) ────────────────────────────── */}
+        <nav style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {navLinks.map(({ label, href, icon: Icon }) => {
             const active = isActive(href);
             return (
               <Link
-                key={label}
+                key={href}
                 href={href}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs lg:text-sm font-medium transition-all ${
-                  active
-                    ? 'bg-white/15 text-white font-semibold shadow-sm'
-                    : 'text-slate-200 hover:bg-white/10 hover:text-white'
-                }`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '8px 16px',
+                  borderRadius: 10,
+                  fontSize: 14,
+                  fontWeight: active ? 700 : 500,
+                  textDecoration: 'none',
+                  color: active ? '#ffffff' : '#cbd5e1',
+                  background: active ? 'rgba(255, 255, 255, 0.14)' : 'transparent',
+                  border: active ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid transparent',
+                  boxShadow: active ? '0 2px 8px rgba(0, 0, 0, 0.12)' : 'none',
+                  transition: 'all 150ms ease',
+                }}
+                onMouseEnter={(e) => {
+                  if (!active) {
+                    (e.currentTarget as HTMLElement).style.background = 'rgba(255, 255, 255, 0.08)';
+                    (e.currentTarget as HTMLElement).style.color = '#ffffff';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!active) {
+                    (e.currentTarget as HTMLElement).style.background = 'transparent';
+                    (e.currentTarget as HTMLElement).style.color = '#cbd5e1';
+                  }
+                }}
               >
-                <Icon className={`w-4 h-4 ${active ? 'text-amber-400' : 'text-slate-400'}`} />
-                {label}
+                <Icon size={16} color={active ? '#fbbf24' : '#94a3b8'} />
+                <span>{label}</span>
               </Link>
             );
           })}
         </nav>
 
-        {/* Right Action Tools */}
-        <div className="flex items-center gap-3">
+        {/* ── Right Controls: Language & Sign In ───────────────────────────── */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           
-          {/* Language Selector */}
-          <div className="relative" onClick={(e) => e.stopPropagation()}>
+          {/* Language Dropdown */}
+          <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => setLangOpen((v) => !v)}
-              className="flex items-center gap-1.5 bg-white/10 hover:bg-white/15 border border-white/15 text-slate-200 text-xs font-medium px-3 py-2 rounded-lg transition-colors cursor-pointer"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '8px 14px',
+                borderRadius: 10,
+                background: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                color: '#e2e8f0',
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 150ms ease',
+              }}
             >
-              <Globe className="w-3.5 h-3.5 text-amber-400" />
-              <span>{currentLang}</span>
-              <ChevronDown
-                className={`w-3 h-3 transition-transform duration-200 ${
-                  langOpen ? 'rotate-180' : ''
-                }`}
-              />
+              <Globe size={15} color="#fbbf24" />
+              <span>{currentLangObj.name}</span>
+              <ChevronDown size={13} style={{ transform: langOpen ? 'rotate(180deg)' : 'none', transition: 'transform 200ms' }} />
             </button>
 
             {langOpen && (
-              <div className="absolute right-0 mt-2 w-44 bg-white text-slate-800 rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 animate-scale-in">
-                <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 mb-1">
-                  Select Language
+              <div
+                style={{
+                  position: 'absolute',
+                  right: 0,
+                  marginTop: 8,
+                  width: 170,
+                  background: '#ffffff',
+                  color: '#0f172a',
+                  borderRadius: 14,
+                  boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+                  border: '1px solid #e2e8f0',
+                  padding: '6px',
+                  zIndex: 100,
+                }}
+              >
+                <div style={{ padding: '6px 10px', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', borderBottom: '1px solid #f1f5f9', marginBottom: 4 }}>
+                  {t('nav.select_lang', 'Select Language')}
                 </div>
-                {LANGS.map((l) => (
-                  <button
-                    key={l.code}
-                    onClick={() => {
-                      setCurrentLang(l.label.split(' ')[0]);
-                      setLangOpen(false);
-                    }}
-                    className={`w-full text-left px-3.5 py-2 text-xs transition-colors flex items-center justify-between cursor-pointer ${
-                      currentLang.startsWith(l.label.split(' ')[0])
-                        ? 'bg-blue-50 text-blue-800 font-semibold'
-                        : 'hover:bg-slate-50 text-slate-700'
-                    }`}
-                  >
-                    <span>{l.label}</span>
-                    {currentLang.startsWith(l.label.split(' ')[0]) && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
-                    )}
-                  </button>
-                ))}
+                {LANGS.map((l) => {
+                  const isCurrent = lang === l.code;
+                  return (
+                    <button
+                      key={l.code}
+                      onClick={() => {
+                        setLang(l.code);
+                        setLangOpen(false);
+                      }}
+                      style={{
+                        width: '100%',
+                        textAlign: 'left',
+                        padding: '8px 10px',
+                        fontSize: 13,
+                        fontWeight: isCurrent ? 700 : 500,
+                        borderRadius: 8,
+                        border: 'none',
+                        background: isCurrent ? '#eef3f9' : 'transparent',
+                        color: isCurrent ? '#0b1f3a' : '#334155',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <span>{l.label}</span>
+                      {isCurrent && (
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#0b1f3a' }} />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
 
-          {/* User Profile / Auth */}
+          {/* User Profile or Sign In */}
           {user ? (
-            <div className="flex items-center gap-2">
-              <div className="hidden sm:flex items-center gap-2 bg-white/10 border border-white/15 px-3 py-1.5 rounded-lg">
-                <User className="w-3.5 h-3.5 text-amber-400" />
-                <span className="text-xs text-white font-medium max-w-[120px] truncate">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.18)',
+                  padding: '6px 12px',
+                  borderRadius: 10,
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  color: '#ffffff',
+                }}
+              >
+                <User size={14} color="#fbbf24" />
+                <span style={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {user.name || user.email.split('@')[0]}
                 </span>
               </div>
+
               <button
                 onClick={logout}
-                className="bg-white/10 hover:bg-red-500/20 hover:text-red-300 border border-white/15 text-slate-200 text-xs font-semibold px-3 py-2 rounded-lg transition-colors cursor-pointer"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  color: '#f87171',
+                  padding: '7px 12px',
+                  borderRadius: 10,
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+                title="Sign out"
               >
-                Sign Out
+                {t('nav.signout', 'Sign Out')}
               </button>
             </div>
           ) : (
             <Link
               href="/auth"
-              className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white text-xs lg:text-sm font-bold px-4 py-2 rounded-lg shadow-sm hover:shadow transition-all"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '9px 20px',
+                borderRadius: 10,
+                background: '#e87722',
+                color: '#ffffff',
+                fontSize: 13.5,
+                fontWeight: 700,
+                textDecoration: 'none',
+                boxShadow: '0 2px 10px rgba(232, 119, 34, 0.35)',
+                transition: 'all 150ms ease',
+              }}
             >
-              Sign In
+              {t('nav.signin', 'Sign In')}
             </Link>
           )}
 
-          {/* Mobile Menu Toggle */}
+          {/* Mobile Menu Trigger */}
           <button
             onClick={() => setMobileOpen((v) => !v)}
-            className="md:hidden p-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
-            aria-label="Toggle navigation menu"
+            style={{
+              display: 'none',
+              background: 'rgba(255,255,255,0.1)',
+              border: 'none',
+              borderRadius: 8,
+              color: '#ffffff',
+              padding: 8,
+              cursor: 'pointer',
+            }}
           >
-            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {mobileOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
       </div>
-
-      {/* Mobile Drawer */}
-      {mobileOpen && (
-        <div className="md:hidden bg-[#071426] border-t border-white/10 px-4 pt-3 pb-4 space-y-1.5 animate-fade-in">
-          {NAV_LINKS.map(({ label, href, icon: Icon }) => {
-            const active = isActive(href);
-            return (
-              <Link
-                key={label}
-                href={href}
-                onClick={() => setMobileOpen(false)}
-                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  active
-                    ? 'bg-white/15 text-white font-semibold'
-                    : 'text-slate-300 hover:bg-white/10 hover:text-white'
-                }`}
-              >
-                <Icon className={`w-4 h-4 ${active ? 'text-amber-400' : 'text-slate-400'}`} />
-                {label}
-              </Link>
-            );
-          })}
-        </div>
-      )}
     </header>
   );
 }

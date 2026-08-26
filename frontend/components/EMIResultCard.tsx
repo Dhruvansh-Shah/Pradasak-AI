@@ -1,75 +1,123 @@
 'use client';
 
-import { Calculator, Calendar, Percent, ShieldAlert } from 'lucide-react';
+import { Calculator, Calendar, Percent } from 'lucide-react';
 
 interface EMIData {
-  emi: number;
-  totalPayable: number;
-  totalInterest: number;
-  params: { principal: number; rate: number; tenureMonths: number; moratoriumMonths: number };
+  emi?: number;
+  totalPayable?: number;
+  totalInterest?: number;
+  params?: { principal?: number; rate?: number; tenureMonths?: number; moratoriumMonths?: number };
   schemeName?: string;
 }
 
-function fmt(n: number) {
-  return '₹' + n.toLocaleString('en-IN');
+function fmt(n: number | string | null | undefined): string {
+  if (n === null || n === undefined || isNaN(Number(n))) return '₹0';
+  return '₹' + Number(n).toLocaleString('en-IN');
 }
 
 export default function EMIResultCard({ data }: { data: EMIData }) {
-  const { emi, totalPayable, totalInterest, params } = data;
-  const interestPct = totalPayable > 0 ? Math.round((totalInterest / totalPayable) * 100) : 0;
+  if (!data) return null;
+
+  const emi = data.emi ?? 0;
+  const totalPayable = data.totalPayable ?? 0;
+  const totalInterest = data.totalInterest ?? 0;
+  const params = data.params || {};
+  const principal = params.principal ?? 0;
+  const rate = params.rate ?? 0;
+  const tenureMonths = params.tenureMonths ?? 0;
+  const moratoriumMonths = params.moratoriumMonths ?? 0;
 
   return (
-    <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
-      
+    <div
+      style={{
+        background: '#ffffff',
+        border: '1.5px solid #e2e8f0',
+        borderRadius: 18,
+        padding: '22px 24px',
+        boxShadow: '0 2px 10px rgba(11,31,58,0.04)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 16,
+        width: '100%',
+      }}
+    >
       {data.schemeName && (
-        <div className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wider">
-          <Calculator className="w-3.5 h-3.5 text-amber-600" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          <Calculator size={15} color="#ea580c" />
           <span>Calculated EMI for: {data.schemeName}</span>
         </div>
       )}
 
       {/* Hero Highlight */}
-      <div className="bg-gradient-to-br from-[#0b1f3a] to-[#16345d] text-white rounded-2xl p-5 text-center shadow-md space-y-1">
-        <div className="text-xs text-slate-300 font-medium">Estimated Monthly Instalment</div>
-        <div className="text-3xl sm:text-4xl font-black text-amber-400 tracking-tight">
+      <div
+        style={{
+          background: 'linear-gradient(135deg, #0b1f3a, #16345d)',
+          color: '#ffffff',
+          borderRadius: 16,
+          padding: '20px',
+          textAlign: 'center',
+          boxShadow: '0 4px 16px rgba(11,31,58,0.18)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 4,
+        }}
+      >
+        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: 500 }}>
+          Estimated Monthly Instalment
+        </span>
+        <div style={{ fontSize: 34, fontWeight: 900, color: '#fbbf24', letterSpacing: '-0.02em' }}>
           {fmt(emi)}
         </div>
-        <div className="text-[11px] text-slate-400">per month after moratorium period</div>
+        <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.6)' }}>
+          per month after moratorium grace period
+        </span>
       </div>
 
       {/* Breakdown Grid */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-3">
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
-          <div className="text-[10px] uppercase font-bold text-slate-400 mb-1">Principal</div>
-          <div className="text-xs sm:text-sm font-extrabold text-slate-900">{fmt(params.principal)}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
+          <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', display: 'block', marginBottom: 2 }}>
+            Principal
+          </span>
+          <strong style={{ fontSize: 14, fontWeight: 800, color: '#0f172a' }}>
+            {fmt(principal)}
+          </strong>
         </div>
 
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
-          <div className="text-[10px] uppercase font-bold text-slate-400 mb-1">Total Interest</div>
-          <div className="text-xs sm:text-sm font-extrabold text-red-600">{fmt(totalInterest)}</div>
+        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
+          <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', display: 'block', marginBottom: 2 }}>
+            Total Interest
+          </span>
+          <strong style={{ fontSize: 14, fontWeight: 800, color: '#c2410c' }}>
+            {fmt(totalInterest)}
+          </strong>
         </div>
 
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
-          <div className="text-[10px] uppercase font-bold text-slate-400 mb-1">Total Outflow</div>
-          <div className="text-xs sm:text-sm font-extrabold text-[#0b1f3a]">{fmt(totalPayable)}</div>
+        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
+          <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', display: 'block', marginBottom: 2 }}>
+            Total Outflow
+          </span>
+          <strong style={{ fontSize: 14, fontWeight: 800, color: '#15803d' }}>
+            {fmt(totalPayable)}
+          </strong>
         </div>
       </div>
 
-      {/* Terms Info Bar */}
-      <div className="bg-blue-50/70 border border-blue-100 rounded-xl p-3 text-xs text-blue-900 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 font-semibold">
-          <Percent className="w-3.5 h-3.5 text-blue-600" />
-          <span>{params.rate}% p.a.</span>
+      {/* Terms Bar */}
+      <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 12, padding: '10px 14px', fontSize: 12, color: '#1e40af', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
+          <Percent size={14} color="#2563eb" />
+          <span>{rate}% per annum</span>
         </div>
 
-        <div className="flex items-center gap-1.5 font-semibold">
-          <Calendar className="w-3.5 h-3.5 text-blue-600" />
-          <span>{params.tenureMonths} Months Total</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
+          <Calendar size={14} color="#2563eb" />
+          <span>{tenureMonths} Months Total</span>
         </div>
 
-        {params.moratoriumMonths > 0 && (
-          <div className="font-semibold text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded">
-            {params.moratoriumMonths} Mo Moratorium
+        {moratoriumMonths > 0 && (
+          <div style={{ fontWeight: 700, color: '#9a3412', background: '#ffedd5', padding: '2px 8px', borderRadius: 6 }}>
+            {moratoriumMonths} Mo Moratorium
           </div>
         )}
       </div>

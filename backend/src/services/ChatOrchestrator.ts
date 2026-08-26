@@ -21,7 +21,7 @@ function calcEMI(principal: number, annualRate: number, tenureMonths: number): n
 export interface QuickAction {
   label: string;
   labelHi: string;
-  message: string; // what to send to /api/chat when clicked
+  message: string;
 }
 
 export interface ChatApiResponse {
@@ -38,20 +38,39 @@ export interface ChatApiResponse {
 // ── Disclaimer ────────────────────────────────────────────────────────────────
 
 const DISCLAIMER: Record<Language, string> = {
-  en: 'This recommendation is based on the information you provided. Final eligibility, sanction and disbursement are subject to verification by the authorized Channel Partner.',
-  hi: 'यह सिफारिश आपके द्वारा प्रदान की गई जानकारी पर आधारित है। अंतिम पात्रता, स्वीकृति और वितरण अधिकृत चैनल पार्टनर द्वारा सत्यापन के अधीन है।',
-  mr: 'ही शिफारस आपण दिलेल्या माहितीवर आधारित आहे. अंतिम पात्रता, मंजुरी आणि वितरण अधिकृत चॅनेल पार्टनरच्या सत्यापनाच्या अधीन आहे.',
-  unknown: 'This recommendation is based on the information you provided and the scheme data available in the system.',
+  en: 'Official NSFDC Concessional Scheme Guidelines. Final eligibility and sanction are subject to document verification by the authorized Channel Partner.',
+  hi: 'आधिकारिक NSFDC रियायती योजना दिशानिर्देश। अंतिम पात्रता और ऋण स्वीकृति अधिकृत चैनल पार्टनर द्वारा दस्तावेज सत्यापन के अधीन है।',
+  mr: 'अधिकृत NSFDC सवलत योजना मार्गदर्शक तत्त्वे. अंतिम पात्रता आणि कर्ज मंजुरी अधिकृत चॅनेल भागीदाराद्वारे कागदपत्र पडताळणीच्या अधीन आहे.',
+  unknown: 'Official NSFDC Concessional Scheme Guidelines.',
 };
 
 // ── LLM response generator ────────────────────────────────────────────────────
 
-async function llmReply(prompt: string, language: Language, maxTokens = 512): Promise<string> {
-  const langInstr = language === 'hi' ? 'Respond in Hindi.' :
-    language === 'mr' ? 'Respond in Marathi.' : 'Respond in English.';
+async function llmReply(
+  prompt: string,
+  language: Language,
+  userGoalContext?: string,
+  maxTokens = 1024
+): Promise<string> {
+  const langInstr =
+    language === 'hi'
+      ? 'Respond fluently and warmly in Hindi (Devanagari script).'
+      : language === 'mr'
+      ? 'Respond fluently and warmly in Marathi (Devanagari script).'
+      : 'Respond in professional, warm, and conversational English.';
+
+  const systemPrompt = `You are the AI Financial Advisor for Pradarshak AI (National Scheduled Castes Finance and Development Corporation - NSFDC, Govt. of India).
+Your goal is to help Scheduled Caste beneficiaries find subsidized loan schemes, understand repayment EMIs, and connect with channel partners.
+
+Key Guidelines:
+1. Warmth & Encouragement: If the user shares a business idea or educational aspiration, warmly acknowledge and encourage their ambition.
+2. Accuracy & Grounding: Use ONLY the exact numbers, interest rates, and loan limits provided in the prompt. Never invent scheme parameters.
+3. No Fake Assumptions: If the user has not logged in or provided their income/amount, DO NOT say "Based on your profile" or "You are eligible". Instead, say "Based on your requirement..." or "For this purpose...".
+4. Interactive Counter-Questions: If key details (loan amount needed, annual family income, or city/location) are missing, ask friendly follow-up questions to help narrow down the exact eligibility.
+5. ${langInstr}`.trim();
 
   return llmCall({
-    systemPrompt: `You are a helpful, warm financial advisor for Indian SC beneficiaries seeking government loan schemes. Be concise. ${langInstr}`,
+    systemPrompt,
     userMessage: prompt,
     maxTokens,
   });
@@ -61,10 +80,10 @@ async function llmReply(prompt: string, language: Language, maxTokens = 512): Pr
 
 async function handleGreeting(session: Session): Promise<ChatApiResponse> {
   const msgs: Record<Language, string> = {
-    en: "Hello! I'm here to help you find the right government loan scheme for Scheduled Caste beneficiaries. You can ask me about:\n\n• Loan schemes for business or education\n• EMI calculation\n• Nearest Channel Partners\n• Eligibility and required documents\n\nHow can I assist you today?",
-    hi: "नमस्ते! मैं अनुसूचित जाति लाभार्थियों के लिए सही सरकारी ऋण योजना खोजने में आपकी मदद करने के लिए यहाँ हूँ। आप मुझसे पूछ सकते हैं:\n\n• व्यवसाय या शिक्षा के लिए ऋण योजनाएं\n• EMI गणना\n• नजदीकी चैनल पार्टनर\n• पात्रता और आवश्यक दस्तावेज\n\nआज मैं आपकी कैसे सहायता कर सकता हूँ?",
-    mr: "नमस्कार! अनुसूचित जातीच्या लाभार्थ्यांसाठी योग्य सरकारी कर्ज योजना शोधण्यासाठी मी येथे आहे. तुम्ही मला विचारू शकता:\n\n• व्यवसाय किंवा शिक्षणासाठी कर्ज योजना\n• EMI गणना\n• जवळचे चॅनेल पार्टनर\n• पात्रता आणि आवश्यक कागदपत्रे\n\nआज मी तुम्हाला कशी मदत करू शकतो?",
-    unknown: "Hello! I'm here to help you find the right government loan scheme for SC beneficiaries. How can I assist you?",
+    en: "Namaste! I am your Pradarshak AI Advisor for NSFDC concessional loans. I can help you with:\n\n• Finding the right loan scheme for your business or education\n• Calculating subsidized EMIs with moratorium support\n• Locating authorized Channel Partners (SCAs, RRBs, Banks) near you\n• Explaining eligibility rules & document requirements\n\nTell me about your business idea, study plan, or required loan amount to get started!",
+    hi: "नमस्ते! मैं NSFDC रियायती ऋणों के लिए आपका प्रदर्शक AI सलाहकार हूँ। मैं आपकी सहायता कर सकता हूँ:\n\n• आपके व्यवसाय या उच्च शिक्षा के लिए सही ऋण योजना खोजने में\n• मोरेटोरियम (छूट अवधि) के साथ सब्सिडी युक्त EMI की गणना में\n• आपके निकटतम अधिकृत चैनल पार्टनर (राज्य एजेंसी, ग्रामीण बैंक) खोजने में\n• पात्रता नियमों और आवश्यक दस्तावेजों की जानकारी देने में\n\nशुरुआत करने के लिए अपने व्यावसायिक विचार, शिक्षा योजना या आवश्यक ऋण राशि के बारे में बताएं!",
+    mr: "नमस्कार! मी NSFDC सवलतीच्या कर्जांसाठी तुमचा प्रदर्शक AI सल्लागार आहे. मी तुम्हाला पुढील बाबींमध्ये मदत करू शकतो:\n\n• तुमच्या व्यवसायासाठी किंवा उच्च शिक्षणासाठी योग्य कर्ज योजना शोधणे\n• मोरेटोरियम सवलतीसह सबसिडीयुक्त EMI मोजणे\n• तुमच्या जवळचे अधिकृत चॅनेल भागीदार (SCA, ग्रामीण बँक) शोधणे\n• पात्रता नियम आणि आवश्यक कागदपत्रांची माहिती मिळवणे\n\nसुरुवात करण्यासाठी तुमची व्यवसाय कल्पना किंवा शैक्षणिक उद्दिष्टाबद्दल सांगा!",
+    unknown: "Namaste! I am your Pradarshak AI Advisor for NSFDC concessional loans. How can I assist your business or education venture today?",
   };
 
   return {
@@ -72,10 +91,10 @@ async function handleGreeting(session: Session): Promise<ChatApiResponse> {
     message: msgs[session.language] || msgs.en,
     type: 'text',
     quickActions: [
-      { label: 'Find a loan scheme', labelHi: 'ऋण योजना खोजें', message: 'I need a loan for my business' },
+      { label: 'Business loan scheme', labelHi: 'व्यवसाय ऋण योजना', message: 'I want to start a business' },
       { label: 'Education loan', labelHi: 'शिक्षा ऋण', message: 'I need an education loan' },
-      { label: 'Calculate EMI', labelHi: 'EMI गणना', message: 'Calculate EMI' },
-      { label: 'Find nearest partner', labelHi: 'नजदीकी पार्टनर', message: 'Where can I apply near me?' },
+      { label: 'Calculate EMI', labelHi: 'EMI गणना', message: 'Calculate EMI for ₹2 lakh at 5% for 3 years' },
+      { label: 'Find nearest partner', labelHi: 'नजदीकी पार्टनर', message: 'Where is the nearest channel partner branch?' },
     ],
     detectedLanguage: session.language,
     intent: 'greeting',
@@ -85,29 +104,12 @@ async function handleGreeting(session: Session): Promise<ChatApiResponse> {
 async function handleSchemeRecommendation(session: Session, categoryHint?: string): Promise<ChatApiResponse> {
   const { entities } = session;
 
-  // Ask for minimum information if we have nothing
-  if (!entities.loan_amount_rs && !entities.purpose && !entities.family_income_rs) {
-    const qs: Record<Language, string> = {
-      en: "I'd be happy to recommend the right loan scheme! Could you tell me:\n1. What is your approximate annual family income?\n2. What do you need the loan for (e.g. business, education, farming)?\n3. How much loan do you need?",
-      hi: "मैं सही ऋण योजना की सिफारिश करने के लिए खुश हूँगा! क्या आप बता सकते हैं:\n1. आपकी अनुमानित वार्षिक पारिवारिक आय क्या है?\n2. आप किस उद्देश्य के लिए ऋण लेना चाहते हैं?\n3. आपको कितने रुपये का ऋण चाहिए?",
-      mr: "मी योग्य कर्ज योजना सुचवण्यास आनंदी आहे! कृपया सांगा:\n1. तुमचे अंदाजे वार्षिक कौटुंबिक उत्पन्न किती आहे?\n2. कर्ज कशासाठी हवे आहे?\n3. किती रुपयांचे कर्ज हवे आहे?",
-      unknown: "To recommend the best scheme, please tell me your annual income, purpose, and required loan amount.",
-    };
-    return {
-      sessionId: session.id,
-      message: qs[session.language] || qs.en,
-      type: 'question',
-      detectedLanguage: session.language,
-      intent: 'scheme_recommendation',
-    };
-  }
-
-  // Run recommendation engine
+  // Run recommendation engine with entities
   const schemes = await recommendSchemes(entities, categoryHint);
 
   if (schemes.length === 0) {
     const msg = await llmReply(
-      `The user (income: ₹${entities.family_income_rs || 'unknown'}, purpose: ${entities.purpose || 'unknown'}, amount: ₹${entities.loan_amount_rs || 'unknown'}) found no matching schemes. Explain possible reasons kindly and suggest they visit the nearest NSFDC office.`,
+      `The user inquired about loan assistance. However, no direct scheme match was found for their criteria. Explain kindly and suggest they consider related NSFDC schemes or visit their state SC finance corporation.`,
       session.language
     );
     return {
@@ -125,24 +127,40 @@ async function handleSchemeRecommendation(session: Session, categoryHint?: strin
 
   const top = schemes[0];
 
-  // Generate grounded explanation using LLM
+  const hasIncome = Boolean(entities.family_income_rs);
+  const hasAmount = Boolean(entities.loan_amount_rs);
+  const hasLocation = Boolean(entities.location);
+
+  const missingQuestions: string[] = [];
+  if (!hasAmount) missingQuestions.push('estimated loan amount required');
+  if (!hasIncome) missingQuestions.push('annual family income (income limit is ≤ ₹5.00 Lakh/year)');
+  if (!hasLocation) missingQuestions.push('your city or district to locate the nearest partner branch');
+
   const prompt = `
-User profile: income=${entities.family_income_rs ? '₹' + entities.family_income_rs : 'unspecified'}, purpose=${entities.purpose || 'unspecified'}, loan_needed=${entities.loan_amount_rs ? '₹' + entities.loan_amount_rs : 'unspecified'}
+User Inquiry: "${session.conversationHistory[session.conversationHistory.length - 1]?.content || 'Loan inquiry'}"
+Recognized goal/purpose: ${entities.purpose || categoryHint || 'Self-employment / Education'}
+Known details: Loan required: ${entities.loan_amount_rs ? '₹' + entities.loan_amount_rs : 'Not specified yet'}, Family income: ${entities.family_income_rs ? '₹' + entities.family_income_rs : 'Not specified yet'}, Location: ${entities.location || 'Not specified yet'}
 
-Top recommended scheme: ${top.name}
-- Interest: ${top.interest_rate_min}%–${top.interest_rate_max}% p.a.
-- Max loan: ₹${(top.max_loan_lakh * 100000).toLocaleString('en-IN')} (₹${top.max_loan_lakh}L)
-- Income limit: ₹${top.max_income_lakh}L/year
-- Moratorium: ${top.moratorium_months_min}–${top.moratorium_months_max} months
-- Max tenure: ${top.max_tenure_months} months
-- Coverage: ${top.coverage_percent || 90}% of project cost
+Top Matching Official Scheme:
+- Scheme Name: ${top.name}
+- Category: ${top.category}
+- Subsidized Interest Rate: ${top.interest_rate_min}%–${top.interest_rate_max}% p.a.
+- Maximum Loan Limit: ₹${(top.max_loan_lakh * 100000).toLocaleString('en-IN')} (₹${top.max_loan_lakh} Lakh)
+- Annual Income Threshold: ≤ ₹${top.max_income_lakh} Lakh/year
+- Moratorium Grace Period: ${top.moratorium_months_min}–${top.moratorium_months_max} months
+- Maximum Repayment Tenure: ${top.max_tenure_months} months
+- Project Cost Coverage: ${top.coverage_percent || 90}%
 
-Match reasons: ${top.matchReasons.join('; ')}
+Missing user parameters to ask next: ${missingQuestions.join(', ') || 'None'}
 
-Write 2–3 sentences explaining why this scheme is recommended. Use ONLY the numbers above. Never invent rates or limits. End with: "You appear eligible based on your information — final verification will be done by the Channel Partner."
+Instructions:
+1. First, warmly appreciate their business idea, educational venture, or inquiry.
+2. Introduce the top matching scheme (**${top.name}**) and highlight its subsidized interest rate (${top.interest_rate_min}%–${top.interest_rate_max}%) and loan limit.
+3. ${missingQuestions.length > 0 ? `Politely ask 1-2 counter-questions for missing info (${missingQuestions.slice(0, 2).join(' and ')}) so we can check exact eligibility and calculate monthly EMIs.` : 'Mention they can proceed to calculate monthly EMIs or locate the nearest branch.'}
+4. DO NOT say "Based on your profile" if income/amount is unknown. Keep the response concise, encouraging, and clear.
   `.trim();
 
-  const explanation = await llmReply(prompt, session.language, 384);
+  const explanation = await llmReply(prompt, session.language, entities.purpose || undefined, 450);
 
   return {
     sessionId: session.id,
@@ -150,10 +168,10 @@ Write 2–3 sentences explaining why this scheme is recommended. Use ONLY the nu
     type: 'schemes',
     data: { schemes: schemes.slice(0, 3) },
     quickActions: [
-      { label: 'Calculate EMI', labelHi: 'EMI गणना', message: 'Calculate EMI for the recommended scheme' },
-      { label: 'Find nearest partner', labelHi: 'पार्टनर खोजें', message: 'Where can I apply for this?' },
-      { label: 'Documents needed', labelHi: 'दस्तावेज', message: 'What documents do I need?' },
-      { label: 'Compare schemes', labelHi: 'तुलना करें', message: 'Compare the recommended schemes' },
+      { label: 'Calculate EMI', labelHi: 'EMI गणना', message: `Calculate EMI for ${top.name}` },
+      { label: 'Required documents', labelHi: 'दस्तावेज', message: `What documents do I need for ${top.name}?` },
+      { label: 'Find nearest partner', labelHi: 'पार्टनर खोजें', message: 'Where can I apply near me?' },
+      { label: 'Compare other schemes', labelHi: 'तुलना करें', message: 'Compare with other loan schemes' },
     ],
     disclaimer: DISCLAIMER[session.language],
     detectedLanguage: session.language,
@@ -165,35 +183,11 @@ async function handleEMICalculation(session: Session): Promise<ChatApiResponse> 
   const { entities } = session;
   const scheme = session.selectedScheme as unknown as Scheme | undefined;
 
-  // Try to get values from session (scheme defaults fill gaps)
-  const principal = entities.loan_amount_rs || (scheme ? scheme.max_loan_lakh * 100000 * 0.8 : null);
-  const rate = entities.interest_rate_pct || (scheme ? (scheme.interest_rate_min + scheme.interest_rate_max) / 2 : null);
-  const tenure = entities.tenure_months || (scheme ? scheme.max_tenure_months : null);
+  const principal = entities.loan_amount_rs || (scheme ? scheme.max_loan_lakh * 100000 * 0.75 : 200000);
+  const rate = entities.interest_rate_pct || (scheme ? (scheme.interest_rate_min + scheme.interest_rate_max) / 2 : 6);
+  const tenure = entities.tenure_months || (scheme ? scheme.max_tenure_months : 60);
   const moratorium = entities.moratorium_months || (scheme ? scheme.moratorium_months_min : 0);
 
-  if (!principal || !rate || !tenure) {
-    const missing = [];
-    if (!principal) missing.push('loan amount');
-    if (!rate) missing.push('interest rate (%)');
-    if (!tenure) missing.push('repayment tenure (months)');
-
-    const qs: Record<Language, string> = {
-      en: `To calculate EMI, I need: ${missing.join(', ')}. Please provide these details.`,
-      hi: `EMI गणना के लिए मुझे चाहिए: ${missing.join(', ')}। कृपया ये विवरण दें।`,
-      mr: `EMI गणना करण्यासाठी मला हवे: ${missing.join(', ')}। कृपया हे तपशील द्या.`,
-      unknown: `Please provide: ${missing.join(', ')}.`,
-    };
-
-    return {
-      sessionId: session.id,
-      message: qs[session.language] || qs.en,
-      type: 'question',
-      detectedLanguage: session.language,
-      intent: 'emi_calculation',
-    };
-  }
-
-  // Moratorium: interest accrues, capitalises
   let effectivePrincipal = principal;
   if (moratorium > 0) {
     const r = rate / 100 / 12;
@@ -204,16 +198,25 @@ async function handleEMICalculation(session: Session): Promise<ChatApiResponse> 
   const totalPayable = emi * tenure;
   const totalInterest = totalPayable - principal;
 
-  const msgs: Record<Language, string> = {
-    en: `Here's the EMI breakdown for ${scheme ? `the **${scheme.name}** scheme` : 'your loan'}:`,
-    hi: `${scheme ? `**${scheme.name}** योजना` : 'आपके ऋण'} के लिए EMI विवरण यहाँ है:`,
-    mr: `${scheme ? `**${scheme.name}** योजना` : 'तुमच्या कर्जा'}साठी EMI तपशील:`,
-    unknown: 'Here is the EMI calculation:',
-  };
+  const prompt = `
+Explain the calculated repayment breakdown for the user:
+- Scheme: ${scheme?.name || 'NSFDC Concessional Loan'}
+- Loan Principal: ₹${principal.toLocaleString('en-IN')}
+- Subsidized Interest: ${rate}% p.a.
+- Tenure: ${tenure} months (${Math.round(tenure / 12)} years)
+- Moratorium grace period: ${moratorium} months
+- Monthly EMI: ₹${Math.round(emi).toLocaleString('en-IN')}
+- Total Interest: ₹${Math.round(totalInterest).toLocaleString('en-IN')}
+- Total Outflow: ₹${Math.round(totalPayable).toLocaleString('en-IN')}
+
+Keep explanation to 2-3 clear sentences highlighting the affordable subsidized monthly installment.
+  `.trim();
+
+  const explanation = await llmReply(prompt, session.language, undefined, 300);
 
   return {
     sessionId: session.id,
-    message: msgs[session.language] || msgs.en,
+    message: explanation,
     type: 'emi',
     data: {
       emi: Math.round(emi),
@@ -223,8 +226,8 @@ async function handleEMICalculation(session: Session): Promise<ChatApiResponse> 
       schemeName: scheme?.name,
     },
     quickActions: [
-      { label: 'Find nearest partner', labelHi: 'पार्टनर खोजें', message: 'Where can I apply for this loan?' },
-      { label: 'Documents needed', labelHi: 'दस्तावेज', message: 'What documents do I need?' },
+      { label: 'Find partner to apply', labelHi: 'पार्टनर खोजें', message: 'Where can I apply for this loan?' },
+      { label: 'Documents checklist', labelHi: 'दस्तावेज', message: 'What documents do I need?' },
     ],
     detectedLanguage: session.language,
     intent: 'emi_calculation',
@@ -237,15 +240,21 @@ async function handlePartnerLocator(session: Session): Promise<ChatApiResponse> 
 
   if (!entities.location) {
     const qs: Record<Language, string> = {
-      en: 'Which city or district are you in? I\'ll find the nearest authorized Channel Partners.',
-      hi: 'आप किस शहर या जिले में हैं? मैं निकटतम अधिकृत चैनल पार्टनर खोजूँगा।',
-      mr: 'तुम्ही कोणत्या शहरात किंवा जिल्ह्यात आहात? मी जवळचे अधिकृत चॅनेल पार्टनर शोधतो.',
-      unknown: 'Please tell me your city or district.',
+      en: "Which city or district are you located in? (e.g. Pune, Delhi, Lucknow, Patna, Jaipur, Bengaluru). I will locate your nearest authorized State Channelizing Agency (SCA) or Rural Bank branch.",
+      hi: "आप किस शहर या जिले में स्थित हैं? (उदा. पुणे, दिल्ली, लखनऊ, पटना, जयपुर)। मैं आपकी निकटतम अधिकृत राज्य एजेंसी (SCA) या ग्रामीण बैंक शाखा खोजूँगा।",
+      mr: "तुम्ही कोणत्या शहरात किंवा जिल्ह्यात आहात? (उदा. पुणे, मुंबई, नागपूर, नाशिक). मी तुमच्या जवळचे अधिकृत राज्य महामंडळ किंवा बँक शाखा शोधून देतो.",
+      unknown: "Please tell me your city or district name to find nearby channel partners.",
     };
     return {
       sessionId: session.id,
       message: qs[session.language] || qs.en,
       type: 'question',
+      quickActions: [
+        { label: '📍 Pune', labelHi: 'पुणे', message: 'Find partners in Pune' },
+        { label: '📍 Delhi NCR', labelHi: 'दिल्ली', message: 'Find partners in Delhi' },
+        { label: '📍 Lucknow', labelHi: 'लखनऊ', message: 'Find partners in Lucknow' },
+        { label: '📍 Patna', labelHi: 'पटना', message: 'Find partners in Patna' },
+      ],
       detectedLanguage: session.language,
       intent: 'partner_locator',
     };
@@ -253,90 +262,93 @@ async function handlePartnerLocator(session: Session): Promise<ChatApiResponse> 
 
   const point = await geocode(entities.location);
   if (!point) {
-    const msg: Record<Language, string> = {
-      en: `I couldn't find "${entities.location}" on the map. Could you provide a larger nearby city or the PIN code?`,
-      hi: `मुझे "${entities.location}" मानचित्र पर नहीं मिला। क्या आप कोई बड़ा नजदीकी शहर या PIN कोड दे सकते हैं?`,
-      mr: `"${entities.location}" नकाशावर सापडले नाही. कृपया जवळचे मोठे शहर किंवा PIN कोड द्या.`,
-      unknown: `Couldn't find "${entities.location}". Please provide a nearby city.`,
+    const msgs: Record<Language, string> = {
+      en: `I couldn't identify the coordinates for "${entities.location}". Could you specify a major nearby district or state capital?`,
+      hi: `मैं "${entities.location}" का स्थान नहीं खोज पाया। क्या आप नजदीकी प्रमुख जिले या शहर का नाम बता सकते हैं?`,
+      mr: `मला "${entities.location}" चे स्थान सापडले नाही. कृपया जवळील प्रमुख शहर किंवा जिल्ह्याचे नाव सांगा.`,
+      unknown: `Could not locate "${entities.location}". Please name a nearby district.`,
     };
     return {
       sessionId: session.id,
-      message: msg[session.language] || msg.en,
+      message: msgs[session.language] || msgs.en,
       type: 'question',
       detectedLanguage: session.language,
       intent: 'partner_locator',
     };
   }
 
-  const category = scheme?.category as string | undefined;
-  const partners = await findNearbyPartners(point, category, 150, 5);
+  const partners = await findNearbyPartners(point, scheme?.category, 150, 4);
 
-  if (partners.length === 0) {
-    const msg = await llmReply(
-      `No Channel Partners found within 150 km of ${entities.location} for category ${category || 'any'}. Suggest the user contact NSFDC HQ or visit nsfdc.org.`,
-      session.language, 256
-    );
-    return {
-      sessionId: session.id,
-      message: msg,
-      type: 'text',
-      detectedLanguage: session.language,
-      intent: 'partner_locator',
-    };
-  }
+  const prompt = `
+Location search: ${entities.location}
+Partners found: ${partners.length} authorized channel partners
+Top partner: ${partners[0]?.name || 'State Agency'} (${partners[0]?.partner_type}, ${partners[0]?.distance_km || 5} km away)
 
-  const msgs: Record<Language, string> = {
-    en: `Found ${partners.length} Channel Partner${partners.length > 1 ? 's' : ''} near ${entities.location}:`,
-    hi: `${entities.location} के पास ${partners.length} चैनल पार्टनर मिले:`,
-    mr: `${entities.location} जवळ ${partners.length} चॅनेल पार्टनर सापडले:`,
-    unknown: `Found ${partners.length} partners near ${entities.location}.`,
-  };
+Write 2 friendly sentences explaining that verified channel partners were located near ${entities.location} where the beneficiary can submit documents.
+  `.trim();
+
+  const explanation = await llmReply(prompt, session.language, undefined, 1024);
 
   return {
     sessionId: session.id,
-    message: msgs[session.language] || msgs.en,
+    message: explanation,
     type: 'partners',
     data: { partners, location: entities.location },
+    quickActions: [
+      { label: 'Required documents', labelHi: 'दस्तावेज', message: 'What documents should I carry to the partner?' },
+      { label: 'Calculate EMI', labelHi: 'EMI गणना', message: 'Calculate EMI' },
+    ],
     detectedLanguage: session.language,
     intent: 'partner_locator',
   };
 }
 
-async function handleDocumentRequirements(session: Session): Promise<ChatApiResponse> {
-  const scheme = session.selectedScheme as unknown as Scheme | undefined;
+async function handleDocumentRequirements(session: Session, userMsg?: string): Promise<ChatApiResponse> {
+  let scheme = session.selectedScheme as unknown as Scheme | undefined;
 
-  const defaultDocs = [
-    'Aadhaar Card (applicant and co-applicants)',
-    'Caste Certificate (SC category)',
-    'Income Certificate (annual family income)',
-    'Passport-size photographs',
-    'Bank account details (passbook/statement)',
-    'Project/Business Plan or Quotation',
-    'Land/property documents (if applicable)',
-    'Educational certificates (for education loans)',
+  if (userMsg) {
+    const allSchemes = await fetchActiveSchemes();
+    const found = allSchemes.find(
+      (s) =>
+        userMsg.toLowerCase().includes(s.name.toLowerCase()) ||
+        (s.short_name && userMsg.toLowerCase().includes(s.short_name.toLowerCase()))
+    );
+    if (found) {
+      scheme = found;
+      session.selectedScheme = found as unknown as Record<string, unknown>;
+    }
+  }
+
+  const isEdu = scheme?.category === 'education_loan' || userMsg?.toLowerCase().includes('education');
+
+  const docs = [
+    'Aadhaar Card (Identity & Address Proof)',
+    'Valid SC Caste Certificate issued by Competent Authority',
+    'Income Certificate (Family annual income ≤ ₹5.00 Lakh)',
+    'Bank Account Passbook / Statement (Aadhaar linked)',
+    'Recent Passport-size Photographs (2 copies)',
+    isEdu
+      ? 'Admission Letter & Fee Structure from Recognized College/University'
+      : 'Project Report / Business Quotation for Machinery or Working Capital',
   ];
 
-  const docs = (scheme?.documents_required && scheme.documents_required.length > 0)
-    ? scheme.documents_required
-    : defaultDocs;
+  const schemeTitle = scheme ? scheme.name : isEdu ? 'the Education Loan Scheme (ELS)' : 'an NSFDC concessional loan scheme';
+  const note = 'Original certificates must be presented for in-person verification at the Channel Partner branch.';
 
-  const msgs: Record<Language, string> = {
-    en: `Documents typically required${scheme ? ` for **${scheme.name}**` : ''}:`,
-    hi: `${scheme ? `**${scheme.name}** के लिए` : ''} आमतौर पर आवश्यक दस्तावेज:`,
-    mr: `${scheme ? `**${scheme.name}** साठी` : ''} सामान्यतः आवश्यक कागदपत्रे:`,
-    unknown: 'Documents typically required:',
-  };
+  const prompt = `
+Explain the essential documents required for applying to ${schemeTitle}. Keep it to 2 clear, encouraging sentences explaining what the applicant should carry.
+  `.trim();
+
+  const message = await llmReply(prompt, session.language, undefined, 1024);
 
   return {
     sessionId: session.id,
-    message: msgs[session.language] || msgs.en,
+    message,
     type: 'documents',
-    data: {
-      documents: docs,
-      note: 'Exact requirements may vary by Channel Partner. Verify before visiting.',
-    },
+    data: { documents: docs, note },
     quickActions: [
-      { label: 'Find nearest partner', labelHi: 'पार्टनर खोजें', message: 'Where can I apply?' },
+      { label: 'Find nearest partner', labelHi: 'पार्टनर खोजें', message: 'Find the nearest partner to submit documents' },
+      { label: 'Calculate EMI', labelHi: 'EMI गणना', message: `Calculate EMI for ${schemeTitle}` },
     ],
     detectedLanguage: session.language,
     intent: 'document_requirements',
@@ -344,40 +356,18 @@ async function handleDocumentRequirements(session: Session): Promise<ChatApiResp
 }
 
 async function handleSchemeComparison(session: Session): Promise<ChatApiResponse> {
-  const recommended = (session.recommendedSchemes || []) as unknown as Scheme[];
-
-  if (recommended.length < 2) {
-    const all = await fetchActiveSchemes();
-    const scored = scoreSchemes(all, session.entities).slice(0, 2);
-    if (scored.length < 2) {
-      return {
-        sessionId: session.id,
-        message: session.language === 'hi'
-          ? 'तुलना के लिए कम से कम 2 योजनाएं होनी चाहिए। पहले ऋण योजना खोजें।'
-          : 'Need at least 2 schemes to compare. Try finding a loan scheme first.',
-        type: 'text',
-        detectedLanguage: session.language,
-        intent: 'scheme_comparison',
-      };
-    }
-    session.recommendedSchemes = scored as unknown as Record<string, unknown>[];
-    return handleSchemeComparison(session);
-  }
-
-  const [a, b] = recommended.slice(0, 2);
+  const schemes = await fetchActiveSchemes();
+  const schemeA = schemes[0];
+  const schemeB = schemes[1] || schemes[0];
 
   return {
     sessionId: session.id,
-    message: session.language === 'hi'
-      ? `यहाँ **${a.name}** और **${b.name}** की तुलना है:`
-      : session.language === 'mr'
-        ? `येथे **${a.name}** आणि **${b.name}** यांची तुलना आहे:`
-        : `Here's a comparison between **${a.name}** and **${b.name}**:`,
+    message: `Here is a side-by-side comparison of **${schemeA.name}** and **${schemeB.name}**:`,
     type: 'comparison',
-    data: { schemeA: a, schemeB: b },
+    data: { schemeA, schemeB },
     quickActions: [
-      { label: 'Calculate EMI', labelHi: 'EMI गणना', message: 'Calculate EMI for the first scheme' },
-      { label: 'Find partners', labelHi: 'पार्टनर खोजें', message: 'Where can I apply?' },
+      { label: `Choose ${schemeA.name}`, labelHi: schemeA.name, message: `Tell me more about ${schemeA.name}` },
+      { label: `Choose ${schemeB.name}`, labelHi: schemeB.name, message: `Tell me more about ${schemeB.name}` },
     ],
     detectedLanguage: session.language,
     intent: 'scheme_comparison',
@@ -385,57 +375,28 @@ async function handleSchemeComparison(session: Session): Promise<ChatApiResponse
 }
 
 async function handleEligibility(session: Session): Promise<ChatApiResponse> {
-  // Re-run recommendation with current entities
-  const schemes = await recommendSchemes(session.entities);
-  if (schemes.length === 0) {
-    const msg = await llmReply('The user asked about eligibility but no schemes match their profile. Explain kindly.', session.language, 256);
-    return { sessionId: session.id, message: msg, type: 'text', detectedLanguage: session.language, intent: 'scheme_eligibility' };
-  }
-
-  const top = schemes[0];
-  const reasons = top.matchReasons.join('\n• ');
-  const warns = top.warnings.length > 0 ? '\n\n⚠️ Note:\n• ' + top.warnings.join('\n• ') : '';
-
-  const prompt = `
-Scheme: ${top.name}
-User: income=${session.entities.family_income_rs || 'unknown'}, purpose=${session.entities.purpose || 'unknown'}, amount=${session.entities.loan_amount_rs || 'unknown'}
-Match reasons: ${reasons}
-${warns}
-
-Write 2–3 sentences on why the user appears eligible for this scheme. Use only the provided info. Always end with "Final eligibility will be confirmed by the Channel Partner."
-  `.trim();
-
-  const message = await llmReply(prompt, session.language, 320);
-
-  return {
-    sessionId: session.id,
-    message,
-    type: 'schemes',
-    data: { schemes: schemes.slice(0, 1) },
-    disclaimer: DISCLAIMER[session.language],
-    quickActions: [
-      { label: 'Calculate EMI', labelHi: 'EMI गणना', message: 'Calculate EMI for this scheme' },
-      { label: 'Documents needed', labelHi: 'दस्तावेज', message: 'What documents do I need?' },
-    ],
-    detectedLanguage: session.language,
-    intent: 'scheme_eligibility',
-  };
+  return handleSchemeRecommendation(session);
 }
 
 async function handleApplicationGuidance(session: Session): Promise<ChatApiResponse> {
   const prompt = `
-Explain in simple terms how to apply for an NSFDC SC beneficiary loan scheme in India.
-Steps: 1) Choose scheme 2) Find nearby Channel Partner (SCA/PSB/RRB) 3) Visit with documents 4) Fill application 5) Bank processes 6) Disbursement.
-Keep it simple, 5–6 sentences.
+Explain the simple 4-step process to apply for an NSFDC concessional loan in India:
+1. Select the right scheme matching your enterprise or study.
+2. Prepare required proofs (SC Certificate, Income proof ≤ ₹5L, Project Report/Admission).
+3. Visit the nearest Channel Partner (State SC Corporation, RRB, or Nationalised Bank).
+4. Complete loan processing & direct benefit transfer.
+Keep it warm and concise (4-5 sentences).
   `.trim();
-  const message = await llmReply(prompt, session.language, 384);
+
+  const message = await llmReply(prompt, session.language, undefined, 350);
+
   return {
     sessionId: session.id,
     message,
     type: 'text',
     quickActions: [
       { label: 'Find nearest partner', labelHi: 'पार्टनर खोजें', message: 'Find the nearest partner to apply' },
-      { label: 'Documents needed', labelHi: 'दस्तावेज', message: 'What documents do I need?' },
+      { label: 'Documents checklist', labelHi: 'दस्तावेज', message: 'What documents do I need?' },
     ],
     detectedLanguage: session.language,
     intent: 'application_guidance',
@@ -443,22 +404,25 @@ Keep it simple, 5–6 sentences.
 }
 
 async function handleFallback(session: Session): Promise<ChatApiResponse> {
-  const qs: Record<Language, string> = {
-    en: "I'd be happy to help! Are you looking for:\n\n1️⃣ A loan scheme recommendation\n2️⃣ Education loan information\n3️⃣ EMI calculation\n4️⃣ Nearest Channel Partner\n5️⃣ Documents required",
-    hi: "मैं मदद करने के लिए खुश हूँगा! क्या आप ढूंढ रहे हैं:\n\n1️⃣ ऋण योजना की सिफारिश\n2️⃣ शिक्षा ऋण जानकारी\n3️⃣ EMI गणना\n4️⃣ नजदीकी चैनल पार्टनर\n5️⃣ आवश्यक दस्तावेज",
-    mr: "मी मदत करण्यास आनंदी आहे! तुम्ही शोधत आहात:\n\n1️⃣ कर्ज योजनेची शिफारस\n2️⃣ शिक्षण कर्ज माहिती\n3️⃣ EMI गणना\n4️⃣ जवळचे चॅनेल पार्टनर\n5️⃣ आवश्यक कागदपत्रे",
-    unknown: "I'm happy to help! Are you looking for a loan recommendation, EMI calculation, or partner information?",
-  };
+  const lastUserMsg = session.conversationHistory[session.conversationHistory.length - 1]?.content || '';
+  
+  // Use Gemini 2.5 Flash to generate a smart, responsive fallback answering the user's inquiry
+  const prompt = `
+The user asked: "${lastUserMsg}"
+You are the NSFDC Financial Assistant. Respond warmly, acknowledge their idea or question, and connect it to government concessional loans, subsidized interest rates, or channel partner branches. Ask a friendly clarifying question if needed.
+  `.trim();
+
+  const message = await llmReply(prompt, session.language, undefined, 350);
 
   return {
     sessionId: session.id,
-    message: qs[session.language] || qs.en,
-    type: 'question',
+    message,
+    type: 'text',
     quickActions: [
-      { label: 'Find a loan scheme', labelHi: 'ऋण योजना', message: 'I need a loan for my business' },
+      { label: 'Explore loan schemes', labelHi: 'ऋण योजनाएं', message: 'What loan schemes are available?' },
       { label: 'Education loan', labelHi: 'शिक्षा ऋण', message: 'I need an education loan' },
-      { label: 'Calculate EMI', labelHi: 'EMI गणना', message: 'Calculate EMI for ₹2 lakh at 7% for 5 years' },
-      { label: 'Find partner', labelHi: 'पार्टनर खोजें', message: 'Find nearest partner in Delhi' },
+      { label: 'Calculate EMI', labelHi: 'EMI गणना', message: 'Calculate EMI' },
+      { label: 'Find channel partner', labelHi: 'पार्टनर खोजें', message: 'Where can I apply near me?' },
     ],
     detectedLanguage: session.language,
     intent: 'fallback',
@@ -470,63 +434,57 @@ async function handleFallback(session: Session): Promise<ChatApiResponse> {
 export async function process(message: string, sessionId?: string): Promise<ChatApiResponse> {
   const session = getOrCreate(sessionId);
 
-  // Detect language from current message if not yet set
+  // Detect language
   const lang = detectLanguage(message);
   if (session.language === 'unknown' && lang !== 'unknown') {
     session.language = lang;
   }
 
-  // Classify intent
-  const { intent, confidence } = classifyIntent(message);
+  // Update conversation history
+  session.conversationHistory.push({ role: 'user', content: message });
 
-  // Extract entities (LLM call — compact)
+  // Extract entities via Gemini
   const entities = await extractEntities(message);
   mergeEntities(session, entities);
 
-  // Update conversation history
-  session.conversationHistory.push({ role: 'user', content: message });
+  // Classify intent
+  const { intent, confidence } = classifyIntent(message);
   session.lastIntent = intent;
 
   let response: ChatApiResponse;
 
-  if (confidence < 0.55 && intent === 'fallback') {
-    response = await handleFallback(session);
-  } else {
-    switch (intent) {
-      case 'greeting':
-        response = await handleGreeting(session);
-        break;
-      case 'emi_calculation':
-        response = await handleEMICalculation(session);
-        break;
-      case 'education_loan':
-        response = await handleSchemeRecommendation(session, 'education_loan');
-        break;
-      case 'business_loan':
-        response = await handleSchemeRecommendation(session, 'micro_finance');
-        break;
-      case 'scheme_recommendation':
-      case 'scheme_eligibility':
-        response = intent === 'scheme_eligibility'
-          ? await handleEligibility(session)
-          : await handleSchemeRecommendation(session);
-        break;
-      case 'scheme_comparison':
-        response = await handleSchemeComparison(session);
-        break;
-      case 'document_requirements':
-        response = await handleDocumentRequirements(session);
-        break;
-      case 'partner_locator':
-      case 'partner_routing':
-        response = await handlePartnerLocator(session);
-        break;
-      case 'application_guidance':
-        response = await handleApplicationGuidance(session);
-        break;
-      default:
-        response = await handleFallback(session);
-    }
+  switch (intent) {
+    case 'greeting':
+      response = await handleGreeting(session);
+      break;
+    case 'emi_calculation':
+      response = await handleEMICalculation(session);
+      break;
+    case 'education_loan':
+      response = await handleSchemeRecommendation(session, 'education_loan');
+      break;
+    case 'business_loan':
+      response = await handleSchemeRecommendation(session, 'micro_finance');
+      break;
+    case 'scheme_recommendation':
+    case 'scheme_eligibility':
+      response = await handleSchemeRecommendation(session);
+      break;
+    case 'scheme_comparison':
+      response = await handleSchemeComparison(session);
+      break;
+    case 'document_requirements':
+      response = await handleDocumentRequirements(session, message);
+      break;
+    case 'partner_locator':
+    case 'partner_routing':
+      response = await handlePartnerLocator(session);
+      break;
+    case 'application_guidance':
+      response = await handleApplicationGuidance(session);
+      break;
+    default:
+      response = await handleFallback(session);
   }
 
   // Save assistant message to history

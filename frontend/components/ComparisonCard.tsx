@@ -1,5 +1,7 @@
 'use client';
 
+import { Scale, ArrowRight, ShieldCheck, Percent, IndianRupee, Calendar } from 'lucide-react';
+
 interface Scheme {
   name: string;
   category: string;
@@ -16,7 +18,7 @@ interface Scheme {
 }
 
 function fmt(lakh: number) {
-  if (lakh >= 1) return `₹${lakh}L`;
+  if (lakh >= 1) return `₹${lakh} Lakh`;
   return `₹${(lakh * 100000).toLocaleString('en-IN')}`;
 }
 
@@ -28,60 +30,81 @@ function rateRange(s: Scheme) {
 
 function moratorium(s: Scheme) {
   return s.moratorium_months_min === s.moratorium_months_max
-    ? `${s.moratorium_months_min} months`
-    : `${s.moratorium_months_min}–${s.moratorium_months_max} months`;
+    ? `${s.moratorium_months_min} Months`
+    : `${s.moratorium_months_min}–${s.moratorium_months_max} Months`;
 }
 
 const ROWS: { label: string; fn: (s: Scheme) => string }[] = [
-  { label: 'Max Loan', fn: (s) => fmt(s.max_loan_lakh) },
-  { label: 'Interest Rate', fn: rateRange },
-  { label: 'Max Tenure', fn: (s) => `${s.max_tenure_months} months` },
-  { label: 'Moratorium', fn: moratorium },
-  { label: 'Income Limit', fn: (s) => `${fmt(s.max_income_lakh)}/yr` },
-  { label: 'Coverage', fn: (s) => s.coverage_percent ? `${s.coverage_percent}%` : 'N/A' },
-  { label: 'Eligibility', fn: (s) => s.gender_eligibility === 'women_only' ? '👩 Women only' : 'All SC' },
+  { label: 'Max Loan Limit', fn: (s) => fmt(s.max_loan_lakh) },
+  { label: 'Subsidized Interest', fn: rateRange },
+  { label: 'Repayment Tenure', fn: (s) => `Up to ${s.max_tenure_months} Mo` },
+  { label: 'Moratorium Grace', fn: moratorium },
+  { label: 'Annual Income Cap', fn: (s) => `≤ ${fmt(s.max_income_lakh)}/yr` },
+  { label: 'Project Coverage', fn: (s) => (s.coverage_percent ? `Up to ${s.coverage_percent}%` : 'Standard') },
+  { label: 'Gender Eligibility', fn: (s) => (s.gender_eligibility === 'women_only' ? '👩 Women Only' : 'All SC Beneficiaries') },
 ];
 
 export default function ComparisonCard({ schemeA, schemeB }: { schemeA: Scheme; schemeB: Scheme }) {
   return (
     <div
-      className="rounded-xl overflow-hidden mb-3"
-      style={{ border: '1px solid var(--border)' }}
+      style={{
+        background: '#ffffff',
+        border: '1.5px solid #e2e8f0',
+        borderRadius: 18,
+        overflow: 'hidden',
+        boxShadow: '0 2px 10px rgba(11,31,58,0.04)',
+        width: '100%',
+      }}
     >
-      {/* Header */}
-      <div className="grid grid-cols-3" style={{ background: 'var(--accent)' }}>
-        <div className="p-3 text-white text-xs font-medium" style={{ opacity: 0.6 }}>Feature</div>
-        <div className="p-3 text-white text-xs font-bold border-l border-white/20 text-center">
-          {schemeA.name.length > 22 ? schemeA.name.slice(0, 20) + '…' : schemeA.name}
+      {/* ── Table Header ─────────────────────────────────────────────────── */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1.2fr 1.4fr 1.4fr',
+          background: '#0b1f3a',
+          color: '#ffffff',
+          padding: '16px 20px',
+          alignItems: 'center',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: '#fbbf24', textTransform: 'uppercase' }}>
+          <Scale size={15} />
+          <span>Feature</span>
         </div>
-        <div className="p-3 text-white text-xs font-bold border-l border-white/20 text-center">
-          {schemeB.name.length > 22 ? schemeB.name.slice(0, 20) + '…' : schemeB.name}
+        <div style={{ fontSize: 14, fontWeight: 800, textAlign: 'center', color: '#ffffff' }}>
+          {schemeA.name}
+        </div>
+        <div style={{ fontSize: 14, fontWeight: 800, textAlign: 'center', color: '#38bdf8' }}>
+          {schemeB.name}
         </div>
       </div>
 
-      {/* Rows */}
-      {ROWS.map((row, i) => {
-        const aVal = row.fn(schemeA);
-        const bVal = row.fn(schemeB);
-        return (
-          <div
-            key={i}
-            className="grid grid-cols-3"
-            style={{
-              background: i % 2 === 0 ? 'var(--surface)' : 'var(--background)',
-              borderTop: '1px solid var(--border)',
-            }}
-          >
-            <div className="p-2.5 text-xs font-medium" style={{ color: 'var(--muted)' }}>{row.label}</div>
-            <div className="p-2.5 text-xs text-center border-l" style={{ color: 'var(--foreground)', borderColor: 'var(--border)' }}>
-              {aVal}
+      {/* ── Rows ─────────────────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        {ROWS.map((row, i) => {
+          const aVal = row.fn(schemeA);
+          const bVal = row.fn(schemeB);
+          const isEven = i % 2 === 0;
+          return (
+            <div
+              key={i}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1.2fr 1.4fr 1.4fr',
+                padding: '12px 20px',
+                background: isEven ? '#ffffff' : '#f8fafc',
+                borderTop: '1px solid #f1f5f9',
+                fontSize: 13,
+                alignItems: 'center',
+              }}
+            >
+              <div style={{ fontWeight: 600, color: '#475569' }}>{row.label}</div>
+              <div style={{ fontWeight: 700, color: '#0b1f3a', textAlign: 'center' }}>{aVal}</div>
+              <div style={{ fontWeight: 700, color: '#0369a1', textAlign: 'center' }}>{bVal}</div>
             </div>
-            <div className="p-2.5 text-xs text-center border-l" style={{ color: 'var(--foreground)', borderColor: 'var(--border)' }}>
-              {bVal}
-            </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }

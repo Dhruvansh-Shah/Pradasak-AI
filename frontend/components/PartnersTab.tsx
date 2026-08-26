@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import PartnerResultCard from './PartnerResultCard';
-import { Search, MapPin, Compass, SlidersHorizontal, Navigation } from 'lucide-react';
+import { Search, MapPin, Compass, Navigation, SlidersHorizontal } from 'lucide-react';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
@@ -65,55 +65,115 @@ export default function PartnersTab() {
   const POPULAR_CITIES = ['Delhi', 'Lucknow', 'Mumbai', 'Jaipur', 'Patna', 'Bhopal', 'Hyderabad', 'Bengaluru'];
 
   return (
-    <div className="max-w-4xl mx-auto w-full space-y-8 animate-fade-up">
-      
-      {/* Header */}
-      <div className="space-y-1">
-        <div className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-widest text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
-          <Compass className="w-3.5 h-3.5" />
-          Partner Discovery
+    <div
+      style={{
+        maxWidth: 1040,
+        margin: '0 auto',
+        padding: '16px 20px 48px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 28,
+        width: '100%',
+      }}
+    >
+      {/* ── Section Header ────────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 10,
+              background: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Compass size={16} color="#15803d" />
+          </div>
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 800,
+              color: '#15803d',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+            }}
+          >
+            Spatial Discovery
+          </span>
         </div>
-        <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0b1f3a] tracking-tight">
+
+        <h1 style={{ fontSize: 26, fontWeight: 800, color: '#0b1f3a', margin: 0, letterSpacing: '-0.02em' }}>
           Locate Active Channel Partners
-        </h2>
-        <p className="text-sm text-slate-600">
-          Find authorized State Channelizing Agencies (SCAs), Regional Rural Banks, and MFIs near you.
+        </h1>
+        <p style={{ fontSize: 14, color: '#64748b', margin: 0, lineHeight: 1.5 }}>
+          Find authorized State Channelizing Agencies (SCAs), Regional Rural Banks, and MFIs with accurate radial distance.
         </p>
       </div>
 
-      {/* Search Form */}
+      {/* ── Search Form Card ──────────────────────────────────────────────── */}
       <form onSubmit={search}>
-        <div className="bg-white rounded-2xl p-6 sm:p-7 border border-slate-200 shadow-sm space-y-5">
-          
-          <div className="space-y-2">
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-              City or District
+        <div
+          style={{
+            background: '#ffffff',
+            border: '1.5px solid #e2e8f0',
+            borderRadius: 18,
+            padding: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 20,
+            boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
+          }}
+        >
+          {/* City / District Input */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <label style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#334155' }}>
+              City, District, or Location
             </label>
-            <div className="relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <Search size={18} color="#94a3b8" style={{ position: 'absolute', left: 16 }} />
               <input
                 type="text"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                placeholder="Enter city name (e.g. Lucknow, Delhi, Jaipur)..."
+                placeholder="Enter city or district name (e.g. Lucknow, Delhi, Jaipur)..."
                 required
-                className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 outline-none focus:bg-white focus:border-[#0b1f3a]"
+                style={{
+                  width: '100%',
+                  padding: '13px 16px 13px 46px',
+                  borderRadius: 12,
+                  border: '1.5px solid #cbd5e1',
+                  background: '#f8fafc',
+                  fontSize: 14.5,
+                  fontWeight: 500,
+                  color: '#0f172a',
+                  outline: 'none',
+                }}
               />
             </div>
 
-            {/* Popular City Pills */}
-            <div className="flex flex-wrap items-center gap-2 pt-1">
-              <span className="text-[11px] font-bold text-slate-400">Popular:</span>
+            {/* Popular City Chips */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, paddingTop: 4 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Popular:</span>
               {POPULAR_CITIES.map((c) => (
                 <button
                   key={c}
                   type="button"
                   onClick={() => setCity(c)}
-                  className={`text-xs font-semibold px-3 py-1 rounded-full border transition-all cursor-pointer ${
-                    city === c
-                      ? 'bg-[#0b1f3a] text-white border-[#0b1f3a]'
-                      : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                  }`}
+                  style={{
+                    fontSize: 12,
+                    fontWeight: city === c ? 700 : 500,
+                    padding: '5px 12px',
+                    borderRadius: 20,
+                    cursor: 'pointer',
+                    border: city === c ? '1.5px solid #0b1f3a' : '1px solid #e2e8f0',
+                    background: city === c ? '#0b1f3a' : '#f8fafc',
+                    color: city === c ? '#ffffff' : '#475569',
+                    transition: 'all 150ms ease',
+                  }}
                 >
                   {c}
                 </button>
@@ -121,15 +181,26 @@ export default function PartnersTab() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                Loan Category
+          {/* Filters Row */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#334155' }}>
+                Loan Scheme Type
               </label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 outline-none focus:bg-white focus:border-[#0b1f3a] cursor-pointer"
+                style={{
+                  padding: '11px 14px',
+                  borderRadius: 12,
+                  border: '1.5px solid #cbd5e1',
+                  background: '#f8fafc',
+                  fontSize: 13.5,
+                  fontWeight: 500,
+                  color: '#0f172a',
+                  outline: 'none',
+                  cursor: 'pointer',
+                }}
               >
                 {CATEGORIES.map((c) => (
                   <option key={c.value} value={c.value}>
@@ -139,14 +210,24 @@ export default function PartnersTab() {
               </select>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#334155' }}>
                 Search Radius
               </label>
               <select
                 value={radius}
                 onChange={(e) => setRadius(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 outline-none focus:bg-white focus:border-[#0b1f3a] cursor-pointer"
+                style={{
+                  padding: '11px 14px',
+                  borderRadius: 12,
+                  border: '1.5px solid #cbd5e1',
+                  background: '#f8fafc',
+                  fontSize: 13.5,
+                  fontWeight: 500,
+                  color: '#0f172a',
+                  outline: 'none',
+                  cursor: 'pointer',
+                }}
               >
                 <option value="50">Within 50 km</option>
                 <option value="100">Within 100 km</option>
@@ -157,7 +238,7 @@ export default function PartnersTab() {
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 text-xs p-3 rounded-xl">
+            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 12.5, padding: '10px 14px', borderRadius: 10 }}>
               {error}
             </div>
           )}
@@ -165,26 +246,41 @@ export default function PartnersTab() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full btn-primary py-3.5 text-sm font-bold shadow-md cursor-pointer flex items-center justify-center gap-2"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              padding: '13px 20px',
+              borderRadius: 12,
+              background: '#0b1f3a',
+              color: '#ffffff',
+              border: 'none',
+              fontSize: 14,
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(11,31,58,0.18)',
+              transition: 'all 150ms ease',
+            }}
           >
-            <Navigation className="w-4 h-4 text-amber-400" />
-            <span>{loading ? 'Searching Nearby Partners…' : 'Find Authorized Partners'}</span>
+            <Navigation size={16} color="#fbbf24" />
+            <span>{loading ? 'Searching Active Partners…' : 'Find Authorized Partners'}</span>
           </button>
         </div>
       </form>
 
-      {/* Results Stream */}
+      {/* ── Results Stream ────────────────────────────────────────────────── */}
       {searched && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wider">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13.5, fontWeight: 700, color: '#334155' }}>
             <span>
               {partners.length === 0
-                ? `No partners found near ${city}`
-                : `${partners.length} Verified Partners near ${city}`}
+                ? `No partners found near "${city}"`
+                : `${partners.length} Authorized Partners near "${city}"`}
             </span>
           </div>
 
-          <div className="space-y-3">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {partners.map((p, i) => (
               <PartnerResultCard
                 key={p.id}

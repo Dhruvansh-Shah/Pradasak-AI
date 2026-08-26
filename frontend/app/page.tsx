@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
@@ -9,362 +8,616 @@ import {
   Calculator,
   MapPin,
   ArrowRight,
-  UserCheck,
-  FileSearch,
-  PenLine,
-  Banknote,
+  ShieldCheck,
   CheckCircle2,
   Sparkles,
-  ShieldCheck,
   Scale,
-  TrendingDown,
-  Building2
+  Building2,
+  ChevronRight
 } from 'lucide-react';
-
-function useReveal() {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          el.classList.add('revealed');
-          obs.disconnect();
-        }
-      },
-      { threshold: 0.1 }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
-  return ref;
-}
-
-const CORE_SERVICES = [
-  {
-    icon: MessageCircle,
-    color: '#0b1f3a',
-    bg: '#eff6ff',
-    badge: 'Multilingual AI',
-    title: 'Grounded Scheme Recommender',
-    desc: 'Describe your business or educational goal in any language. Our grounded AI pipeline matches and ranks official schemes without halluncinating rates.',
-    href: '/chat',
-    cta: 'Start Conversation',
-  },
-  {
-    icon: Calculator,
-    color: '#e87722',
-    bg: '#fff7ed',
-    badge: 'Accurate Math',
-    title: 'Moratorium & EMI Calculator',
-    desc: 'Deterministic calculation for tiered interest (4%–8%), moratorium interest accrual (3–12 months), and repayment schedules for your exact budget.',
-    href: '/chat?tab=emi',
-    cta: 'Calculate EMI',
-  },
-  {
-    icon: MapPin,
-    color: '#15803d',
-    bg: '#f0fdf4',
-    badge: 'PostGIS Spatial',
-    title: 'Healthy Channel Partner Locator',
-    desc: 'Locate 100+ State Agencies (SCAs), Rural Banks (RRBs), and MFIs filtered by real-time NPA health, scheme eligibility, and proximity.',
-    href: '/partners',
-    cta: 'Find Nearby Partners',
-  },
-  {
-    icon: ShieldCheck,
-    color: '#7e22ce',
-    bg: '#fdf4ff',
-    badge: 'Direct Verification',
-    title: 'Eligibility & Document Engine',
-    desc: 'Instant verification rules for caste certificates, income threshold (≤ ₹5L/yr), project reports, and necessary identity proofs.',
-    href: '/schemes',
-    cta: 'Browse Catalog',
-  },
-];
-
-const HOW_IT_WORKS = [
-  {
-    Icon: MessageCircle,
-    step: '01',
-    title: 'Tell Us Your Needs',
-    desc: 'Chat in Hindi, Marathi, or English about your loan purpose and family income.',
-  },
-  {
-    Icon: Scale,
-    step: '02',
-    title: 'AI Matches Schemes',
-    desc: 'We query the active catalog and compare loan caps, subsidies, and interest terms.',
-  },
-  {
-    Icon: Calculator,
-    step: '03',
-    title: 'Plan Your Repayment',
-    desc: 'Review exact monthly EMIs with tailored grace periods before committing.',
-  },
-  {
-    Icon: Building2,
-    step: '04',
-    title: 'Connect to Partner',
-    desc: 'Direct contact info for the nearest financially healthy Channel Partner to submit docs.',
-  },
-];
-
-const STATS = [
-  { value: '15+', label: 'Concessional Schemes', sub: 'Micro-credit to ₹50L loans' },
-  { value: '4% – 8%', label: 'Subsidized Interest', sub: 'Far lower than market rates' },
-  { value: '100+', label: 'Channel Partners', sub: 'SCAs, PSBs, RRBs & MFIs' },
-  { value: 'Up to 90%', label: 'Project Cost Coverage', sub: 'Govt. backed assistance' },
-];
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function HomePage() {
-  const servicesRef = useReveal();
-  const howRef = useReveal();
-  const statsRef = useReveal();
+  const { t } = useLanguage();
+
+  const STATS = [
+    { value: t('stats.s1_val', '15+'), label: t('stats.s1_lbl', 'Concessional Schemes'), sub: t('stats.s1_sub', 'Micro-credit to ₹50L loans') },
+    { value: t('stats.s2_val', '4% – 8%'), label: t('stats.s2_lbl', 'Subsidized Interest'), sub: t('stats.s2_sub', 'Far lower than commercial rates') },
+    { value: t('stats.s3_val', '100+'), label: t('stats.s3_lbl', 'Channel Partners'), sub: t('stats.s3_sub', 'SCAs, PSBs, RRBs & MFIs') },
+    { value: t('stats.s4_val', 'Up to 90%'), label: t('stats.s4_lbl', 'Project Coverage'), sub: t('stats.s4_sub', 'Government backed assistance') },
+  ];
+
+  const CORE_SERVICES = [
+    {
+      icon: MessageCircle,
+      color: '#0b1f3a',
+      bg: '#eff6ff',
+      badge: t('cap.c1_badge', 'Multilingual AI'),
+      title: t('cap.c1_title', 'Grounded Scheme Recommender'),
+      desc: t('cap.c1_desc', 'Describe your business or educational goal in Hindi, Marathi, or English. Our grounded AI pipeline matches and ranks official schemes without hallucinating interest rates or loan caps.'),
+      href: '/chat',
+      cta: t('cap.c1_cta', 'Start Conversation'),
+    },
+    {
+      icon: Calculator,
+      color: '#c2410c',
+      bg: '#fff7ed',
+      badge: t('cap.c2_badge', 'Accurate Math'),
+      title: t('cap.c2_title', 'Moratorium & EMI Calculator'),
+      desc: t('cap.c2_desc', 'Deterministic calculation for tiered interest (4%–8%), moratorium interest accrual (3–12 months), and repayment schedules tailored for your exact budget.'),
+      href: '/chat?tab=emi',
+      cta: t('cap.c2_cta', 'Calculate EMI'),
+    },
+    {
+      icon: MapPin,
+      color: '#15803d',
+      bg: '#f0fdf4',
+      badge: t('cap.c3_badge', 'PostGIS Spatial'),
+      title: t('cap.c3_title', 'Healthy Channel Partner Locator'),
+      desc: t('cap.c3_desc', 'Locate 100+ State Agencies (SCAs), Rural Banks (RRBs), and MFIs filtered by real-time NPA health, scheme eligibility, and geographic proximity.'),
+      href: '/partners',
+      cta: t('cap.c3_cta', 'Find Nearby Partners'),
+    },
+    {
+      icon: ShieldCheck,
+      color: '#7e22ce',
+      bg: '#fdf4ff',
+      badge: t('cap.c4_badge', 'Direct Verification'),
+      title: t('cap.c4_title', 'Eligibility & Document Engine'),
+      desc: t('cap.c4_desc', 'Instant verification rules for caste certificates, income threshold (≤ ₹5L/yr), project reports, and necessary identity proofs before applying.'),
+      href: '/schemes',
+      cta: t('cap.c4_cta', 'Browse Catalog'),
+    },
+  ];
+
+  const HOW_IT_WORKS = [
+    {
+      Icon: MessageCircle,
+      step: '01',
+      title: t('how.step1_title', 'Tell Us Your Needs'),
+      desc: t('how.step1_desc', 'Chat in Hindi, Marathi, or English about your loan purpose and family income.'),
+    },
+    {
+      Icon: Scale,
+      step: '02',
+      title: t('how.step2_title', 'AI Matches Schemes'),
+      desc: t('how.step2_desc', 'We query the active catalog and compare loan caps, subsidies, and interest terms.'),
+    },
+    {
+      Icon: Calculator,
+      step: '03',
+      title: t('how.step3_title', 'Plan Your Repayment'),
+      desc: t('how.step3_desc', 'Review exact monthly EMIs with tailored grace periods before committing.'),
+    },
+    {
+      Icon: Building2,
+      step: '04',
+      title: t('how.step4_title', 'Connect to Partner'),
+      desc: t('how.step4_desc', 'Direct contact info for the nearest financially healthy Channel Partner to submit docs.'),
+    },
+  ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
-      <style>{`
-        .reveal-section {
-          opacity: 0;
-          transform: translateY(24px);
-          transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        .reveal-section.revealed {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      `}</style>
-
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f8fafc', color: '#0f172a' }}>
       <NavBar />
 
-      {/* ── Hero Section ──────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-[#0b1f3a] via-[#102a4c] to-[#0b1f3a] text-white pt-16 pb-24 lg:pt-24 lg:pb-32 px-4 sm:px-6 lg:px-8">
-        {/* Subtle Ambient Background Gradients */}
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center relative z-10">
-          
-          {/* Left Column: Hero Copy */}
-          <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-            <div className="inline-flex items-center gap-2 bg-white/10 border border-white/15 rounded-full px-4 py-1.5 backdrop-blur-md shadow-sm">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span className="text-xs font-semibold tracking-wide text-slate-200">
-                National SC Finance &amp; Development Corporation
+      {/* ── Hero Section (High-Contrast Dark Midnight) ────────────────────────── */}
+      <section
+        style={{
+          background: 'linear-gradient(180deg, #0b1f3a 0%, #071426 100%)',
+          color: '#ffffff',
+          padding: '72px 24px 84px',
+          width: '100%',
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 1200,
+            margin: '0 auto',
+            display: 'grid',
+            gridTemplateColumns: '1.2fr 1fr',
+            gap: 48,
+            alignItems: 'center',
+          }}
+        >
+          {/* Left Text */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                background: 'rgba(56, 189, 248, 0.12)',
+                border: '1px solid rgba(56, 189, 248, 0.3)',
+                padding: '6px 14px',
+                borderRadius: 20,
+                width: 'fit-content',
+              }}
+            >
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#34d399' }} />
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#e0f2fe', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                {t('hero.badge', 'National SC Finance & Development Corporation')}
               </span>
             </div>
 
-            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.12] text-white">
-              Concessional Loans &amp; Finance,{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-400">
-                Made Simple &amp; Grounded
+            <h1
+              style={{
+                fontSize: 44,
+                fontWeight: 900,
+                color: '#ffffff',
+                lineHeight: 1.18,
+                letterSpacing: '-0.03em',
+                margin: 0,
+              }}
+            >
+              {t('hero.title_part1', 'Concessional Loans & Finance,')}{' '}
+              <span
+                style={{
+                  background: 'linear-gradient(90deg, #fbbf24, #f97316)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  display: 'inline-block',
+                }}
+              >
+                {t('hero.title_part2', 'Made Simple & Grounded')}
               </span>
             </h1>
 
-            <p className="text-base sm:text-lg text-slate-300 leading-relaxed max-w-2xl mx-auto lg:mx-0">
-              Discover official government assistance programs, compute accurate monthly EMIs with moratorium support, and find verified channel partners near you without bureaucratic confusion.
+            <p style={{ fontSize: 16, color: '#cbd5e1', lineHeight: 1.65, maxWidth: 580, margin: 0 }}>
+              {t('hero.desc', 'Discover official government assistance programs, compute accurate monthly EMIs with moratorium support, and find verified channel partners near you without bureaucratic confusion.')}
             </p>
 
             {/* Action Buttons */}
-            <div className="pt-2 flex flex-wrap items-center justify-center lg:justify-start gap-4">
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14, paddingTop: 8 }}>
               <Link
                 href="/chat"
-                className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold px-7 py-3.5 rounded-xl shadow-lg hover:shadow-amber-500/25 flex items-center gap-2.5 transition-all text-sm sm:text-base cursor-pointer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  background: '#e87722',
+                  color: '#ffffff',
+                  fontSize: 15,
+                  fontWeight: 700,
+                  padding: '14px 26px',
+                  borderRadius: 12,
+                  textDecoration: 'none',
+                  boxShadow: '0 4px 16px rgba(232, 119, 34, 0.35)',
+                  transition: 'all 150ms ease',
+                }}
               >
-                <MessageCircle className="w-5 h-5" />
-                Talk to AI Assistant
-                <ArrowRight className="w-4 h-4" />
+                <MessageCircle size={18} />
+                <span>{t('hero.cta_chat', 'Talk to AI Assistant')}</span>
+                <ArrowRight size={16} />
               </Link>
 
               <Link
                 href="/schemes"
-                className="bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold px-6 py-3.5 rounded-xl backdrop-blur-sm transition-all text-sm sm:text-base cursor-pointer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: '1.5px solid rgba(255, 255, 255, 0.25)',
+                  color: '#ffffff',
+                  fontSize: 15,
+                  fontWeight: 600,
+                  padding: '14px 24px',
+                  borderRadius: 12,
+                  textDecoration: 'none',
+                  transition: 'all 150ms ease',
+                }}
               >
-                Browse All Schemes
+                {t('hero.cta_schemes', 'Browse All Schemes')}
               </Link>
             </div>
 
             {/* Trust Badges */}
-            <div className="pt-4 flex items-center justify-center lg:justify-start gap-6 text-xs text-slate-300">
-              <div className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <span>Zero Hallucinations</span>
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 20, paddingTop: 12, fontSize: 13, color: '#94a3b8' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <CheckCircle2 size={16} color="#34d399" />
+                <span style={{ color: '#e2e8f0' }}>{t('hero.trust_zero_hallucination', 'Zero Hallucinations')}</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <span>Multilingual Support</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <CheckCircle2 size={16} color="#34d399" />
+                <span style={{ color: '#e2e8f0' }}>{t('hero.trust_multilingual', 'Multilingual (Hindi/Marathi)')}</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <span>Verified Partners</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <CheckCircle2 size={16} color="#34d399" />
+                <span style={{ color: '#e2e8f0' }}>{t('hero.trust_partners', '100+ Verified Partners')}</span>
               </div>
             </div>
           </div>
 
-          {/* Right Column: Hero Live Card & Highlights */}
-          <div className="lg:col-span-5">
-            <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
-              <div className="flex items-center justify-between border-b border-white/15 pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center">
-                    <Sparkles className="w-5 h-5 text-amber-400" />
+          {/* Right Live Simulation Card */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <div
+              style={{
+                width: '100%',
+                maxWidth: 440,
+                background: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(255, 255, 255, 0.18)',
+                borderRadius: 20,
+                padding: '24px',
+                backdropFilter: 'blur(16px)',
+                boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 16,
+              }}
+            >
+              {/* Card Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255, 255, 255, 0.12)', paddingBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 10,
+                      background: 'rgba(251, 191, 36, 0.2)',
+                      border: '1px solid rgba(251, 191, 36, 0.3)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Sparkles size={18} color="#fbbf24" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-white">Interactive Assistant</h3>
-                    <p className="text-xs text-slate-300">Live Scheme Recommendation</p>
+                    <h3 style={{ fontSize: 13.5, fontWeight: 700, color: '#ffffff', margin: 0 }}>
+                      {t('hero.demo_title', 'Live AI Demonstration')}
+                    </h3>
+                    <p style={{ fontSize: 11.5, color: '#94a3b8', margin: 0 }}>
+                      {t('hero.demo_sub', 'Scheme Matching & Routing')}
+                    </p>
                   </div>
                 </div>
-                <span className="text-[11px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-                  Online
+
+                <span
+                  style={{
+                    fontSize: 10.5,
+                    fontWeight: 700,
+                    padding: '3px 8px',
+                    borderRadius: 20,
+                    background: 'rgba(52, 211, 153, 0.2)',
+                    color: '#34d399',
+                    border: '1px solid rgba(52, 211, 153, 0.3)',
+                  }}
+                >
+                  {t('hero.demo_verified', 'Verified')}
                 </span>
               </div>
 
-              {/* Chat Simulation Preview */}
-              <div className="space-y-3">
-                <div className="bg-white/15 rounded-xl p-3 text-xs text-slate-200 border border-white/10">
-                  <span className="text-[10px] uppercase font-bold text-amber-300 block mb-1">Applicant:</span>
-                  "I want to open a small grocery shop in Lucknow. Family earns ₹2.8 Lakh/year. What scheme can I get?"
+              {/* Sample Dialog */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 12.5 }}>
+                <div
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    borderRadius: 12,
+                    padding: '12px 14px',
+                    color: '#e2e8f0',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                  }}
+                >
+                  <span style={{ fontSize: 10.5, fontWeight: 800, color: '#fbbf24', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>
+                    {t('hero.demo_q_label', 'Applicant:')}
+                  </span>
+                  {t('hero.demo_q', '"I want to open a small grocery shop in Lucknow. Family earns ₹2.8 Lakh/year. What scheme can I get?"')}
                 </div>
-                <div className="bg-[#0b1f3a]/80 rounded-xl p-3.5 text-xs text-slate-100 border border-white/15 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-amber-400">Recommended: Term Loan Scheme</span>
-                    <span className="text-[10px] bg-blue-500/30 text-blue-200 px-1.5 py-0.5 rounded font-mono">7% p.a.</span>
+
+                <div
+                  style={{
+                    background: '#0a1d35',
+                    border: '1px solid rgba(251, 191, 36, 0.25)',
+                    borderRadius: 14,
+                    padding: '14px',
+                    color: '#ffffff',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 6,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontWeight: 800, color: '#fbbf24', fontSize: 13 }}>
+                      {t('hero.demo_ans_title', 'Recommended: Term Loan Scheme')}
+                    </span>
+                    <span style={{ fontSize: 11, background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>
+                      {t('hero.demo_ans_rate', '7% p.a.')}
+                    </span>
                   </div>
-                  <p className="text-slate-300 text-[11px] leading-relaxed">
-                    Covers up to 90% project cost with a 6-month moratorium. Nearest eligible SCA: <strong>UP Scheduled Castes Finance &amp; Dev. Corp.</strong>
+                  <p style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.5, margin: 0 }}>
+                    {t('hero.demo_ans_desc', 'Covers up to 90% project cost with a 6-month moratorium. Nearest eligible SCA: UP Scheduled Castes Finance & Dev. Corp.')}
                   </p>
                 </div>
               </div>
 
-              {/* Action */}
+              {/* Action Button */}
               <Link
                 href="/chat"
-                className="w-full bg-white text-[#0b1f3a] hover:bg-slate-100 font-bold py-3 rounded-xl flex items-center justify-center gap-2 text-xs transition-colors shadow"
+                style={{
+                  width: '100%',
+                  background: '#ffffff',
+                  color: '#0b1f3a',
+                  fontWeight: 700,
+                  fontSize: 13,
+                  padding: '11px',
+                  borderRadius: 12,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  textDecoration: 'none',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+                }}
               >
-                Try With Your Own Details
-                <ArrowRight className="w-3.5 h-3.5" />
+                <span>{t('hero.demo_btn', 'Try With Your Own Details')}</span>
+                <ArrowRight size={14} />
               </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── Key Metrics Showcase ────────────────────────────────────────────── */}
-      <section className="relative -mt-10 z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      {/* ── Key Metrics Showcase (4 Clean Boxes) ─────────────────────────────── */}
+      <section
+        style={{
+          background: '#ffffff',
+          borderBottom: '1px solid #e2e8f0',
+          padding: '48px 24px',
+          width: '100%',
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 1200,
+            margin: '0 auto',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: 20,
+          }}
+        >
           {STATS.map((s) => (
             <div
               key={s.label}
-              className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-md flex flex-col justify-between"
+              style={{
+                background: '#f8fafc',
+                border: '1.5px solid #e2e8f0',
+                borderRadius: 16,
+                padding: '24px 20px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                gap: 8,
+              }}
             >
-              <div className="text-2xl sm:text-3xl font-extrabold text-[#0b1f3a] mb-1">
+              <div style={{ fontSize: 32, fontWeight: 900, color: '#0b1f3a', letterSpacing: '-0.02em' }}>
                 {s.value}
               </div>
               <div>
-                <div className="text-xs sm:text-sm font-bold text-slate-800">{s.label}</div>
-                <div className="text-[11px] sm:text-xs text-slate-500 mt-0.5">{s.sub}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{s.label}</div>
+                <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{s.sub}</div>
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* ── Core Services Section ───────────────────────────────────────────── */}
-      <section ref={servicesRef} className="reveal-section py-20 lg:py-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
-        <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
-          <div className="text-xs font-extrabold tracking-widest text-amber-600 uppercase">
-            Platform Capabilities
-          </div>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-[#0b1f3a] tracking-tight">
-            Designed for Transparency &amp; Speed
-          </h2>
-          <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
-            Eliminating intermediate confusion with grounded AI, accurate loan math, and geo-spatial channel routing.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {CORE_SERVICES.map((s) => {
-            const Icon = s.icon;
-            return (
-              <div
-                key={s.title}
-                className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm hover:shadow-lg transition-all card-hover flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-6">
-                    <div
-                      className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner"
-                      style={{ background: s.bg }}
-                    >
-                      <Icon className="w-7 h-7" style={{ color: s.color }} />
-                    </div>
-                    <span
-                      className="text-xs font-bold px-3 py-1 rounded-full border"
-                      style={{ background: s.bg, color: s.color, borderColor: `${s.color}30` }}
-                    >
-                      {s.badge}
-                    </span>
-                  </div>
-
-                  <h3 className="text-xl font-bold text-slate-900 mb-3 leading-snug">
-                    {s.title}
-                  </h3>
-                  <p className="text-slate-600 text-sm leading-relaxed mb-6">
-                    {s.desc}
-                  </p>
-                </div>
-
-                <Link
-                  href={s.href}
-                  className="inline-flex items-center gap-2 text-sm font-bold text-[#0b1f3a] hover:text-amber-600 transition-colors pt-4 border-t border-slate-100"
-                >
-                  {s.cta}
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* ── How It Works Section ────────────────────────────────────────────── */}
-      <section ref={howRef} className="reveal-section bg-slate-100/70 border-y border-slate-200 py-20 lg:py-28 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center max-w-2xl mx-auto mb-16 space-y-3">
-            <div className="text-xs font-extrabold tracking-widest text-amber-600 uppercase">
-              Simple 4-Step Process
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-[#0b1f3a] tracking-tight">
-              From Inquiry to Disbursement
+      {/* ── Core Services Section (2x2 Grid) ─────────────────────────────────── */}
+      <section style={{ padding: '72px 24px', width: '100%' }}>
+        <div
+          style={{
+            maxWidth: 1200,
+            margin: '0 auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 40,
+          }}
+        >
+          <div style={{ textAlign: 'center', maxWidth: 640, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <span
+              style={{
+                display: 'inline-block',
+                width: 'fit-content',
+                margin: '0 auto',
+                fontSize: 11,
+                fontWeight: 800,
+                color: '#c2410c',
+                background: '#fff7ed',
+                border: '1px solid #fed7aa',
+                padding: '4px 12px',
+                borderRadius: 20,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+              }}
+            >
+              {t('cap.badge', 'Platform Capabilities')}
+            </span>
+            <h2 style={{ fontSize: 32, fontWeight: 900, color: '#0b1f3a', margin: 0, letterSpacing: '-0.02em' }}>
+              {t('cap.title', 'Designed for Transparency & Speed')}
             </h2>
-            <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
-              How Pradarshak AI guides an applicant directly to the right channel partner with confidence.
+            <p style={{ fontSize: 15, color: '#64748b', lineHeight: 1.6, margin: 0 }}>
+              {t('cap.desc', 'Eliminating intermediate confusion with grounded AI, accurate loan math, and geo-spatial channel routing.')}
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: 24,
+            }}
+          >
+            {CORE_SERVICES.map((s) => {
+              const Icon = s.icon;
+              return (
+                <div
+                  key={s.title}
+                  style={{
+                    background: '#ffffff',
+                    border: '1.5px solid #e2e8f0',
+                    borderRadius: 18,
+                    padding: '28px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    boxShadow: '0 2px 10px rgba(11,31,58,0.03)',
+                    transition: 'all 180ms ease',
+                    minHeight: 250,
+                  }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div
+                        style={{
+                          width: 44,
+                          height: 44,
+                          borderRadius: 12,
+                          background: s.bg,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Icon size={22} color={s.color} />
+                      </div>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          padding: '3px 10px',
+                          borderRadius: 20,
+                          background: '#f1f5f9',
+                          color: '#475569',
+                        }}
+                      >
+                        {s.badge}
+                      </span>
+                    </div>
+
+                    <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0b1f3a', margin: 0 }}>
+                      {s.title}
+                    </h3>
+                    <p style={{ fontSize: 13.5, color: '#64748b', lineHeight: 1.6, margin: 0 }}>
+                      {s.desc}
+                    </p>
+                  </div>
+
+                  <div style={{ paddingTop: 16, marginTop: 14, borderTop: '1px solid #f1f5f9' }}>
+                    <Link
+                      href={s.href}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        fontSize: 13.5,
+                        fontWeight: 700,
+                        color: '#0b1f3a',
+                        textDecoration: 'none',
+                      }}
+                    >
+                      <span>{s.cta}</span>
+                      <ChevronRight size={15} color="#e87722" />
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ── How It Works Section (4 Steps) ───────────────────────────────────── */}
+      <section
+        style={{
+          background: '#ffffff',
+          borderTop: '1px solid #e2e8f0',
+          borderBottom: '1px solid #e2e8f0',
+          padding: '72px 24px',
+          width: '100%',
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 1200,
+            margin: '0 auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 40,
+          }}
+        >
+          <div style={{ textAlign: 'center', maxWidth: 640, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <span
+              style={{
+                display: 'inline-block',
+                width: 'fit-content',
+                margin: '0 auto',
+                fontSize: 11,
+                fontWeight: 800,
+                color: '#0b1f3a',
+                background: '#eef3f9',
+                border: '1px solid #dbe5f1',
+                padding: '4px 12px',
+                borderRadius: 20,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+              }}
+            >
+              {t('how.badge', 'Simple 4-Step Process')}
+            </span>
+            <h2 style={{ fontSize: 32, fontWeight: 900, color: '#0b1f3a', margin: 0, letterSpacing: '-0.02em' }}>
+              {t('how.title', 'From Inquiry to Disbursement')}
+            </h2>
+            <p style={{ fontSize: 15, color: '#64748b', lineHeight: 1.6, margin: 0 }}>
+              {t('how.desc', 'How Pradarshak AI guides an applicant directly to the right channel partner with confidence.')}
+            </p>
+          </div>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: 20,
+            }}
+          >
             {HOW_IT_WORKS.map(({ Icon, step, title, desc }) => (
               <div
                 key={step}
-                className="bg-white rounded-2xl p-7 border border-slate-200 shadow-sm relative flex flex-col justify-between"
+                style={{
+                  background: '#f8fafc',
+                  border: '1.5px solid #e2e8f0',
+                  borderRadius: 16,
+                  padding: '24px 20px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  gap: 16,
+                }}
               >
-                <div>
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="w-12 h-12 rounded-xl bg-[#0b1f3a] text-white flex items-center justify-center shadow-md">
-                      <Icon className="w-6 h-6 text-amber-400" />
-                    </div>
-                    <span className="text-2xl font-black text-slate-300 tracking-tight font-mono">
-                      {step}
-                    </span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 10,
+                      background: '#0b1f3a',
+                      color: '#fbbf24',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Icon size={20} />
                   </div>
+                  <span style={{ fontSize: 24, fontWeight: 900, color: '#cbd5e1', fontFamily: 'monospace' }}>
+                    {step}
+                  </span>
+                </div>
 
-                  <h3 className="text-base font-bold text-slate-900 mb-2">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <h3 style={{ fontSize: 15, fontWeight: 800, color: '#0f172a', margin: 0 }}>
                     {title}
                   </h3>
-                  <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
+                  <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.5, margin: 0 }}>
                     {desc}
                   </p>
                 </div>
@@ -375,36 +628,82 @@ export default function HomePage() {
       </section>
 
       {/* ── Call to Action Banner ───────────────────────────────────────────── */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
-        <div className="bg-gradient-to-r from-[#0b1f3a] to-[#153461] text-white rounded-3xl p-8 sm:p-14 lg:p-16 shadow-2xl relative overflow-hidden text-center lg:text-left flex flex-col lg:flex-row items-center justify-between gap-10">
-          
-          <div className="space-y-4 max-w-2xl">
-            <span className="inline-block text-xs font-extrabold uppercase tracking-widest text-amber-400 bg-amber-500/15 border border-amber-500/30 px-3 py-1 rounded-full">
-              Get Started Now
-            </span>
-            <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
-              Ready to find the loan scheme that fits you?
-            </h2>
-            <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-              Chat with our AI assistant in Hindi, Marathi, or English. It takes less than 2 minutes to discover your eligibility and nearest partner.
-            </p>
-          </div>
+      <section style={{ padding: '72px 24px', width: '100%' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          <div
+            style={{
+              background: 'linear-gradient(135deg, #0b1f3a, #16345d)',
+              color: '#ffffff',
+              borderRadius: 24,
+              padding: '48px 40px',
+              boxShadow: '0 12px 36px rgba(11,31,58,0.25)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 32,
+            }}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 640 }}>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 800,
+                  color: '#fbbf24',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                }}
+              >
+                {t('cta.tag', 'Ready to explore options?')}
+              </span>
+              <h2 style={{ fontSize: 28, fontWeight: 900, color: '#ffffff', margin: 0, letterSpacing: '-0.02em' }}>
+                {t('cta.title', 'Find the concessional loan scheme that fits your venture')}
+              </h2>
+              <p style={{ fontSize: 14.5, color: '#cbd5e1', lineHeight: 1.6, margin: 0 }}>
+                {t('cta.desc', 'Chat with our AI assistant in Hindi, Marathi, or English. It takes less than 2 minutes to discover your eligibility and nearest partner.')}
+              </p>
+            </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto flex-shrink-0">
-            <Link
-              href="/chat"
-              className="bg-amber-500 hover:bg-amber-600 text-white font-bold px-8 py-4 rounded-xl shadow-lg hover:shadow-amber-500/30 flex items-center justify-center gap-2 text-base transition-all cursor-pointer"
-            >
-              <MessageCircle className="w-5 h-5" />
-              Launch Assistant
-            </Link>
-            <Link
-              href="/partners"
-              className="bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold px-6 py-4 rounded-xl backdrop-blur-sm transition-all text-base flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <MapPin className="w-5 h-5 text-amber-400" />
-              Find Partners
-            </Link>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, flexShrink: 0 }}>
+              <Link
+                href="/chat"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  background: '#e87722',
+                  color: '#ffffff',
+                  fontSize: 14.5,
+                  fontWeight: 700,
+                  padding: '13px 24px',
+                  borderRadius: 12,
+                  textDecoration: 'none',
+                  boxShadow: '0 4px 14px rgba(232,119,34,0.35)',
+                }}
+              >
+                <MessageCircle size={17} />
+                <span>{t('cta.btn_chat', 'Launch Assistant')}</span>
+              </Link>
+
+              <Link
+                href="/partners"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  background: 'rgba(255,255,255,0.1)',
+                  border: '1px solid rgba(255,255,255,0.25)',
+                  color: '#ffffff',
+                  fontSize: 14.5,
+                  fontWeight: 600,
+                  padding: '13px 22px',
+                  borderRadius: 12,
+                  textDecoration: 'none',
+                }}
+              >
+                <MapPin size={17} color="#fbbf24" />
+                <span>{t('cta.btn_partners', 'Find Partners')}</span>
+              </Link>
+            </div>
           </div>
         </div>
       </section>

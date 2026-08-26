@@ -6,16 +6,18 @@ import Footer from '@/components/Footer';
 import { useRouter } from 'next/navigation';
 import {
   Search,
-  SlidersHorizontal,
-  ArrowRight,
   X,
   Layers,
   Sparkles,
-  CheckCircle2,
+  ArrowRight,
+  MessageCircle,
+  IndianRupee,
   Percent,
   Calendar,
-  MessageCircle
+  ShieldCheck,
+  RotateCcw
 } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
@@ -36,12 +38,15 @@ interface Scheme {
   active?: boolean;
 }
 
-const CATEGORY_META: Record<string, { label: string; bg: string; text: string; border: string }> = {
-  micro_finance:     { label: 'Micro Finance',    bg: 'bg-emerald-50', text: 'text-emerald-800', border: 'border-emerald-200' },
-  term_loan:         { label: 'Term Loan',        bg: 'bg-blue-50',    text: 'text-blue-800',    border: 'border-blue-200' },
-  education_loan:    { label: 'Education',        bg: 'bg-purple-50',  text: 'text-purple-800',  border: 'border-purple-200' },
-  entrepreneurship:  { label: 'Entrepreneurship', bg: 'bg-amber-50',   text: 'text-amber-800',   border: 'border-amber-200' },
-  skill_development: { label: 'Skill Dev',        bg: 'bg-pink-50',    text: 'text-pink-800',    border: 'border-pink-200' },
+const CATEGORY_META: Record<
+  string,
+  { label: string; bg: string; text: string; border: string }
+> = {
+  micro_finance:     { label: 'Micro Finance',    bg: '#ecfdf5', text: '#065f46', border: '#a7f3d0' },
+  term_loan:         { label: 'Term Loan Scheme', bg: '#eff6ff', text: '#1e40af', border: '#bfdbfe' },
+  education_loan:    { label: 'Education Loan',   bg: '#faf5ff', text: '#6b21a8', border: '#e9d5ff' },
+  entrepreneurship:  { label: 'Entrepreneurship', bg: '#fff7ed', text: '#9a3412', border: '#fed7aa' },
+  skill_development: { label: 'Skill Dev',        bg: '#fdf2f8', text: '#9d174d', border: '#fbcfe8' },
 };
 
 function SchemeCard({
@@ -53,74 +58,156 @@ function SchemeCard({
 }) {
   const meta =
     CATEGORY_META[scheme.category] || {
-      label: scheme.category,
-      bg: 'bg-slate-50',
-      text: 'text-slate-700',
-      border: 'border-slate-200',
+      label: scheme.category.replace('_', ' '),
+      bg: '#f8fafc',
+      text: '#334155',
+      border: '#e2e8f0',
     };
 
   return (
-    <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group">
-      
-      <div className="space-y-4">
-        {/* Category & Tag */}
-        <div className="flex items-center justify-between gap-2">
-          <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${meta.bg} ${meta.text} ${meta.border}`}>
+    <div
+      style={{
+        background: '#ffffff',
+        border: '1.5px solid #e2e8f0',
+        borderRadius: 18,
+        padding: '24px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        boxShadow: '0 2px 8px rgba(11,31,58,0.03)',
+        transition: 'all 180ms ease',
+        minHeight: 380,
+      }}
+      onMouseEnter={(e) => {
+        const el = e.currentTarget as HTMLElement;
+        el.style.borderColor = '#0b1f3a';
+        el.style.transform = 'translateY(-2px)';
+        el.style.boxShadow = '0 8px 24px rgba(11,31,58,0.08)';
+      }}
+      onMouseLeave={(e) => {
+        const el = e.currentTarget as HTMLElement;
+        el.style.borderColor = '#e2e8f0';
+        el.style.transform = 'translateY(0)';
+        el.style.boxShadow = '0 2px 8px rgba(11,31,58,0.03)';
+      }}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {/* Category & Women Only Badges */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              padding: '4px 10px',
+              borderRadius: 20,
+              background: meta.bg,
+              color: meta.text,
+              border: `1px solid ${meta.border}`,
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+            }}
+          >
             {meta.label}
           </span>
 
           {scheme.gender_eligibility === 'women_only' && (
-            <span className="text-[10px] font-bold bg-pink-50 text-pink-700 border border-pink-200 px-2 py-0.5 rounded-full">
+            <span
+              style={{
+                fontSize: 10.5,
+                fontWeight: 700,
+                padding: '3px 8px',
+                borderRadius: 20,
+                background: '#fdf2f8',
+                color: '#be185d',
+                border: '1px solid #fbcfe8',
+                textTransform: 'uppercase',
+              }}
+            >
               Women Only
             </span>
           )}
         </div>
 
-        {/* Scheme Title */}
-        <h3 className="font-extrabold text-lg text-slate-900 leading-snug group-hover:text-amber-600 transition-colors">
+        {/* Title */}
+        <h3 style={{ fontSize: 17, fontWeight: 800, color: '#0b1f3a', margin: 0, lineHeight: 1.35 }}>
           {scheme.name}
         </h3>
 
         {/* Description */}
-        <p className="text-xs text-slate-600 leading-relaxed line-clamp-3">
+        <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.55, margin: 0 }}>
           {scheme.description}
         </p>
 
-        {/* Key Parameter Boxes */}
-        <div className="grid grid-cols-2 gap-3 pt-2">
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
-            <div className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">Max Amount</div>
-            <div className="text-base font-extrabold text-[#0b1f3a]">
+        {/* Key Metrics Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, paddingTop: 4 }}>
+          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '10px 12px' }}>
+            <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', display: 'block', marginBottom: 2 }}>
+              Max Loan
+            </span>
+            <strong style={{ fontSize: 15, fontWeight: 800, color: '#0b1f3a' }}>
               ₹{scheme.max_loan_lakh} Lakh
-            </div>
+            </strong>
           </div>
 
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
-            <div className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">Interest Rate</div>
-            <div className="text-base font-extrabold text-emerald-700">
+          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '10px 12px' }}>
+            <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', display: 'block', marginBottom: 2 }}>
+              Interest Rate
+            </span>
+            <strong style={{ fontSize: 15, fontWeight: 800, color: '#15803d' }}>
               {scheme.interest_rate_min === scheme.interest_rate_max
                 ? `${scheme.interest_rate_min}% p.a.`
                 : `${scheme.interest_rate_min}–${scheme.interest_rate_max}%`}
-            </div>
+            </strong>
           </div>
         </div>
 
-        {/* Extra Specs */}
-        <div className="text-[11px] text-slate-500 flex flex-wrap gap-2 pt-1">
-          <span>Income limit: ≤ ₹{scheme.max_income_lakh}L/yr</span>
-          <span>•</span>
-          <span>Tenure: up to {scheme.max_tenure_months} mo</span>
+        {/* Parameter Details */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, fontSize: 11.5, color: '#64748b', paddingTop: 2 }}>
+          <span style={{ background: '#f1f5f9', padding: '3px 8px', borderRadius: 6 }}>
+            Income limit: ≤ ₹{scheme.max_income_lakh}L/yr
+          </span>
+          <span style={{ background: '#f1f5f9', padding: '3px 8px', borderRadius: 6 }}>
+            Tenure: up to {scheme.max_tenure_months} mo
+          </span>
+          {scheme.moratorium_months_max > 0 && (
+            <span style={{ background: '#f1f5f9', padding: '3px 8px', borderRadius: 6 }}>
+              Moratorium: {scheme.moratorium_months_min}–{scheme.moratorium_months_max} mo
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Action Footer */}
-      <div className="pt-6 border-t border-slate-100 mt-6 flex items-center gap-3">
+      {/* Action Button */}
+      <div style={{ paddingTop: 16, marginTop: 14, borderTop: '1px solid #f1f5f9' }}>
         <button
           onClick={() => onChat(scheme.name)}
-          className="flex-1 bg-[#0b1f3a] hover:bg-[#132e54] text-white text-xs font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            padding: '11px 16px',
+            borderRadius: 12,
+            background: '#0b1f3a',
+            color: '#ffffff',
+            border: 'none',
+            fontSize: 13,
+            fontWeight: 700,
+            cursor: 'pointer',
+            boxShadow: '0 2px 6px rgba(11,31,58,0.18)',
+            transition: 'all 150ms ease',
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.background = '#e87722';
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLElement).style.background = '#0b1f3a';
+          }}
         >
-          <MessageCircle className="w-4 h-4 text-amber-400" />
-          Inquire with AI
+          <MessageCircle size={15} color="#fbbf24" />
+          <span>Inquire with AI Assistant</span>
+          <ArrowRight size={14} />
         </button>
       </div>
     </div>
@@ -129,110 +216,132 @@ function SchemeCard({
 
 export default function SchemesPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [schemes, setSchemes] = useState<Scheme[]>([]);
-  const [filtered, setFiltered] = useState<Scheme[]>([]);
   const [loading, setLoading] = useState(true);
-  const [catFilter, setCatFilter] = useState<string[]>([]);
-  const [maxAmount, setMaxAmount] = useState(50);
-  const [genderFilter, setGenderFilter] = useState('all');
   const [search, setSearch] = useState('');
+  const [catFilter, setCatFilter] = useState<string[]>([]);
+  const [genderFilter, setGenderFilter] = useState<'all' | 'women_only'>('all');
 
   useEffect(() => {
     fetch(`${BASE}/schemes`)
       .then((r) => r.json())
-      .then((data: Scheme[]) => {
-        if (Array.isArray(data)) {
-          setSchemes(data);
-          setFiltered(data);
-        }
+      .then((d) => {
+        setSchemes(d.schemes || d || []);
+        setLoading(false);
       })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      .catch(() => setLoading(false));
   }, []);
 
-  useEffect(() => {
-    let out = schemes;
-    if (catFilter.length > 0) out = out.filter((s) => catFilter.includes(s.category));
-    if (genderFilter !== 'all') {
-      out = out.filter((s) => s.gender_eligibility === genderFilter || s.gender_eligibility === 'all');
+  const filtered = schemes.filter((s) => {
+    if (search) {
+      const q = search.toLowerCase();
+      const m =
+        s.name.toLowerCase().includes(q) ||
+        s.description.toLowerCase().includes(q) ||
+        s.category.toLowerCase().includes(q);
+      if (!m) return false;
     }
-    out = out.filter((s) => s.max_loan_lakh <= maxAmount);
-    if (search.trim()) {
-      out = out.filter(
-        (s) =>
-          s.name.toLowerCase().includes(search.toLowerCase()) ||
-          s.description?.toLowerCase().includes(search.toLowerCase())
-      );
-    }
-    setFiltered(out);
-  }, [catFilter, maxAmount, genderFilter, search, schemes]);
+    if (catFilter.length > 0 && !catFilter.includes(s.category)) return false;
+    if (genderFilter === 'women_only' && s.gender_eligibility !== 'women_only') return false;
+    return true;
+  });
 
-  function toggleCat(cat: string) {
+  function toggleCat(c: string) {
     setCatFilter((prev) =>
-      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
+      prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]
     );
   }
 
   function resetFilters() {
     setCatFilter([]);
     setGenderFilter('all');
-    setMaxAmount(50);
     setSearch('');
   }
 
-  const hasActiveFilters =
-    catFilter.length > 0 || genderFilter !== 'all' || maxAmount < 50 || search;
+  const hasActiveFilters = catFilter.length > 0 || genderFilter !== 'all' || search;
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f8fafc' }}>
       <NavBar />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <main style={{ maxWidth: 1200, width: '100%', margin: '0 auto', padding: '36px 24px 64px', flex: 1 }}>
         
         {/* ── Page Header ─────────────────────────────────────────────────── */}
-        <div className="mb-8 space-y-2">
-          <div className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-widest text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full">
-            <Layers className="w-3.5 h-3.5" />
-            Official Schemes Catalog
+        <div style={{ marginBottom: 28, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, width: 'fit-content', background: '#fff7ed', border: '1px solid #fed7aa', color: '#c2410c', fontSize: 11, fontWeight: 800, padding: '4px 12px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <Layers size={14} />
+            <span>{t('schemes.badge', 'Official Schemes Catalog')}</span>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-[#0b1f3a] tracking-tight">
-            Government Concessional Loan Schemes
+
+          <h1 style={{ fontSize: 32, fontWeight: 900, color: '#0b1f3a', margin: 0, letterSpacing: '-0.02em' }}>
+            {t('schemes.title', 'Government Concessional Loan Schemes')}
           </h1>
-          <p className="text-slate-600 text-sm sm:text-base max-w-3xl">
-            Explore active schemes tailored for Scheduled Caste beneficiaries with family income up to ₹5 Lakh per annum.
+
+          <p style={{ fontSize: 15, color: '#64748b', maxWidth: 740, lineHeight: 1.6, margin: 0 }}>
+            {t('schemes.desc', 'Explore official financial assistance programs tailored for Scheduled Caste beneficiaries with family income up to ₹5.00 Lakh per annum.')}
           </p>
         </div>
 
         {/* ── Search & Filter Toolbar ─────────────────────────────────────── */}
-        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm mb-8 space-y-4">
-          
+        <div
+          style={{
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: 18,
+            padding: '20px 24px',
+            marginBottom: 32,
+            boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 16,
+          }}
+        >
           {/* Top Search Input */}
-          <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <Search size={18} color="#94a3b8" style={{ position: 'absolute', left: 16 }} />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search schemes by name, category, or purpose (e.g. Mahila, Transport, Education)..."
-              className="w-full pl-11 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 outline-none focus:bg-white focus:border-[#0b1f3a]"
+              placeholder={t('schemes.search_ph', 'Search schemes by name, purpose, or activity (e.g. Mahila, Tailoring, Education, Green Business)...')}
+              style={{
+                width: '100%',
+                padding: '13px 44px 13px 46px',
+                borderRadius: 12,
+                border: '1.5px solid #cbd5e1',
+                background: '#f8fafc',
+                fontSize: 14.5,
+                fontWeight: 500,
+                color: '#0f172a',
+                outline: 'none',
+              }}
             />
             {search && (
               <button
                 onClick={() => setSearch('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600"
+                style={{
+                  position: 'absolute',
+                  right: 14,
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
+                  padding: 4,
+                }}
               >
-                <X className="w-4 h-4" />
+                <X size={16} />
               </button>
             )}
           </div>
 
-          {/* Filter Pills & Options */}
-          <div className="flex flex-wrap items-center justify-between gap-4 pt-2 border-t border-slate-100">
+          {/* Filter Chips & Gender Selector */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingTop: 6, borderTop: '1px solid #f1f5f9' }}>
             
             {/* Category Chips */}
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mr-1">
-                Category:
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 11.5, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginRight: 4 }}>
+                {t('schemes.cat_label', 'Category:')}
               </span>
               {Object.entries(CATEGORY_META).map(([cat, meta]) => {
                 const active = catFilter.includes(cat);
@@ -240,11 +349,18 @@ export default function SchemesPage() {
                   <button
                     key={cat}
                     onClick={() => toggleCat(cat)}
-                    className={`text-xs font-semibold px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
-                      active
-                        ? 'bg-[#0b1f3a] text-white border-[#0b1f3a] shadow-xs'
-                        : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                    }`}
+                    style={{
+                      fontSize: 12.5,
+                      fontWeight: active ? 700 : 500,
+                      padding: '6px 14px',
+                      borderRadius: 20,
+                      cursor: 'pointer',
+                      border: active ? '1.5px solid #0b1f3a' : '1px solid #e2e8f0',
+                      background: active ? '#0b1f3a' : '#f8fafc',
+                      color: active ? '#ffffff' : '#334155',
+                      boxShadow: active ? '0 2px 6px rgba(11,31,58,0.15)' : 'none',
+                      transition: 'all 150ms ease',
+                    }}
                   >
                     {meta.label}
                   </button>
@@ -253,32 +369,59 @@ export default function SchemesPage() {
             </div>
 
             {/* Gender Toggle & Reset */}
-            <div className="flex items-center gap-3">
-              <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-semibold">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', background: '#f1f5f9', padding: '3px', borderRadius: 10 }}>
                 <button
                   onClick={() => setGenderFilter('all')}
-                  className={`px-3 py-1 rounded-lg transition-colors cursor-pointer ${
-                    genderFilter === 'all' ? 'bg-white text-[#0b1f3a] shadow-xs' : 'text-slate-600'
-                  }`}
+                  style={{
+                    padding: '5px 12px',
+                    borderRadius: 8,
+                    fontSize: 12,
+                    fontWeight: genderFilter === 'all' ? 700 : 500,
+                    border: 'none',
+                    background: genderFilter === 'all' ? '#ffffff' : 'transparent',
+                    color: genderFilter === 'all' ? '#0b1f3a' : '#64748b',
+                    boxShadow: genderFilter === 'all' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+                    cursor: 'pointer',
+                  }}
                 >
-                  All
+                  {t('schemes.all', 'All Schemes')}
                 </button>
                 <button
                   onClick={() => setGenderFilter('women_only')}
-                  className={`px-3 py-1 rounded-lg transition-colors cursor-pointer ${
-                    genderFilter === 'women_only' ? 'bg-white text-pink-700 shadow-xs' : 'text-slate-600'
-                  }`}
+                  style={{
+                    padding: '5px 12px',
+                    borderRadius: 8,
+                    fontSize: 12,
+                    fontWeight: genderFilter === 'women_only' ? 700 : 500,
+                    border: 'none',
+                    background: genderFilter === 'women_only' ? '#ffffff' : 'transparent',
+                    color: genderFilter === 'women_only' ? '#be185d' : '#64748b',
+                    boxShadow: genderFilter === 'women_only' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+                    cursor: 'pointer',
+                  }}
                 >
-                  Women Only
+                  {t('schemes.women_only', 'Women Only')}
                 </button>
               </div>
 
               {hasActiveFilters && (
                 <button
                   onClick={resetFilters}
-                  className="text-xs font-bold text-amber-600 hover:text-amber-700 cursor-pointer underline"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: '#c2410c',
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
                 >
-                  Reset
+                  <RotateCcw size={12} />
+                  <span>{t('schemes.reset', 'Reset')}</span>
                 </button>
               )}
             </div>
@@ -287,27 +430,51 @@ export default function SchemesPage() {
 
         {/* ── Scheme Grid ─────────────────────────────────────────────────── */}
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: 24 }}>
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="skeleton h-72 rounded-2xl" />
+              <div key={i} style={{ height: 360, background: '#e2e8f0', borderRadius: 18, animation: 'pulse 1.5s infinite' }} />
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="bg-white rounded-2xl p-16 text-center border border-slate-200 space-y-4">
-            <Layers className="w-10 h-10 text-slate-300 mx-auto" />
-            <h3 className="text-lg font-bold text-slate-800">No schemes found</h3>
-            <p className="text-sm text-slate-500 max-w-sm mx-auto">
-              Try modifying your search term or clearing the active category filters.
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: 20,
+              padding: '64px 24px',
+              textAlign: 'center',
+              border: '1px solid #e2e8f0',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 14,
+            }}
+          >
+            <Layers size={40} color="#cbd5e1" />
+            <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: 0 }}>
+              No matching schemes found
+            </h3>
+            <p style={{ fontSize: 14, color: '#64748b', maxWidth: 400, margin: 0 }}>
+              Try searching with a broader keyword or clear your active category filters.
             </p>
             <button
               onClick={resetFilters}
-              className="btn-primary text-xs font-bold px-4 py-2"
+              style={{
+                padding: '10px 20px',
+                borderRadius: 10,
+                background: '#0b1f3a',
+                color: '#ffffff',
+                border: 'none',
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: 'pointer',
+                marginTop: 8,
+              }}
             >
               Show All Schemes
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: 24 }}>
             {filtered.map((scheme) => (
               <SchemeCard
                 key={scheme.id}
