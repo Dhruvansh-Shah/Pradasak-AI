@@ -34,13 +34,31 @@ interface Filters {
 }
 
 async function extractFilters(message: string): Promise<Filters> {
-  const raw = await llmCall({
-    systemPrompt: FILTER_EXTRACTION_SYSTEM_PROMPT,
-    userMessage: message,
-    jsonMode: true,
-    maxTokens: 256,
-  });
-  return JSON.parse(raw) as Filters;
+  const defaultFilters: Filters = {
+    income_lakh: null,
+    project_type: null,
+    loan_amount_lakh: null,
+    education: false,
+    women_only: false,
+    category_hint: null,
+    explanation: 'Looking for suitable concessional loan schemes.',
+  };
+
+  try {
+    const raw = await llmCall({
+      systemPrompt: FILTER_EXTRACTION_SYSTEM_PROMPT,
+      userMessage: message,
+      jsonMode: true,
+      maxTokens: 512,
+    });
+    const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return defaultFilters;
+    return { ...defaultFilters, ...(JSON.parse(jsonMatch[0]) as Partial<Filters>) };
+  } catch (err) {
+    console.warn('[recommend] Failed to parse filters, using defaults:', err);
+    return defaultFilters;
+  }
 }
 
 // Build a safe parameterized query from extracted filters

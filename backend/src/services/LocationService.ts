@@ -15,6 +15,15 @@ const CITY_COORDS: Record<string, [number, number]> = {
   'lucknow': [26.8467, 80.9462],
   'kanpur': [26.4499, 80.3319],
   'nagpur': [21.1458, 79.0882],
+  'amravati': [20.9374, 77.7796],
+  'akola': [20.7002, 77.0082],
+  'aurangabad': [19.8762, 75.3433], 'chhatrapati sambhajinagar': [19.8762, 75.3433],
+  'solapur': [17.6599, 75.9064],
+  'kolhapur': [16.7050, 74.2433],
+  'nanded': [19.1383, 77.3210],
+  'jalgaon': [21.0077, 75.5626],
+  'chandrapur': [19.9615, 79.2961],
+  'latur': [18.4088, 76.5604],
   'indore': [22.7196, 75.8577],
   'thane': [19.2183, 72.9781],
   'bhopal': [23.2599, 77.4126],
@@ -32,7 +41,6 @@ const CITY_COORDS: Record<string, [number, number]> = {
   'vasai': [19.4700, 72.8100],
   'varanasi': [25.3176, 82.9739],
   'srinagar': [34.0837, 74.7973],
-  'aurangabad': [19.8762, 75.3433],
   'dhanbad': [23.7957, 86.4304],
   'amritsar': [31.6340, 74.8723],
   'navi mumbai': [19.0368, 73.0158],
@@ -107,9 +115,10 @@ export interface NearbyPartner {
 export async function findNearbyPartners(
   point: GeoPoint,
   category?: string,
-  radiusKm = 100,
+  radiusKm = 150,
   limit = 5
 ): Promise<NearbyPartner[]> {
+  // First attempt with specified radius
   const { rows } = await pool.query<NearbyPartner>(
     `SELECT
        id, name, partner_type, address, city, state, district, phone, email,
@@ -129,5 +138,24 @@ export async function findNearbyPartners(
       limit,
     ]
   );
-  return rows;
+
+  if (rows.length > 0) return rows;
+
+  // Fallback: search closest partners nationally or within 600km
+  const { rows: fallbackRows } = await pool.query<NearbyPartner>(
+    `SELECT
+       id, name, partner_type, address, city, state, district, phone, email,
+       eligible_categories, fund_availability_status, npa_percent,
+       ROUND((ST_Distance(location, ST_GeographyFromText($1)) / 1000)::numeric, 1) AS distance_km
+     FROM partners
+     WHERE is_active = TRUE
+     ORDER BY ST_Distance(location, ST_GeographyFromText($1)) ASC
+     LIMIT $2`,
+    [
+      `SRID=4326;POINT(${point.lng} ${point.lat})`,
+      limit,
+    ]
+  );
+
+  return fallbackRows;
 }
