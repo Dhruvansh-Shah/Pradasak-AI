@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NSFDC Admin Portal</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f172a; --sidebar: #1e293b; --card: #1e293b;
+    --border: #334155; --text: #f1f5f9; --muted: #94a3b8;
+    --accent: #3b82f6; --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  #app { display: none; }
+  #login { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .login-box { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 40px; width: 100%; max-width: 400px; }
+  .logo { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+  .logo-icon { width: 44px; height: 44px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .logo h1 { font-size: 16px; font-weight: 700; }
+  .logo p { font-size: 12px; color: var(--muted); }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
+  input { width: 100%; padding: 10px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 14px; outline: none; transition: border-color .2s; margin-bottom: 16px; }
+  input:focus { border-color: var(--accent); }
+  .btn { width: 100%; padding: 11px; background: var(--accent); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity .2s; }
+  .btn:hover { opacity: .85; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .error-msg { background: rgba(239,68,68,.15); color: var(--danger); padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
+  .hint { font-size: 12px; color: var(--muted); text-align: center; margin-top: 16px; }
+
+  /* App layout */
+  #app { display: none; flex-direction: column; min-height: 100vh; }
+  #app.show { display: flex; }
+  .topbar { background: var(--sidebar); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .topbar .left { display: flex; align-items: center; gap: 12px; }
+  .topbar h1 { font-size: 15px; font-weight: 700; }
+  .topbar .email { font-size: 12px; color: var(--muted); }
+  .logout-btn { background: none; border: 1px solid var(--border); color: var(--muted); padding: 6px 14px; border-radius: 8px; font-size: 12px; cursor: pointer; }
+  .logout-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+  .main { display: flex; flex: 1; overflow: hidden; }
+
+  /* Sidebar */
+  .sidebar { width: 200px; background: var(--sidebar); border-right: 1px solid var(--border); padding: 16px 12px; flex-shrink: 0; }
+  .nav-item { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; color: var(--muted); transition: all .2s; margin-bottom: 2px; }
+  .nav-item:hover { background: rgba(255,255,255,.05); color: var(--text); }
+  .nav-item.active { background: rgba(59,130,246,.15); color: var(--accent); }
+
+  /* Content */
+  .content { flex: 1; overflow-y: auto; padding: 24px; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* Stats */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .stat-value { font-size: 32px; font-weight: 800; margin-bottom: 4px; }
+  .stat-label { font-size: 12px; color: var(--muted); }
+
+  /* Table */
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .section-title { font-size: 15px; font-weight: 600; }
+  .refresh-btn { background: none; border: 1px solid var(--border); color: var(--muted); padding: 6px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; }
+  .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .table-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 12px 16px; color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid var(--border); }
+  td { padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,.04); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,.02); }
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-blue { background: rgba(59,130,246,.15); color: var(--accent); }
+  .badge-green { background: rgba(16,185,129,.15); color: var(--success); }
+  .badge-yellow { background: rgba(245,158,11,.15); color: var(--warning); }
+  .badge-red { background: rgba(239,68,68,.15); color: var(--danger); }
+  .badge-gray { background: rgba(148,163,184,.15); color: var(--muted); }
+  .truncate { max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* Toggle */
+  .toggle { position: relative; display: inline-block; width: 38px; height: 22px; cursor: pointer; }
+  .toggle input { display: none; }
+  .toggle-track { position: absolute; inset: 0; background: var(--border); border-radius: 11px; transition: background .2s; }
+  .toggle input:checked + .toggle-track { background: var(--accent); }
+  .toggle-thumb { position: absolute; width: 16px; height: 16px; background: white; border-radius: 50%; top: 3px; left: 3px; transition: left .2s; }
+  .toggle input:checked ~ .toggle-thumb { left: 19px; }
+
+  /* Loading */
+  .loading { text-align: center; padding: 48px; color: var(--muted); font-size: 14px; }
+  .tag { font-size: 11px; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,.06); color: var(--muted); }
+</style>
+</head>
+<body>
+
+<!-- Login -->
+<div id="login">
+  <div class="login-box">
+    <div class="logo">
+      <div class="logo-icon">🏦</div>
+      <div><h1>NSFDC Admin</h1><p>Scheme & Partner Management</p></div>
+    </div>
+    <div id="login-error" class="error-msg" style="display:none"></div>
+    <label>Admin Email</label>
+    <input id="email" type="email" value="admin@nsfdc.gov.in" />
+    <label>Password</label>
+    <input id="password" type="password" placeholder="Admin@2024" />
+    <button class="btn" onclick="doLogin()">Sign In</button>
+    <div class="hint">Default: admin@nsfdc.gov.in / Admin@2024</div>
+  </div>
+</div>
+
+<!-- App -->
+<div id="app">
+  <div class="topbar">
+    <div class="left">
+      <div class="logo-icon" style="width:32px;height:32px;font-size:15px;border-radius:8px;">🏦</div>
+      <h1>NSFDC Admin Portal</h1>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span class="email" id="admin-email-label"></span>
+      <button class="logout-btn" onclick="doLogout()">Logout</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- Sidebar nav -->
+    <div class="sidebar">
+      <div class="nav-item active" onclick="showPage('overview')" id="nav-overview">📊 Overview</div>
+      <div class="nav-item" onclick="showPage('schemes')" id="nav-schemes">📋 Schemes</div>
+      <div class="nav-item" onclick="showPage('partners')" id="nav-partners">🏢 Partners</div>
+      <div class="nav-item" onclick="showPage('users')" id="nav-users">👥 Users</div>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+      <!-- Overview -->
+      <div class="page active" id="page-overview">
+        <div class="stats-grid" id="stats-grid"><div class="loading">Loading stats…</div></div>
+        <div class="table-wrap" style="padding:20px;">
+          <p style="color:var(--muted);font-size:14px;line-height:1.6;">
+            Welcome to the NSFDC Admin Portal. Manage active loan schemes, Channel Partner status, and fund availability here.
+            Changes take effect immediately and are reflected in the chatbot for users.
+          </p>
+          <br/>
+          <div style="display:flex;gap:10px;">
+            <button class="refresh-btn" onclick="showPage('schemes')" style="color:var(--accent);border-color:var(--accent)">Manage Schemes →</button>
+            <button class="refresh-btn" onclick="showPage('partners')">Manage Partners →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Schemes -->
+      <div class="page" id="page-schemes">
+        <div class="section-header">
+          <span class="section-title">Loan Schemes <span id="schemes-count" style="color:var(--muted);font-weight:400;font-size:13px;"></span></span>
+          <button class="refresh-btn" onclick="loadSchemes()">↻ Refresh</button>
+        </div>
+        <div class="table-wrap" id="schemes-table"><div class="loading">Loading…</div></div>
+      </div>
+
+      <!-- Partners -->
+      <div class="page" id="page-partners">
+        <div class="section-header">
+          <span class="section-title">Channel Partners <span id="partners-count" style="color:var(--muted);font-weight:400;font-size:13px;"></span></span>
+          <button class="refresh-btn" onclick="loadPartners()">↻ Refresh</button>
+        </div>
+        <div class="table-wrap" id="partners-table"><div class="loading">Loading…</div></div>
+      </div>
+
+      <!-- Users -->
+      <div class="page" id="page-users">
+        <div class="section-header">
+          <span class="section-title">Registered Users <span id="users-count" style="color:var(--muted);font-weight:400;font-size:13px;"></span></span>
+          <button class="refresh-btn" onclick="loadUsers()">↻ Refresh</button>
+        </div>
+        <div class="table-wrap" id="users-table"><div class="loading">Loading…</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:4000/api';
+let TOKEN = '';
+
+function $$(id) { return document.getElementById(id); }
+
+async function doLogin() {
+  const email = $$('email').value.trim();
+  const password = $$('password').value.trim();
+  const errEl = $$('login-error');
+  errEl.style.display = 'none';
+  try {
+    const r = await fetch(`${API}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Login failed');
+    TOKEN = d.token;
+    sessionStorage.setItem('admin_token', TOKEN);
+    sessionStorage.setItem('admin_email', email);
+    $$('admin-email-label').textContent = email;
+    $$('login').style.display = 'none';
+    $$('app').classList.add('show');
+    loadStats();
+  } catch(e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  }
+}
+
+function doLogout() {
+  TOKEN = '';
+  sessionStorage.clear();
+  $$('app').classList.remove('show');
+  $$('login').style.display = 'flex';
+}
+
+// Auto-login
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = sessionStorage.getItem('admin_token');
+  const savedEmail = sessionStorage.getItem('admin_email');
+  if (saved) {
+    TOKEN = saved;
+    $$('admin-email-label').textContent = savedEmail || '';
+    $$('login').style.display = 'none';
+    $$('app').classList.add('show');
+    loadStats();
+  }
+  $$('password').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+});
+
+function authFetch(url, opts = {}) {
+  return fetch(url, { ...opts, headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json', ...(opts.headers||{}) } });
+}
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  $$(`page-${name}`).classList.add('active');
+  $$(`nav-${name}`).classList.add('active');
+  if (name === 'schemes') loadSchemes();
+  if (name === 'partners') loadPartners();
+  if (name === 'users') loadUsers();
+}
+
+async function loadStats() {
+  try {
+    const r = await authFetch(`${API}/admin/stats`);
+    const d = await r.json();
+    $$('stats-grid').innerHTML = [
+      { label: 'Total Schemes', value: d.schemes.total, color: '#3b82f6' },
+      { label: 'Active Schemes', value: d.schemes.active, color: '#10b981' },
+      { label: 'Total Partners', value: d.partners.total, color: '#8b5cf6' },
+      { label: 'Active Partners', value: d.partners.active, color: '#f59e0b' },
+    ].map(s => `
+      <div class="stat-card">
+        <div class="stat-value" style="color:${s.color}">${s.value}</div>
+        <div class="stat-label">${s.label}</div>
+      </div>
+    `).join('');
+  } catch {}
+}
+
+const CATEGORY_LABELS = { micro_finance:'Micro Finance', term_loan:'Term Loan', education_loan:'Education', entrepreneurship:'Entrepreneur.', skill_development:'Skill Dev.' };
+const FUND_COLORS = { available: 'green', limited: 'yellow', exhausted: 'red' };
+
+async function loadSchemes() {
+  $$('schemes-table').innerHTML = '<div class="loading">Loading…</div>';
+  try {
+    const r = await authFetch(`${API}/admin/schemes`);
+    const schemes = await r.json();
+    const active = schemes.filter(s => s.active).length;
+    $$('schemes-count').textContent = `(${active} active of ${schemes.length})`;
+    $$('schemes-table').innerHTML = `<table>
+      <thead><tr>
+        <th>Name</th><th>Category</th><th>Interest</th><th>Max Loan</th><th>Income Limit</th><th>Gender</th><th>Active</th>
+      </tr></thead>
+      <tbody>
+        ${schemes.map(s => `<tr>
+          <td><div class="truncate" title="${s.name}">${s.name}</div></td>
+          <td><span class="badge badge-blue">${CATEGORY_LABELS[s.category]||s.category}</span></td>
+          <td>${s.interest_rate_min}%</td>
+          <td>₹${s.max_loan_lakh}L</td>
+          <td>₹${s.max_income_lakh}L</td>
+          <td>${s.gender_eligibility === 'women_only' ? '👩 Women' : 'All SC'}</td>
+          <td>
+            <label class="toggle">
+              <input type="checkbox" ${s.active ? 'checked' : ''} onchange="toggleScheme(${s.id}, this)" />
+              <div class="toggle-track"></div>
+              <div class="toggle-thumb"></div>
+            </label>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+  } catch(e) { $$('schemes-table').innerHTML = `<div class="loading" style="color:var(--danger)">Error: ${e.message}</div>`; }
+}
+
+async function toggleScheme(id, el) {
+  try {
+    await authFetch(`${API}/admin/schemes/${id}/toggle`, { method: 'PATCH' });
+    loadStats();
+  } catch { el.checked = !el.checked; }
+}
+
+async function loadPartners() {
+  $$('partners-table').innerHTML = '<div class="loading">Loading…</div>';
+  try {
+    const r = await authFetch(`${API}/admin/partners`);
+    const partners = await r.json();
+    const active = partners.filter(p => p.is_active).length;
+    $$('partners-count').textContent = `(${active} active of ${partners.length})`;
+    $$('partners-table').innerHTML = `<table>
+      <thead><tr>
+        <th>Name</th><th>Type</th><th>City</th><th>NPA %</th><th>Fund Status</th><th>Active</th>
+      </tr></thead>
+      <tbody>
+        ${partners.map(p => {
+          const fc = { available:'green', limited:'yellow', exhausted:'red' }[p.fund_availability_status] || 'gray';
+          return `<tr>
+            <td><div class="truncate" title="${p.name}">${p.name}</div></td>
+            <td><span class="tag">${p.partner_type}</span></td>
+            <td>${p.city}, ${p.state}</td>
+            <td>${p.npa_percent ?? '—'}</td>
+            <td><span class="badge badge-${fc}">● ${p.fund_availability_status}</span></td>
+            <td>
+              <label class="toggle">
+                <input type="checkbox" ${p.is_active ? 'checked' : ''} onchange="togglePartner(${p.id}, this)" />
+                <div class="toggle-track"></div>
+                <div class="toggle-thumb"></div>
+              </label>
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+  } catch(e) { $$('partners-table').innerHTML = `<div class="loading" style="color:var(--danger)">Error: ${e.message}</div>`; }
+}
+
+async function togglePartner(id, el) {
+  try {
+    await authFetch(`${API}/admin/partners/${id}/toggle`, { method: 'PATCH' });
+    loadStats();
+  } catch { el.checked = !el.checked; }
+}
+
+async function loadUsers() {
+  $$('users-table').innerHTML = '<div class="loading">Loading…</div>';
+  try {
+    const r = await authFetch(`${API}/admin/users`);
+    if (!r.ok) throw new Error('Users endpoint not available');
+    const users = await r.json();
+    $$('users-count').textContent = `(${users.length} total)`;
+    $$('users-table').innerHTML = `<table>
+      <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Joined</th></tr></thead>
+      <tbody>
+        ${users.map(u => `<tr>
+          <td>${u.name || '—'}</td>
+          <td>${u.email}</td>
+          <td>${u.phone}</td>
+          <td>${new Date(u.created_at).toLocaleDateString('en-IN')}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+  } catch(e) {
+    $$('users-table').innerHTML = `<div class="loading" style="color:var(--muted)">
+      Users list requires additional backend setup.<br/><small>${e.message}</small>
+    </div>`;
+  }
+}
+</script>
+</body>
+</html>
