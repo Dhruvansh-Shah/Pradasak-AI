@@ -7,6 +7,13 @@
     "dev": "nodemon --exec tsx src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
+    "test": "tsx src/tests/unit.test.ts",
+    "test:all": "tsx src/tests/runAllTests.ts",
+    "test:unit": "tsx src/tests/unit.test.ts",
+    "test:functional": "tsx src/tests/functional.test.ts",
+    "test:integration": "tsx src/tests/integration.test.ts",
+    "test:performance": "tsx src/tests/performance.test.ts",
+    "test:stress": "tsx src/tests/stress.test.ts",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:migrate-v2": "tsx src/db/migrate-v2.ts"
   },
