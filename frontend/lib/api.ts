@@ -63,8 +63,8 @@ export async function sendChat(
     body: JSON.stringify({ message, sessionId, chatId }),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Network error' })) as { error: string };
-    throw new Error(err.error || 'Chat request failed');
+    const err = await res.json().catch(() => ({ error: 'Network error' })) as { error?: string; detail?: string };
+    throw new Error(err.detail || err.error || 'Chat request failed');
   }
   return res.json() as Promise<ChatResponse>;
 }
