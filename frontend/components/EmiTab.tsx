@@ -2,13 +2,14 @@
 
 import { useState } from 'react';
 import EMIResultCard from './EMIResultCard';
+import { Calculator, Sparkles, Percent, Calendar, RefreshCw, Layers } from 'lucide-react';
 
 const SCHEMES = [
-  { name: 'Mahila Samridhi Yojana', rate: 7, max: 1.4, cat: 'micro' },
-  { name: 'Micro Credit Finance', rate: 7, max: 1.4, cat: 'micro' },
-  { name: 'Term Loan', rate: 8, max: 50, cat: 'term' },
-  { name: 'Education Loan (Skill)', rate: 4, max: 5, cat: 'edu' },
-  { name: 'Education Loan (Higher)', rate: 6, max: 20, cat: 'edu' },
+  { name: 'Mahila Samridhi Yojana', rate: 4, max: 1.4, defaultTenure: 36, defaultMoratorium: 3 },
+  { name: 'Micro Credit Finance', rate: 5, max: 1.4, defaultTenure: 36, defaultMoratorium: 3 },
+  { name: 'Term Loan Scheme', rate: 7, max: 50, defaultTenure: 60, defaultMoratorium: 6 },
+  { name: 'Education Loan (Skill)', rate: 4, max: 5, defaultTenure: 60, defaultMoratorium: 6 },
+  { name: 'Education Loan (Higher)', rate: 6, max: 20, defaultTenure: 84, defaultMoratorium: 12 },
 ];
 
 function calcEMI(principal: number, annualRate: number, months: number, moratorium: number) {
@@ -43,190 +44,225 @@ function calcEMI(principal: number, annualRate: number, months: number, moratori
 }
 
 export default function EmiTab() {
-  const [principal, setPrincipal] = useState('');
-  const [rate, setRate] = useState('8');
+  const [principal, setPrincipal] = useState('5');
+  const [rate, setRate] = useState('7');
   const [tenure, setTenure] = useState('60');
-  const [moratorium, setMoratorium] = useState('0');
-  const [result, setResult] = useState<ReturnType<typeof calcEMI> | null>(null);
+  const [moratorium, setMoratorium] = useState('6');
+  const [result, setResult] = useState<ReturnType<typeof calcEMI> | null>(() =>
+    calcEMI(500000, 7, 60, 6)
+  );
   const [error, setError] = useState('');
-  const [selectedScheme, setSelectedScheme] = useState('');
+  const [selectedScheme, setSelectedScheme] = useState('Term Loan Scheme');
 
   function handleSchemeSelect(name: string) {
-    const s = SCHEMES.find(s => s.name === name);
+    const s = SCHEMES.find((item) => item.name === name);
     setSelectedScheme(name);
-    if (s) setRate(String(s.rate));
+    if (s) {
+      setRate(String(s.rate));
+      setPrincipal(String(Math.min(Number(principal) || 5, s.max)));
+      setTenure(String(s.defaultTenure));
+      setMoratorium(String(s.defaultMoratorium));
+      setResult(calcEMI(Math.min(Number(principal) || 5, s.max) * 100000, s.rate, s.defaultTenure, s.defaultMoratorium));
+    }
   }
 
-  function calculate(e: React.FormEvent) {
-    e.preventDefault();
+  function calculate(e?: React.FormEvent) {
+    if (e) e.preventDefault();
     setError('');
     const P = parseFloat(principal) * 100000;
     const r = parseFloat(rate);
     const t = parseInt(tenure);
-    const m = parseInt(moratorium);
-    if (!P || P <= 0) { setError('Enter a valid loan amount'); return; }
-    if (r < 0 || r > 30) { setError('Rate must be between 0% and 30%'); return; }
-    if (t < 1 || t > 360) { setError('Tenure must be 1–360 months'); return; }
-    if (m < 0 || m >= t) { setError('Moratorium must be less than tenure'); return; }
+    const m = parseInt(moratorium) || 0;
+
+    if (!P || P <= 0) {
+      setError('Please enter a valid loan amount');
+      return;
+    }
+    if (r < 0 || r > 30) {
+      setError('Rate must be between 0% and 30%');
+      return;
+    }
+    if (t < 1 || t > 360) {
+      setError('Tenure must be 1–360 months');
+      return;
+    }
+    if (m < 0 || m >= t) {
+      setError('Moratorium must be less than tenure duration');
+      return;
+    }
     setResult(calcEMI(P, r, t, m));
   }
 
-  const emiData = result ? {
-    emi: result.emi,
-    totalPayable: result.totalPayment,
-    totalInterest: result.totalInterest,
-    params: {
-      principal: result.principal,
-      rate: result.annualRate,
-      tenureMonths: result.repayMonths + result.moratoriumMonths,
-      moratoriumMonths: result.moratoriumMonths,
-    },
-    schemeName: selectedScheme || undefined,
-  } : null;
+  const emiData = result
+    ? {
+        emi: result.emi,
+        totalPayable: result.totalPayment,
+        totalInterest: result.totalInterest,
+        params: {
+          principal: result.principal,
+          rate: result.annualRate,
+          tenureMonths: result.repayMonths + result.moratoriumMonths,
+          moratoriumMonths: result.moratoriumMonths,
+        },
+        schemeName: selectedScheme || undefined,
+      }
+    : null;
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      <div className="mb-6">
-        <h2 className="text-xl font-bold mb-1" style={{ color: 'var(--foreground)' }}>EMI Calculator</h2>
-        <p className="text-sm" style={{ color: 'var(--muted)' }}>
-          Compute monthly instalments for NSFDC scheme loans with moratorium support.
+    <div className="max-w-5xl mx-auto w-full space-y-8 animate-fade-up">
+      
+      {/* Header */}
+      <div className="space-y-1">
+        <div className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-widest text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full">
+          <Calculator className="w-3.5 h-3.5" />
+          Financial Math Engine
+        </div>
+        <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0b1f3a] tracking-tight">
+          Precision EMI &amp; Moratorium Calculator
+        </h2>
+        <p className="text-sm text-slate-600">
+          Deterministic mathematical projections accounting for NSFDC grace periods and concessional interest rates.
         </p>
       </div>
 
-      {/* Scheme presets */}
-      <div className="mb-5">
-        <p className="text-xs font-medium mb-2" style={{ color: 'var(--muted)' }}>Quick-fill from scheme</p>
+      {/* Scheme Quick Select Chips */}
+      <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3">
+        <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+          Select Official Scheme Preset
+        </span>
         <div className="flex flex-wrap gap-2">
-          {SCHEMES.map(s => (
+          {SCHEMES.map((s) => (
             <button
               key={s.name}
               onClick={() => handleSchemeSelect(s.name)}
-              className="text-xs px-3 py-1.5 rounded-full border transition-all"
-              style={{
-                borderColor: selectedScheme === s.name ? 'var(--accent)' : 'var(--border)',
-                color: selectedScheme === s.name ? 'var(--accent)' : 'var(--muted)',
-                background: selectedScheme === s.name ? 'rgba(59,130,246,.08)' : 'transparent',
-              }}
+              className={`text-xs font-semibold px-3.5 py-2 rounded-xl border transition-all cursor-pointer ${
+                selectedScheme === s.name
+                  ? 'bg-[#0b1f3a] text-white border-[#0b1f3a] shadow-sm'
+                  : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+              }`}
             >
-              {s.name} ({s.rate}%)
+              {s.name} ({s.rate}% p.a.)
             </button>
           ))}
         </div>
       </div>
 
-      <form onSubmit={calculate}>
-        <div
-          className="rounded-2xl p-5 mb-5"
-          style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+      {/* Two Column Interactive Calculator */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        {/* Form Inputs Column */}
+        <form
+          onSubmit={calculate}
+          className="lg:col-span-6 bg-white rounded-2xl p-6 sm:p-7 border border-slate-200 shadow-sm space-y-5"
         >
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
-              <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>
+          {/* Loan Amount */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
                 Loan Amount (in Lakhs ₹)
               </label>
-              <input
-                type="number"
-                value={principal}
-                onChange={e => setPrincipal(e.target.value)}
-                placeholder="e.g. 5"
-                step="0.1"
-                min="0.1"
-                required
-                className="w-full px-4 py-2.5 rounded-xl text-sm outline-none"
-                style={{
-                  background: 'var(--background)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--foreground)',
-                }}
-              />
+              <span className="text-xs font-extrabold text-[#0b1f3a]">
+                ₹{principal} Lakh
+              </span>
             </div>
+            <input
+              type="number"
+              value={principal}
+              onChange={(e) => setPrincipal(e.target.value)}
+              placeholder="e.g. 5"
+              step="0.1"
+              min="0.1"
+              max="50"
+              required
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 outline-none focus:bg-white focus:border-[#0b1f3a]"
+            />
+          </div>
 
-            <div>
-              <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>
+          {/* Interest Rate */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
                 Annual Interest Rate (%)
               </label>
-              <input
-                type="number"
-                value={rate}
-                onChange={e => setRate(e.target.value)}
-                step="0.1"
-                min="0"
-                max="30"
-                required
-                className="w-full px-4 py-2.5 rounded-xl text-sm outline-none"
-                style={{
-                  background: 'var(--background)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--foreground)',
-                }}
-              />
+              <span className="text-xs font-extrabold text-emerald-700">
+                {rate}% p.a.
+              </span>
             </div>
+            <input
+              type="number"
+              value={rate}
+              onChange={(e) => setRate(e.target.value)}
+              step="0.1"
+              min="0"
+              max="25"
+              required
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 outline-none focus:bg-white focus:border-[#0b1f3a]"
+            />
+          </div>
 
-            <div>
-              <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>
-                Tenure (months)
+          {/* Tenure & Moratorium in 2 cols */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Tenure (Months)
               </label>
               <input
                 type="number"
                 value={tenure}
-                onChange={e => setTenure(e.target.value)}
+                onChange={(e) => setTenure(e.target.value)}
                 min="1"
                 max="360"
                 required
-                className="w-full px-4 py-2.5 rounded-xl text-sm outline-none"
-                style={{
-                  background: 'var(--background)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--foreground)',
-                }}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 outline-none focus:bg-white focus:border-[#0b1f3a]"
               />
             </div>
 
-            <div className="col-span-2">
-              <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>
-                Moratorium Period (months — interest-only, no repayment)
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Moratorium (Mo)
               </label>
               <input
                 type="number"
                 value={moratorium}
-                onChange={e => setMoratorium(e.target.value)}
+                onChange={(e) => setMoratorium(e.target.value)}
                 min="0"
-                max="24"
-                className="w-full px-4 py-2.5 rounded-xl text-sm outline-none"
-                style={{
-                  background: 'var(--background)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--foreground)',
-                }}
+                max="36"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 outline-none focus:bg-white focus:border-[#0b1f3a]"
               />
-              <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
-                Education loan moratoriums: 6–12 months typically
-              </p>
             </div>
           </div>
 
           {error && (
-            <div className="mt-3 text-sm px-4 py-3 rounded-xl" style={{ background: '#fef2f2', color: '#dc2626' }}>
+            <div className="bg-red-50 border border-red-200 text-red-700 text-xs p-3 rounded-xl">
               {error}
             </div>
           )}
 
           <button
             type="submit"
-            className="w-full mt-4 py-3 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
-            style={{ background: 'var(--accent)' }}
+            className="w-full btn-primary py-3.5 text-sm font-bold shadow-md cursor-pointer"
           >
-            Calculate EMI
+            <RefreshCw className="w-4 h-4 text-amber-400" />
+            Recalculate Projections
           </button>
+        </form>
+
+        {/* Results Column */}
+        <div className="lg:col-span-6 space-y-4">
+          {emiData && <EMIResultCard data={emiData} />}
+
+          {/* Grounding Formula Explainer */}
+          <div className="bg-slate-100/80 border border-slate-200 rounded-2xl p-5 text-xs text-slate-600 space-y-2">
+            <div className="font-bold text-slate-800 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+              <span>Grounded Financial Model</span>
+            </div>
+            <p className="leading-relaxed">
+              Standard EMI formula: <code>EMI = P × r × (1+r)ⁿ / ((1+r)ⁿ – 1)</code>.
+              During the moratorium period, simple interest accrues onto the principal, and repayment is amortized across remaining months.
+            </p>
+          </div>
         </div>
-      </form>
-
-      {emiData && <EMIResultCard data={emiData} />}
-
-      {/* Info box */}
-      <div className="mt-5 p-4 rounded-xl text-xs" style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--muted)' }}>
-        <strong style={{ color: 'var(--foreground)' }}>Formula:</strong> EMI = P × r × (1+r)<sup>n</sup> / ((1+r)<sup>n</sup> – 1)<br/>
-        During moratorium, principal accrues simple interest and repayment EMI is recalculated on the inflated principal.
       </div>
     </div>
   );

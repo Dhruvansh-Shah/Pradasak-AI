@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { userLogin, userRegister } from '@/lib/api';
-import { Landmark, Eye, EyeOff } from 'lucide-react';
+import { Landmark, Eye, EyeOff, CheckCircle2, ArrowRight, ShieldCheck } from 'lucide-react';
+import Link from 'next/link';
 
 export default function AuthPage() {
   const router = useRouter();
@@ -39,179 +40,157 @@ export default function AuthPage() {
   }
 
   return (
-    <div
-      className="min-h-screen flex"
-      style={{ background: 'var(--background)' }}
-    >
-      {/* Left panel */}
-      <div
-        className="hidden md:flex flex-col justify-between p-10 w-2/5"
-        style={{ background: 'var(--accent)' }}
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-            <Landmark className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <div className="text-white font-bold text-base">NSFDC</div>
-            <div className="text-white/70 text-xs">Channel Finance Platform</div>
-          </div>
-        </div>
+    <div className="min-h-screen flex flex-col lg:flex-row bg-slate-50">
+      
+      {/* Left Branding Showcase Column */}
+      <div className="hidden lg:flex flex-col justify-between p-12 lg:p-16 w-5/12 bg-gradient-to-br from-[#0b1f3a] via-[#102a4c] to-[#071426] text-white relative overflow-hidden">
+        <div className="space-y-6 relative z-10">
+          <Link href="/" className="inline-flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center shadow-inner">
+              <Landmark className="w-6 h-6 text-amber-400" />
+            </div>
+            <div>
+              <div className="font-black text-lg tracking-tight text-white">Pradarshak AI</div>
+              <div className="text-xs text-slate-300">National SC Finance &amp; Dev. Corp.</div>
+            </div>
+          </Link>
 
-        <div>
-          <h2 className="text-white text-2xl font-bold mb-3">
-            Financial Assistance<br />for SC Beneficiaries
-          </h2>
-          <p className="text-white/75 text-sm leading-relaxed">
-            Access government loan schemes, calculate EMI, and find channel partners near you — all in one place.
-          </p>
+          <div className="pt-10 space-y-4 max-w-md">
+            <span className="inline-block text-[11px] font-extrabold uppercase tracking-widest text-amber-400 bg-amber-500/20 border border-amber-500/30 px-3 py-1 rounded-full">
+              Beneficiary Portal
+            </span>
+            <h1 className="text-3xl lg:text-4xl font-black text-white leading-tight">
+              Access Concessional Finance with Clarity
+            </h1>
+            <p className="text-slate-300 text-sm leading-relaxed">
+              Sign in to save your recommended schemes, view real-time eligibility status, and keep your inquiry history across sessions.
+            </p>
+          </div>
 
-          <div className="mt-8 space-y-3">
+          <div className="pt-6 space-y-3">
             {[
-              { icon: '📋', text: 'Personalised scheme recommendations' },
-              { icon: '💰', text: 'EMI calculator for all schemes' },
-              { icon: '📍', text: 'Find nearest channel partner' },
-              { icon: '💬', text: 'Hindi, Marathi & English support' },
-            ].map((f, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <span className="text-lg">{f.icon}</span>
-                <span className="text-white/80 text-sm">{f.text}</span>
+              'Instant scheme matching for family income ≤ ₹5L',
+              'Deterministic moratorium & repayment schedules',
+              'Direct channel partner branch routing & contacts',
+              'Full multilingual assistance in Hindi & Marathi',
+            ].map((text, i) => (
+              <div key={i} className="flex items-center gap-2.5 text-xs text-slate-200">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                <span>{text}</span>
               </div>
             ))}
           </div>
         </div>
 
-        <p className="text-white/50 text-xs">
-          © 2024 National Scheduled Castes Finance & Development Corporation
-        </p>
+        <div className="text-xs text-slate-400 relative z-10 pt-8 border-t border-white/10">
+          Developed for Smart India Hackathon • Ministry of Social Justice
+        </div>
       </div>
 
-      {/* Right panel — form */}
-      <div className="flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-md">
-          <div className="flex items-center gap-2 mb-8 md:hidden">
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center"
-              style={{ background: 'var(--accent)' }}
-            >
-              <Landmark className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-bold text-sm" style={{ color: 'var(--foreground)' }}>NSFDC Channel Finance</span>
+      {/* Right Form Column */}
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-12 lg:p-16">
+        <div className="w-full max-w-md space-y-8 bg-white p-8 sm:p-10 rounded-3xl border border-slate-200/90 shadow-lg">
+          
+          <div className="space-y-2 text-center sm:text-left">
+            <h2 className="text-2xl font-extrabold text-[#0b1f3a] tracking-tight">
+              {mode === 'login' ? 'Welcome back' : 'Create beneficiary account'}
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500">
+              {mode === 'login'
+                ? 'Sign in to access your chat history and saved schemes.'
+                : 'Register to save your conversations and track applications.'}
+            </p>
           </div>
 
-          <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--foreground)' }}>
-            {mode === 'login' ? 'Welcome back' : 'Create account'}
-          </h1>
-          <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>
-            {mode === 'login'
-              ? 'Sign in to access your chat history and saved schemes.'
-              : 'Sign up to save your chats and track your applications.'}
-          </p>
-
-          {/* Mode tabs */}
-          <div
-            className="flex rounded-xl p-1 mb-6"
-            style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
-          >
-            {(['login', 'register'] as const).map((m) => (
-              <button
-                key={m}
-                onClick={() => { setMode(m); setError(''); }}
-                className="flex-1 py-2 rounded-lg text-sm font-medium transition-all"
-                style={{
-                  background: mode === m ? 'var(--accent)' : 'transparent',
-                  color: mode === m ? 'white' : 'var(--muted)',
-                }}
-              >
-                {m === 'login' ? 'Sign In' : 'Sign Up'}
-              </button>
-            ))}
+          {/* Mode Tabs */}
+          <div className="flex bg-slate-100 p-1.5 rounded-2xl">
+            <button
+              onClick={() => {
+                setMode('login');
+                setError('');
+              }}
+              className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                mode === 'login' ? 'bg-white text-[#0b1f3a] shadow-xs' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              Sign In
+            </button>
+            <button
+              onClick={() => {
+                setMode('register');
+                setError('');
+              }}
+              className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                mode === 'register' ? 'bg-white text-[#0b1f3a] shadow-xs' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              Register
+            </button>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === 'register' && (
-              <div>
-                <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>
-                  Full Name (optional)
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Full Name
                 </label>
                 <input
                   type="text"
                   value={name}
-                  onChange={e => setName(e.target.value)}
-                  placeholder="Your name"
-                  className="w-full px-4 py-2.5 rounded-xl text-sm outline-none transition-colors"
-                  style={{
-                    background: 'var(--surface)',
-                    border: '1px solid var(--border)',
-                    color: 'var(--foreground)',
-                  }}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Ramesh Kumar"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 outline-none focus:bg-white focus:border-[#0b1f3a]"
                 />
               </div>
             )}
 
-            <div>
-              <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
                 Email Address
               </label>
               <input
                 type="email"
                 value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="you@example.com"
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@example.com"
                 required
-                className="w-full px-4 py-2.5 rounded-xl text-sm outline-none transition-colors"
-                style={{
-                  background: 'var(--surface)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--foreground)',
-                }}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 outline-none focus:bg-white focus:border-[#0b1f3a]"
               />
             </div>
 
             {mode === 'register' && (
-              <div>
-                <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
                   Mobile Number
                 </label>
                 <input
                   type="tel"
                   value={phone}
-                  onChange={e => setPhone(e.target.value)}
+                  onChange={(e) => setPhone(e.target.value)}
                   placeholder="10-digit mobile number"
                   required
-                  className="w-full px-4 py-2.5 rounded-xl text-sm outline-none transition-colors"
-                  style={{
-                    background: 'var(--surface)',
-                    border: '1px solid var(--border)',
-                    color: 'var(--foreground)',
-                  }}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 outline-none focus:bg-white focus:border-[#0b1f3a]"
                 />
               </div>
             )}
 
-            <div>
-              <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
                 Password
               </label>
               <div className="relative">
                 <input
                   type={showPw ? 'text' : 'password'}
                   value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder={mode === 'register' ? 'At least 6 characters' : 'Your password'}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter secure password"
                   required
-                  className="w-full px-4 py-2.5 pr-10 rounded-xl text-sm outline-none transition-colors"
-                  style={{
-                    background: 'var(--surface)',
-                    border: '1px solid var(--border)',
-                    color: 'var(--foreground)',
-                  }}
+                  className="w-full pl-4 pr-11 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 outline-none focus:bg-white focus:border-[#0b1f3a]"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPw(v => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2"
-                  style={{ color: 'var(--muted)' }}
+                  onClick={() => setShowPw((v) => !v)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
                 >
                   {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -219,10 +198,7 @@ export default function AuthPage() {
             </div>
 
             {error && (
-              <div
-                className="text-sm px-4 py-3 rounded-xl"
-                style={{ background: '#fef2f2', color: '#dc2626' }}
-              >
+              <div className="bg-red-50 border border-red-200 text-red-700 text-xs font-medium p-3 rounded-xl">
                 {error}
               </div>
             )}
@@ -230,24 +206,20 @@ export default function AuthPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl text-sm font-semibold text-white transition-opacity disabled:opacity-50"
-              style={{ background: 'var(--accent)' }}
+              className="w-full btn-primary py-3.5 text-sm font-bold shadow-md cursor-pointer disabled:opacity-50 mt-2"
             >
-              {loading ? 'Please wait…' : mode === 'login' ? 'Sign In' : 'Create Account'}
+              {loading ? 'Please wait…' : mode === 'login' ? 'Sign In to Portal' : 'Create My Account'}
             </button>
           </form>
 
-          <p className="text-center text-xs mt-6" style={{ color: 'var(--muted)' }}>
-            By continuing, you agree to NSFDC&apos;s terms of service.
-          </p>
-
-          <button
-            onClick={() => router.push('/')}
-            className="w-full mt-3 py-2.5 rounded-xl text-sm transition-opacity hover:opacity-70"
-            style={{ color: 'var(--muted)' }}
-          >
-            Continue as guest →
-          </button>
+          <div className="text-center pt-2">
+            <Link
+              href="/"
+              className="text-xs text-slate-500 hover:text-[#0b1f3a] font-semibold"
+            >
+              ← Back to homepage
+            </Link>
+          </div>
         </div>
       </div>
     </div>

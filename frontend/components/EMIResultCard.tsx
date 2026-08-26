@@ -1,5 +1,7 @@
 'use client';
 
+import { Calculator, Calendar, Percent, ShieldAlert } from 'lucide-react';
+
 interface EMIData {
   emi: number;
   totalPayable: number;
@@ -14,50 +16,62 @@ function fmt(n: number) {
 
 export default function EMIResultCard({ data }: { data: EMIData }) {
   const { emi, totalPayable, totalInterest, params } = data;
-  const interestPct = Math.round((totalInterest / totalPayable) * 100);
+  const interestPct = totalPayable > 0 ? Math.round((totalInterest / totalPayable) * 100) : 0;
 
   return (
-    <div
-      className="rounded-xl p-4 mb-3"
-      style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
-    >
+    <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
+      
       {data.schemeName && (
-        <div className="text-xs font-medium mb-3" style={{ color: 'var(--muted)' }}>
-          EMI for {data.schemeName}
+        <div className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wider">
+          <Calculator className="w-3.5 h-3.5 text-amber-600" />
+          <span>Calculated EMI for: {data.schemeName}</span>
         </div>
       )}
 
-      {/* Hero EMI */}
-      <div className="text-center mb-4 py-3 rounded-xl" style={{ background: 'var(--accent)' }}>
-        <div className="text-white text-xs mb-1 opacity-80">Monthly EMI</div>
-        <div className="text-white text-3xl font-bold">{fmt(emi)}</div>
-        <div className="text-white text-xs opacity-70 mt-1">per month</div>
+      {/* Hero Highlight */}
+      <div className="bg-gradient-to-br from-[#0b1f3a] to-[#16345d] text-white rounded-2xl p-5 text-center shadow-md space-y-1">
+        <div className="text-xs text-slate-300 font-medium">Estimated Monthly Instalment</div>
+        <div className="text-3xl sm:text-4xl font-black text-amber-400 tracking-tight">
+          {fmt(emi)}
+        </div>
+        <div className="text-[11px] text-slate-400">per month after moratorium period</div>
       </div>
 
-      {/* Breakdown grid */}
-      <div className="grid grid-cols-3 gap-2 mb-4">
-        <div className="text-center p-2 rounded-lg" style={{ background: 'var(--background)' }}>
-          <div className="text-xs" style={{ color: 'var(--muted)' }}>Loan Amount</div>
-          <div className="font-bold text-sm" style={{ color: 'var(--foreground)' }}>{fmt(params.principal)}</div>
+      {/* Breakdown Grid */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
+          <div className="text-[10px] uppercase font-bold text-slate-400 mb-1">Principal</div>
+          <div className="text-xs sm:text-sm font-extrabold text-slate-900">{fmt(params.principal)}</div>
         </div>
-        <div className="text-center p-2 rounded-lg" style={{ background: 'var(--background)' }}>
-          <div className="text-xs" style={{ color: 'var(--muted)' }}>Total Interest</div>
-          <div className="font-bold text-sm" style={{ color: '#ef4444' }}>{fmt(totalInterest)}</div>
+
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
+          <div className="text-[10px] uppercase font-bold text-slate-400 mb-1">Total Interest</div>
+          <div className="text-xs sm:text-sm font-extrabold text-red-600">{fmt(totalInterest)}</div>
         </div>
-        <div className="text-center p-2 rounded-lg" style={{ background: 'var(--background)' }}>
-          <div className="text-xs" style={{ color: 'var(--muted)' }}>Total Payable</div>
-          <div className="font-bold text-sm" style={{ color: 'var(--foreground)' }}>{fmt(totalPayable)}</div>
+
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
+          <div className="text-[10px] uppercase font-bold text-slate-400 mb-1">Total Outflow</div>
+          <div className="text-xs sm:text-sm font-extrabold text-[#0b1f3a]">{fmt(totalPayable)}</div>
         </div>
       </div>
 
-      {/* Params summary */}
-      <div
-        className="text-xs rounded-lg px-3 py-2"
-        style={{ background: 'var(--background)', color: 'var(--muted)' }}
-      >
-        {params.rate}% p.a. · {params.tenureMonths} months repayment
-        {params.moratoriumMonths > 0 && ` · ${params.moratoriumMonths} months moratorium`}
-        {' · '}Interest = {interestPct}% of total payable
+      {/* Terms Info Bar */}
+      <div className="bg-blue-50/70 border border-blue-100 rounded-xl p-3 text-xs text-blue-900 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 font-semibold">
+          <Percent className="w-3.5 h-3.5 text-blue-600" />
+          <span>{params.rate}% p.a.</span>
+        </div>
+
+        <div className="flex items-center gap-1.5 font-semibold">
+          <Calendar className="w-3.5 h-3.5 text-blue-600" />
+          <span>{params.tenureMonths} Months Total</span>
+        </div>
+
+        {params.moratoriumMonths > 0 && (
+          <div className="font-semibold text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded">
+            {params.moratoriumMonths} Mo Moratorium
+          </div>
+        )}
       </div>
     </div>
   );

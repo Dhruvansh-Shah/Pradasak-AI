@@ -8,32 +8,37 @@ import ChatInterface from '@/components/ChatInterface';
 import EmiTab from '@/components/EmiTab';
 import PartnersTab from '@/components/PartnersTab';
 import type { UserProfile, ChatMessage } from '@/lib/api';
-import { listChats, getChat } from '@/lib/api';
+import { getChat } from '@/lib/api';
 import {
-  Bot, Calculator, MapPin, Plus, ChevronRight,
-  CheckCircle2, Circle, Lightbulb, ClipboardList, Clock
+  Bot,
+  Calculator,
+  MapPin,
+  Plus,
+  ChevronRight,
+  CheckCircle2,
+  Circle,
+  Lightbulb,
+  ClipboardList,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
+  Sparkles
 } from 'lucide-react';
 
 type TabId = 'chat' | 'emi' | 'partners';
 
 const TABS: { id: TabId; label: string; Icon: React.ElementType }[] = [
-  { id: 'chat',     label: 'Assistant',  Icon: Bot },
-  { id: 'emi',      label: 'EMI Calc',   Icon: Calculator },
-  { id: 'partners', label: 'Partners',   Icon: MapPin },
+  { id: 'chat',     label: 'AI Assistant',     Icon: Bot },
+  { id: 'emi',      label: 'EMI Calculator',   Icon: Calculator },
+  { id: 'partners', label: 'Channel Partners', Icon: MapPin },
 ];
 
 const JOURNEY_STEPS = [
-  { label: 'Eligibility check',      key: 'eligibility' },
-  { label: 'Scheme selected',        key: 'scheme' },
-  { label: 'Documents identified',   key: 'docs' },
-  { label: 'Partner located',        key: 'partner' },
-];
-
-const QUICK_PROMPTS = [
-  'What schemes am I eligible for?',
-  'Calculate EMI for Micro Finance loan',
-  'Find partners near Delhi',
-  'How do I apply for an education loan?',
+  { label: 'Describe Requirement', key: 'eligibility' },
+  { label: 'Select Scheme Match',  key: 'scheme' },
+  { label: 'Calculate Repayment',  key: 'emi' },
+  { label: 'Locate Nearest Partner', key: 'partner' },
 ];
 
 function ChatPage() {
@@ -48,20 +53,31 @@ function ChatPage() {
   const [refreshSignal, setRefreshSignal] = useState(0);
   const [journeyDone, setJourneyDone] = useState<Record<string, boolean>>({});
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [quickSent, setQuickSent] = useState(false);
+  const [journeyOpen, setJourneyOpen] = useState(false);
   const pendingRef = useRef<string | null>(null);
 
   useEffect(() => {
     const t = localStorage.getItem('auth_token');
     const u = localStorage.getItem('auth_user');
     if (t) setToken(t);
-    if (u) { try { setUser(JSON.parse(u) as UserProfile); } catch {} }
+    if (u) {
+      try {
+        setUser(JSON.parse(u) as UserProfile);
+      } catch {}
+    }
+
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'emi') setTab('emi');
+    if (tabParam === 'partners') setTab('partners');
 
     const q = searchParams.get('q');
-    if (q) { pendingRef.current = q; setTab('chat'); }
+    if (q) {
+      pendingRef.current = q;
+      setTab('chat');
+    }
     const cid = searchParams.get('chatId');
     if (cid) loadChat(cid, t || null);
-  }, []);
+  }, [searchParams]);
 
   async function loadChat(id: string, t: string | null) {
     if (!t) return;
@@ -76,7 +92,7 @@ function ChatPage() {
     setChatId(null);
     setInitialMessages([]);
     setJourneyDone({});
-    setRefreshSignal(n => n + 1);
+    setRefreshSignal((n) => n + 1);
     router.replace('/chat');
   }
 
@@ -86,90 +102,90 @@ function ChatPage() {
 
   function handleChatCreated(id: string) {
     setChatId(id);
-    setRefreshSignal(n => n + 1);
-    setJourneyDone(prev => ({ ...prev, eligibility: true }));
+    setRefreshSignal((n) => n + 1);
+    setJourneyDone((prev) => ({ ...prev, eligibility: true }));
   }
 
   function markStep(key: string) {
-    setJourneyDone(prev => ({ ...prev, [key]: true }));
+    setJourneyDone((prev) => ({ ...prev, [key]: !prev[key] }));
   }
 
-  const completedCount = JOURNEY_STEPS.filter(s => journeyDone[s.key]).length;
+  const completedCount = JOURNEY_STEPS.filter((s) => journeyDone[s.key]).length;
   const progressPct = Math.round((completedCount / JOURNEY_STEPS.length) * 100);
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <style>{`
-        .msg-user { animation: slideInRight .3s cubic-bezier(.4,0,.2,1) both; }
-        .msg-bot  { animation: slideInLeft  .3s cubic-bezier(.4,0,.2,1) both; }
-        .tab-btn  { transition: all 200ms ease; position: relative; }
-        .tab-btn::after {
-          content: ''; position: absolute; bottom: 0; left: 12px; right: 12px;
-          height: 2px; background: var(--navy); border-radius: 2px;
-          transform: scaleX(0); transition: transform 200ms ease;
-        }
-        .tab-btn.active::after { transform: scaleX(1); }
-        .journey-step { transition: all 200ms ease; }
-        .journey-step:hover { background: var(--surface); }
-        .sidebar-enter { animation: slideInLeft .25s ease both; }
-      `}</style>
-
+    <div className="h-screen flex flex-col overflow-hidden bg-slate-50">
       <NavBar />
 
-      {/* Tab bar */}
-      <div style={{
-        background: 'white', borderBottom: '1px solid var(--border)',
-        display: 'flex', alignItems: 'center', gap: 0,
-        padding: '0 24px',
-      }}>
-        {TABS.map(({ id, label, Icon }) => (
-          <button
-            key={id}
-            onClick={() => setTab(id)}
-            className={`tab-btn${tab === id ? ' active' : ''}`}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 7,
-              padding: '14px 16px', border: 'none', background: 'none',
-              color: tab === id ? 'var(--navy)' : 'var(--muted)',
-              fontWeight: tab === id ? 700 : 500, fontSize: 13, cursor: 'pointer',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <Icon size={15} strokeWidth={tab === id ? 2.2 : 1.8} />
-            {label}
-          </button>
-        ))}
-
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
-          {user && (
-            <span style={{ fontSize: 12, color: 'var(--muted)' }}>
-              {user.name || user.email.split('@')[0]}
-            </span>
-          )}
+      {/* ── Sub Navigation Tab Bar ────────────────────────────────────────── */}
+      <div className="bg-white border-b border-slate-200 px-4 sm:px-6 h-14 flex items-center justify-between shadow-xs flex-shrink-0 z-20">
+        <div className="flex items-center gap-1 sm:gap-2">
           {tab === 'chat' && (
             <button
-              onClick={handleNewChat}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '7px 14px', borderRadius: 8,
-                background: 'var(--navy)', color: 'white',
-                border: 'none', fontWeight: 600, fontSize: 12, cursor: 'pointer',
-                transition: 'all 180ms ease',
-              }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--navy-hover)'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'var(--navy)'; }}
+              onClick={() => setSidebarOpen((v) => !v)}
+              className="p-2 text-slate-500 hover:text-[#0b1f3a] hover:bg-slate-100 rounded-lg transition-colors mr-1 cursor-pointer"
+              title={sidebarOpen ? 'Hide history sidebar' : 'Show history sidebar'}
             >
-              <Plus size={13} /> New Chat
+              {sidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
             </button>
+          )}
+
+          {TABS.map(({ id, label, Icon }) => {
+            const active = tab === id;
+            return (
+              <button
+                key={id}
+                onClick={() => setTab(id)}
+                className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                  active
+                    ? 'bg-[#0b1f3a] text-white shadow-sm'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                }`}
+              >
+                <Icon className={`w-4 h-4 ${active ? 'text-amber-400' : 'text-slate-400'}`} />
+                <span>{label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Right Tools in Bar */}
+        <div className="flex items-center gap-3">
+          {tab === 'chat' && (
+            <>
+              {/* Progress pill button */}
+              <button
+                onClick={() => setJourneyOpen((v) => !v)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
+                  journeyOpen
+                    ? 'bg-amber-50 border-amber-300 text-amber-900'
+                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                <ClipboardList className="w-3.5 h-3.5 text-amber-600" />
+                <span className="hidden sm:inline">Progress:</span>
+                <span className="font-bold text-amber-700">{progressPct}%</span>
+                {journeyOpen ? <PanelRightClose className="w-3.5 h-3.5" /> : <PanelRightOpen className="w-3.5 h-3.5" />}
+              </button>
+
+              <button
+                onClick={handleNewChat}
+                className="bg-[#0b1f3a] hover:bg-[#132e54] text-white text-xs font-bold px-3 sm:px-4 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5 text-amber-400" />
+                <span>New Session</span>
+              </button>
+            </>
           )}
         </div>
       </div>
 
-      {/* Body */}
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-        {/* Sidebar */}
+      {/* ── Main Workspace Body ───────────────────────────────────────────── */}
+      <div className="flex-1 flex overflow-hidden relative">
+        
+        {/* Collapsible Left Sidebar */}
         {tab === 'chat' && sidebarOpen && (
-          <div className="sidebar-enter" style={{ width: 220, borderRight: '1px solid var(--border)', overflow: 'hidden', flexShrink: 0 }}>
+          <div className="w-64 sm:w-72 border-r border-slate-200 bg-white flex-shrink-0 flex flex-col z-10 animate-slide-left shadow-sm">
             <Sidebar
               token={token}
               currentChatId={chatId}
@@ -180,8 +196,8 @@ function ChatPage() {
           </div>
         )}
 
-        {/* Main panel */}
-        <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        {/* Central Workspace Canvas */}
+        <main className="flex-1 flex flex-col overflow-hidden bg-slate-50 min-w-0">
           {tab === 'chat' && (
             <ChatInterface
               chatId={chatId}
@@ -190,145 +206,104 @@ function ChatPage() {
               initialMessages={initialMessages}
             />
           )}
+
           {tab === 'emi' && (
-            <div style={{ flex: 1, overflow: 'auto', padding: '24px' }}>
+            <div className="flex-1 overflow-y-auto p-4 sm:p-8">
               <EmiTab />
             </div>
           )}
+
           {tab === 'partners' && (
-            <div style={{ flex: 1, overflow: 'auto', padding: '24px' }}>
+            <div className="flex-1 overflow-y-auto p-4 sm:p-8">
               <PartnersTab />
             </div>
           )}
-        </div>
+        </main>
 
-        {/* Journey panel — only on chat tab */}
-        {tab === 'chat' && (
-          <div style={{
-            width: 240, borderLeft: '1px solid var(--border)',
-            background: 'white', display: 'flex', flexDirection: 'column',
-            overflow: 'hidden', flexShrink: 0,
-            animation: 'slideInRight .3s ease both',
-          }}>
-            {/* Progress header */}
-            <div style={{ padding: '18px 16px', borderBottom: '1px solid var(--border)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                  <ClipboardList size={14} color="var(--navy)" />
-                  <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Application Journey</h3>
+        {/* Collapsible Right Journey Panel */}
+        {tab === 'chat' && journeyOpen && (
+          <aside className="w-72 sm:w-80 border-l border-slate-200 bg-white flex-shrink-0 flex flex-col z-10 animate-slide-right shadow-sm p-5 space-y-6 overflow-y-auto">
+            
+            {/* Header */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <ClipboardList className="w-4 h-4 text-[#0b1f3a]" />
+                  <h3 className="text-sm font-bold text-slate-900">Application Checklist</h3>
                 </div>
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--navy)' }}>{progressPct}%</span>
+                <span className="text-xs font-extrabold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                  {progressPct}% Done
+                </span>
               </div>
-              <div style={{ height: 4, background: 'var(--surface)', borderRadius: 4, overflow: 'hidden' }}>
-                <div style={{
-                  height: '100%', background: 'var(--navy)',
-                  width: `${progressPct}%`,
-                  borderRadius: 4, transition: 'width .6s cubic-bezier(.4,0,.2,1)',
-                }} />
+
+              {/* Progress Bar */}
+              <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-amber-500 to-emerald-500 rounded-full transition-all duration-500"
+                  style={{ width: `${progressPct}%` }}
+                />
               </div>
             </div>
 
-            {/* Steps */}
-            <div style={{ padding: '12px 0' }}>
-              {JOURNEY_STEPS.map((step, i) => {
-                const done = journeyDone[step.key];
+            {/* Checklist Items */}
+            <div className="space-y-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                Steps to Follow
+              </span>
+              {JOURNEY_STEPS.map((step) => {
+                const isDone = journeyDone[step.key];
                 return (
                   <div
                     key={step.key}
-                    className="journey-step"
                     onClick={() => markStep(step.key)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 10,
-                      padding: '10px 16px', cursor: 'pointer', borderRadius: 0,
-                    }}
+                    className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
+                      isDone
+                        ? 'bg-emerald-50/70 border-emerald-200 text-emerald-900'
+                        : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
+                    }`}
                   >
-                    {done
-                      ? <CheckCircle2 size={18} color="var(--success)" strokeWidth={2} style={{ flexShrink: 0 }} />
-                      : <Circle size={18} color="var(--border-dark)" strokeWidth={1.5} style={{ flexShrink: 0 }} />
-                    }
-                    <span style={{
-                      fontSize: 12.5, fontWeight: done ? 600 : 400,
-                      color: done ? 'var(--text)' : 'var(--text-secondary)',
-                      textDecoration: done ? 'none' : 'none',
-                      transition: 'color 200ms ease',
-                    }}>
-                      {step.label}
-                    </span>
-                    {!done && (
-                      <ChevronRight size={12} color="var(--muted)" style={{ marginLeft: 'auto', flexShrink: 0 }} />
-                    )}
+                    <div className="flex items-center gap-2.5">
+                      {isDone ? (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                      ) : (
+                        <Circle className="w-4 h-4 text-slate-300 flex-shrink-0" />
+                      )}
+                      <span className={`text-xs font-semibold ${isDone ? 'line-through opacity-75' : ''}`}>
+                        {step.label}
+                      </span>
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
                   </div>
                 );
               })}
             </div>
 
-            {/* Quick tip */}
-            <div style={{ margin: '8px 12px', padding: '12px 14px', background: '#fffbf0', borderRadius: 10, border: '1px solid #fde68a' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                <Lightbulb size={13} color="#d97706" />
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#92400e', textTransform: 'uppercase', letterSpacing: '.04em' }}>Quick Tip</span>
+            {/* Quick Guidance Tip */}
+            <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-4 space-y-2">
+              <div className="flex items-center gap-2 text-amber-800">
+                <Lightbulb className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                <span className="text-xs font-bold">Pro Tip</span>
               </div>
-              <p style={{ fontSize: 11.5, color: '#78350f', lineHeight: 1.55 }}>
-                Tell the assistant your annual family income and purpose — it will narrow down scheme recommendations instantly.
+              <p className="text-[11px] text-amber-900 leading-relaxed">
+                Mentioning your annual family income (e.g. ₹2.5L) and required amount helps the AI filter out ineligible schemes instantly.
               </p>
             </div>
-
-            {/* Recent history link */}
-            {token && (
-              <div style={{ marginTop: 'auto', padding: '12px 14px', borderTop: '1px solid var(--border)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-                  <Clock size={13} color="var(--muted)" />
-                  <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-secondary)' }}>Recent Chats</span>
-                </div>
-                <RecentChatsList token={token} onSelect={handleChatSelect} />
-              </div>
-            )}
-          </div>
+          </aside>
         )}
       </div>
     </div>
   );
 }
 
-function RecentChatsList({ token, onSelect }: { token: string; onSelect: (id: string) => void }) {
-  const [chats, setChats] = useState<{ id: string; title?: string; created_at?: string }[]>([]);
-
-  useEffect(() => {
-    listChats(token).then(data => setChats(data.slice(0, 3))).catch(() => {});
-  }, [token]);
-
-  if (!chats.length) return null;
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      {chats.map(c => (
-        <button
-          key={c.id}
-          onClick={() => onSelect(c.id)}
-          style={{
-            textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer',
-            padding: '5px 6px', borderRadius: 6, fontSize: 12,
-            color: 'var(--text-secondary)', fontWeight: 400,
-            transition: 'all 150ms ease', overflow: 'hidden',
-            textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}
-          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--surface)'; (e.currentTarget as HTMLElement).style.color = 'var(--text)'; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'none'; (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)'; }}
-        >
-          {c.title || `Chat ${c.id.slice(0, 8)}`}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 export default function ChatPageWrapper() {
   return (
-    <Suspense fallback={
-      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div className="skeleton" style={{ width: 200, height: 20, borderRadius: 10 }} />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="h-screen flex items-center justify-center bg-slate-50">
+          <div className="skeleton w-48 h-6 rounded-xl" />
+        </div>
+      }
+    >
       <ChatPage />
     </Suspense>
   );

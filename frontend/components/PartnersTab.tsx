@@ -2,12 +2,12 @@
 
 import { useState } from 'react';
 import PartnerResultCard from './PartnerResultCard';
-import { Search } from 'lucide-react';
+import { Search, MapPin, Compass, SlidersHorizontal, Navigation } from 'lucide-react';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
 const CATEGORIES = [
-  { value: '', label: 'All categories' },
+  { value: '', label: 'All Scheme Categories' },
   { value: 'micro_finance', label: 'Micro Finance' },
   { value: 'term_loan', label: 'Term Loan' },
   { value: 'education_loan', label: 'Education Loan' },
@@ -40,7 +40,10 @@ export default function PartnersTab() {
 
   async function search(e: React.FormEvent) {
     e.preventDefault();
-    if (!city.trim()) { setError('Please enter a city name'); return; }
+    if (!city.trim()) {
+      setError('Please enter a city or district name');
+      return;
+    }
     setError('');
     setLoading(true);
     setSearched(false);
@@ -48,8 +51,8 @@ export default function PartnersTab() {
       const params = new URLSearchParams({ city: city.trim(), radiusKm: radius });
       if (category) params.set('category', category);
       const res = await fetch(`${BASE}/partners/nearby?${params}`);
-      if (!res.ok) throw new Error('Could not find partners');
-      const data = await res.json() as { partners: Partner[]; location?: { city: string } };
+      if (!res.ok) throw new Error('Could not find partners for this location');
+      const data = (await res.json()) as { partners: Partner[]; location?: { city: string } };
       setPartners(data.partners || []);
       setSearched(true);
     } catch (err) {
@@ -59,105 +62,102 @@ export default function PartnersTab() {
     }
   }
 
-  const POPULAR_CITIES = ['Delhi', 'Mumbai', 'Bangalore', 'Chennai', 'Hyderabad', 'Kolkata', 'Pune', 'Jaipur', 'Lucknow', 'Bhopal'];
+  const POPULAR_CITIES = ['Delhi', 'Lucknow', 'Mumbai', 'Jaipur', 'Patna', 'Bhopal', 'Hyderabad', 'Bengaluru'];
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      <div className="mb-6">
-        <h2 className="text-xl font-bold mb-1" style={{ color: 'var(--foreground)' }}>Find Channel Partners</h2>
-        <p className="text-sm" style={{ color: 'var(--muted)' }}>
-          Locate active NSFDC channel partners near you who can process your loan application.
+    <div className="max-w-4xl mx-auto w-full space-y-8 animate-fade-up">
+      
+      {/* Header */}
+      <div className="space-y-1">
+        <div className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-widest text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
+          <Compass className="w-3.5 h-3.5" />
+          Partner Discovery
+        </div>
+        <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0b1f3a] tracking-tight">
+          Locate Active Channel Partners
+        </h2>
+        <p className="text-sm text-slate-600">
+          Find authorized State Channelizing Agencies (SCAs), Regional Rural Banks, and MFIs near you.
         </p>
       </div>
 
+      {/* Search Form */}
       <form onSubmit={search}>
-        <div
-          className="rounded-2xl p-5 mb-5"
-          style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
-        >
-          <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>
-                City / Location
-              </label>
+        <div className="bg-white rounded-2xl p-6 sm:p-7 border border-slate-200 shadow-sm space-y-5">
+          
+          <div className="space-y-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+              City or District
+            </label>
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={city}
-                onChange={e => setCity(e.target.value)}
-                placeholder="Enter city name (e.g. Delhi)"
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="Enter city name (e.g. Lucknow, Delhi, Jaipur)..."
                 required
-                className="w-full px-4 py-2.5 rounded-xl text-sm outline-none"
-                style={{
-                  background: 'var(--background)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--foreground)',
-                }}
+                className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 outline-none focus:bg-white focus:border-[#0b1f3a]"
               />
-              {/* Popular cities */}
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {POPULAR_CITIES.map(c => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setCity(c)}
-                    className="text-xs px-2.5 py-1 rounded-full border transition-all"
-                    style={{
-                      borderColor: city === c ? 'var(--accent)' : 'var(--border)',
-                      color: city === c ? 'var(--accent)' : 'var(--muted)',
-                    }}
-                  >
-                    {c}
-                  </button>
-                ))}
-              </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>
-                  Loan Category
-                </label>
-                <select
-                  value={category}
-                  onChange={e => setCategory(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl text-sm outline-none"
-                  style={{
-                    background: 'var(--background)',
-                    border: '1px solid var(--border)',
-                    color: 'var(--foreground)',
-                  }}
+            {/* Popular City Pills */}
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <span className="text-[11px] font-bold text-slate-400">Popular:</span>
+              {POPULAR_CITIES.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setCity(c)}
+                  className={`text-xs font-semibold px-3 py-1 rounded-full border transition-all cursor-pointer ${
+                    city === c
+                      ? 'bg-[#0b1f3a] text-white border-[#0b1f3a]'
+                      : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                  }`}
                 >
-                  {CATEGORIES.map(c => (
-                    <option key={c.value} value={c.value}>{c.label}</option>
-                  ))}
-                </select>
-              </div>
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
 
-              <div>
-                <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>
-                  Search Radius (km)
-                </label>
-                <select
-                  value={radius}
-                  onChange={e => setRadius(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl text-sm outline-none"
-                  style={{
-                    background: 'var(--background)',
-                    border: '1px solid var(--border)',
-                    color: 'var(--foreground)',
-                  }}
-                >
-                  <option value="50">50 km</option>
-                  <option value="100">100 km</option>
-                  <option value="200">200 km</option>
-                  <option value="500">500 km</option>
-                </select>
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                Loan Category
+              </label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 outline-none focus:bg-white focus:border-[#0b1f3a] cursor-pointer"
+              >
+                {CATEGORIES.map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                Search Radius
+              </label>
+              <select
+                value={radius}
+                onChange={(e) => setRadius(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 outline-none focus:bg-white focus:border-[#0b1f3a] cursor-pointer"
+              >
+                <option value="50">Within 50 km</option>
+                <option value="100">Within 100 km</option>
+                <option value="200">Within 200 km</option>
+                <option value="500">Within 500 km</option>
+              </select>
             </div>
           </div>
 
           {error && (
-            <div className="mt-3 text-sm px-4 py-3 rounded-xl" style={{ background: '#fef2f2', color: '#dc2626' }}>
+            <div className="bg-red-50 border border-red-200 text-red-700 text-xs p-3 rounded-xl">
               {error}
             </div>
           )}
@@ -165,24 +165,26 @@ export default function PartnersTab() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full mt-4 py-3 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 transition-opacity disabled:opacity-50 hover:opacity-90"
-            style={{ background: 'var(--accent)' }}
+            className="w-full btn-primary py-3.5 text-sm font-bold shadow-md cursor-pointer flex items-center justify-center gap-2"
           >
-            <Search className="w-4 h-4" />
-            {loading ? 'Searching…' : 'Find Partners'}
+            <Navigation className="w-4 h-4 text-amber-400" />
+            <span>{loading ? 'Searching Nearby Partners…' : 'Find Authorized Partners'}</span>
           </button>
         </div>
       </form>
 
-      {/* Results */}
+      {/* Results Stream */}
       {searched && (
-        <div>
-          <p className="text-sm mb-3" style={{ color: 'var(--muted)' }}>
-            {partners.length === 0
-              ? `No active partners found near ${city}. Try expanding the radius.`
-              : `${partners.length} partner${partners.length === 1 ? '' : 's'} found near ${city}`}
-          </p>
-          <div className="space-y-2">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wider">
+            <span>
+              {partners.length === 0
+                ? `No partners found near ${city}`
+                : `${partners.length} Verified Partners near ${city}`}
+            </span>
+          </div>
+
+          <div className="space-y-3">
             {partners.map((p, i) => (
               <PartnerResultCard
                 key={p.id}
@@ -191,16 +193,6 @@ export default function PartnersTab() {
               />
             ))}
           </div>
-        </div>
-      )}
-
-      {/* Info */}
-      {!searched && (
-        <div
-          className="p-4 rounded-xl text-xs"
-          style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--muted)' }}
-        >
-          Partners are filtered by active status and fund availability. NPA % is shown where available. Contact a partner to begin your loan application process.
         </div>
       )}
     </div>
