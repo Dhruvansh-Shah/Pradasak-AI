@@ -9,6 +9,7 @@ export default function Footer() {
 
   return (
     <footer
+      className="site-footer"
       style={{
         background: '#071426',
         borderTop: '1px solid rgba(255, 255, 255, 0.12)',
@@ -29,6 +30,7 @@ export default function Footer() {
       >
         {/* ── Top Multi-Column Grid ────────────────────────────────────────── */}
         <div
+          className="footer-grid"
           style={{
             display: 'grid',
             gridTemplateColumns: '2fr 1.2fr 1.4fr',

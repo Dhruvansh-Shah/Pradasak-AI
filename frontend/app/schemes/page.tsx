@@ -278,7 +278,7 @@ export default function SchemesPage() {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f8fafc' }}>
       <NavBar />
 
-      <main style={{ maxWidth: 1200, width: '100%', margin: '0 auto', padding: '36px 24px 64px', flex: 1 }}>
+      <main className="page-content" style={{ maxWidth: 1200, width: '100%', margin: '0 auto', padding: '36px 24px 64px', flex: 1 }}>
         
         {/* ── Page Header ─────────────────────────────────────────────────── */}
         <div style={{ marginBottom: 28, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -298,6 +298,7 @@ export default function SchemesPage() {
 
         {/* ── Search & Filter Toolbar ─────────────────────────────────────── */}
         <div
+          className="filter-toolbar"
           style={{
             background: '#ffffff',
             border: '1px solid #e2e8f0',
@@ -349,7 +350,7 @@ export default function SchemesPage() {
           </div>
 
           {/* Filter Chips & Gender Selector */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingTop: 6, borderTop: '1px solid #f1f5f9' }}>
+          <div className="filter-row" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingTop: 6, borderTop: '1px solid #f1f5f9' }}>
             
             {/* Category Chips */}
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
@@ -443,7 +444,7 @@ export default function SchemesPage() {
 
         {/* ── Scheme Grid ─────────────────────────────────────────────────── */}
         {loading ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: 24 }}>
+          <div className="scheme-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: 24 }}>
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} style={{ height: 360, background: '#e2e8f0', borderRadius: 18, animation: 'pulse 1.5s infinite' }} />
             ))}
@@ -487,7 +488,7 @@ export default function SchemesPage() {
             </button>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: 24 }}>
+          <div className="scheme-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: 24 }}>
             {filtered.map((scheme) => (
               <SchemeCard
                 key={scheme.id}

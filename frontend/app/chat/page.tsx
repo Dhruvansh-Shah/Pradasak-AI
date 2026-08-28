@@ -114,6 +114,7 @@ function ChatPage() {
 
       {/* ── Segmented Navigation Subheader ─────────────────────────────────── */}
       <div
+        className="chat-subheader"
         style={{
           background: '#ffffff',
           borderBottom: '1px solid #e2e8f0',
@@ -128,7 +129,7 @@ function ChatPage() {
         }}
       >
         {/* Left: Section Segment Control */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div className="chat-subheader-left" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {tab === 'chat' && (
             <button
               onClick={() => setSidebarOpen((v) => !v)}
@@ -153,7 +154,7 @@ function ChatPage() {
             </button>
           )}
 
-          <div style={{ display: 'flex', alignItems: 'center', background: '#f1f5f9', padding: '3px', borderRadius: 10 }}>
+          <div className="chat-tabs" style={{ display: 'flex', alignItems: 'center', background: '#f1f5f9', padding: '3px', borderRadius: 10 }}>
             {TABS.map(({ id, label, Icon }) => {
               const active = tab === id;
               return (
@@ -185,7 +186,7 @@ function ChatPage() {
         </div>
 
         {/* Right: Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div className="chat-subheader-actions" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {tab === 'chat' && (
             <>
               <button
@@ -287,6 +288,7 @@ function ChatPage() {
         {/* Sliding Right Journey Drawer */}
         {tab === 'chat' && journeyOpen && (
           <aside
+            className="journey-drawer animate-slide-right"
             style={{
               position: 'absolute',
               insetBlock: 0,
@@ -299,7 +301,6 @@ function ChatPage() {
               flexDirection: 'column',
               boxShadow: '-4px 0 24px rgba(11, 31, 58, 0.1)',
             }}
-            className="animate-slide-right"
           >
             {/* Header */}
             <div

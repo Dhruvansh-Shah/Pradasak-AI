@@ -516,6 +516,7 @@ export default function ChatInterface({
 
   return (
     <div
+      className="chat-interface"
       style={{
         display: 'flex',
         flexDirection: 'column',
@@ -528,6 +529,7 @@ export default function ChatInterface({
     >
       {/* ── Conversation Scroll Stream ──────────────────────────────────────── */}
       <div
+        className="chat-stream"
         style={{
           flex: 1,
           overflowY: 'auto',
@@ -543,6 +545,7 @@ export default function ChatInterface({
           {/* Welcome State when No Messages */}
           {showWelcome && messages.length === 0 && (
             <div
+              className="chat-welcome"
               style={{
                 width: '100%',
                 padding: '24px 0 36px',
@@ -631,6 +634,7 @@ export default function ChatInterface({
 
               {/* 4 Suggestion Cards (2x2 Grid) */}
               <div
+                className="chat-suggestions-grid"
                 style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(2, 1fr)',
@@ -769,6 +773,7 @@ export default function ChatInterface({
 
       {/* ── Docked Bottom Input Bar ──────────────────────────────────────────── */}
       <div
+        className="chat-input-dock"
         style={{
           borderTop: '1px solid #e2e8f0',
           background: '#ffffff',

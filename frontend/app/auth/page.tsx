@@ -56,8 +56,9 @@ export default function AuthPage() {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f8fafc' }}>
       <NavBar />
 
-      <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 24px' }}>
+      <main className="auth-main" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 24px' }}>
         <div
+          className="auth-card"
           style={{
             maxWidth: 1040,
             width: '100%',
@@ -73,6 +74,7 @@ export default function AuthPage() {
         >
           {/* ── Left Branding Showcase Column (Deep Midnight Navy) ─────────── */}
           <div
+            className="auth-brand-panel"
             style={{
               background: 'linear-gradient(145deg, #0b1f3a, #071426)',
               color: '#ffffff',
@@ -155,6 +157,7 @@ export default function AuthPage() {
 
           {/* ── Right Form Column ───────────────────────────────────────────── */}
           <div
+            className="auth-form-panel"
             style={{
               padding: '48px 40px',
               display: 'flex',

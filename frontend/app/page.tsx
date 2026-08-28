@@ -103,6 +103,7 @@ export default function HomePage() {
 
       {/* ── Hero Section (High-Contrast Dark Midnight) ────────────────────────── */}
       <section
+        className="hero-section"
         style={{
           background: 'linear-gradient(180deg, #0b1f3a 0%, #071426 100%)',
           color: '#ffffff',
@@ -111,6 +112,7 @@ export default function HomePage() {
         }}
       >
         <div
+          className="hero-grid"
           style={{
             maxWidth: 1200,
             margin: '0 auto',
@@ -141,6 +143,7 @@ export default function HomePage() {
             </div>
 
             <h1
+              className="hero-title"
               style={{
                 fontSize: 44,
                 fontWeight: 900,
@@ -230,7 +233,7 @@ export default function HomePage() {
           </div>
 
           {/* Right Live Simulation Card */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <div className="hero-visual" style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <div
               style={{
                 width: '100%',
@@ -368,6 +371,7 @@ export default function HomePage() {
         }}
       >
         <div
+          className="stats-grid"
           style={{
             maxWidth: 1200,
             margin: '0 auto',
@@ -403,7 +407,7 @@ export default function HomePage() {
       </section>
 
       {/* ── Core Services Section (2x2 Grid) ─────────────────────────────────── */}
-      <section style={{ padding: '72px 24px', width: '100%' }}>
+      <section className="content-section" style={{ padding: '72px 24px', width: '100%' }}>
         <div
           style={{
             maxWidth: 1200,
@@ -441,6 +445,7 @@ export default function HomePage() {
           </div>
 
           <div
+            className="services-grid"
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(2, 1fr)',
@@ -528,6 +533,7 @@ export default function HomePage() {
 
       {/* ── How It Works Section (4 Steps) ───────────────────────────────────── */}
       <section
+        className="content-section"
         style={{
           background: '#ffffff',
           borderTop: '1px solid #e2e8f0',
@@ -573,6 +579,7 @@ export default function HomePage() {
           </div>
 
           <div
+            className="steps-grid"
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(4, 1fr)',
@@ -628,9 +635,10 @@ export default function HomePage() {
       </section>
 
       {/* ── Call to Action Banner ───────────────────────────────────────────── */}
-      <section style={{ padding: '72px 24px', width: '100%' }}>
+      <section className="content-section" style={{ padding: '72px 24px', width: '100%' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div
+            className="cta-banner"
             style={{
               background: 'linear-gradient(135deg, #0b1f3a, #16345d)',
               color: '#ffffff',

@@ -114,7 +114,7 @@ export default function PartnersPage() {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f8fafc' }}>
       <NavBar />
 
-      <main style={{ maxWidth: 1200, width: '100%', margin: '0 auto', padding: '36px 24px 64px', flex: 1 }}>
+      <main className="page-content" style={{ maxWidth: 1200, width: '100%', margin: '0 auto', padding: '36px 24px 64px', flex: 1 }}>
         
         {/* ── Page Header ─────────────────────────────────────────────────── */}
         <div style={{ marginBottom: 28, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -134,6 +134,7 @@ export default function PartnersPage() {
 
         {/* ── Search Form Card ──────────────────────────────────────────────── */}
         <div
+          className="partner-search-card"
           style={{
             background: '#ffffff',
             border: '1px solid #e2e8f0',
@@ -146,7 +147,7 @@ export default function PartnersPage() {
             gap: 16,
           }}
         >
-          <form onSubmit={onSubmit} style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+          <form className="partner-search-form" onSubmit={onSubmit} style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
             
             {/* Input City */}
             <div style={{ position: 'relative', flex: '1 1 300px', display: 'flex', alignItems: 'center' }}>
@@ -273,6 +274,7 @@ export default function PartnersPage() {
 
         {/* ── Split Layout: Results + Interactive Map ─────────────────────── */}
         <div
+          className="partners-layout"
           style={{
             display: 'grid',
             gridTemplateColumns: '1.1fr 1fr',
@@ -361,6 +363,7 @@ export default function PartnersPage() {
 
           {/* Right Column: Prominent Map Frame */}
           <div
+            className="partner-map"
             style={{
               background: '#ffffff',
               border: '1.5px solid #e2e8f0',

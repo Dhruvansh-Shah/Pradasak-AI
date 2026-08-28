@@ -80,6 +80,7 @@ export default function NavBar() {
       }}
     >
       <div
+        className="nav-inner"
         style={{
           maxWidth: 1200,
           margin: '0 auto',
@@ -92,6 +93,7 @@ export default function NavBar() {
       >
         {/* ── Brand Logo (Left) ────────────────────────────────────────────── */}
         <Link
+          className="nav-brand"
           href="/"
           style={{
             display: 'flex',
@@ -145,7 +147,7 @@ export default function NavBar() {
         </Link>
 
         {/* ── Desktop Navigation Links (Center) ────────────────────────────── */}
-        <nav style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <nav className="desktop-nav" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {navLinks.map(({ label, href, icon: Icon }) => {
             const active = isActive(href);
             return (
@@ -188,7 +190,7 @@ export default function NavBar() {
         </nav>
 
         {/* ── Right Controls: Language & Sign In ───────────────────────────── */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className="desktop-nav-controls" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           
           {/* Language Dropdown */}
           <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
@@ -333,6 +335,7 @@ export default function NavBar() {
 
           {/* Mobile Menu Trigger */}
           <button
+            className="nav-menu-toggle"
             onClick={() => setMobileOpen((v) => !v)}
             style={{
               display: 'none',
@@ -348,6 +351,53 @@ export default function NavBar() {
           </button>
         </div>
       </div>
+
+      {mobileOpen && (
+        <div className="mobile-nav-panel">
+          <nav className="mobile-nav-links" aria-label="Mobile navigation">
+            {navLinks.map(({ label, href, icon: Icon }) => {
+              const active = isActive(href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={() => setMobileOpen(false)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 10,
+                    color: active ? '#ffffff' : '#e2e8f0', background: active ? 'rgba(255,255,255,0.14)' : 'transparent',
+                    textDecoration: 'none', fontSize: 14, fontWeight: active ? 700 : 600,
+                  }}
+                >
+                  <Icon size={17} color={active ? '#fbbf24' : '#94a3b8'} />
+                  <span>{label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="mobile-language-options">
+            {LANGS.map((language) => (
+              <button
+                key={language.code}
+                onClick={() => { setLang(language.code); setMobileOpen(false); }}
+                className={language.code === lang ? 'mobile-language-active' : ''}
+              >
+                <Globe size={15} /> {language.label}
+              </button>
+            ))}
+          </div>
+
+          {user ? (
+            <button className="mobile-signout" onClick={() => { logout(); setMobileOpen(false); }}>
+              {t('nav.signout', 'Sign Out')}
+            </button>
+          ) : (
+            <Link className="mobile-signin" href="/auth" onClick={() => setMobileOpen(false)}>
+              {t('nav.signin', 'Sign In')}
+            </Link>
+          )}
+        </div>
+      )}
     </header>
   );
 }
