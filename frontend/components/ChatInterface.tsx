@@ -408,11 +408,14 @@ export default function ChatInterface({
   const { lang: language, setLang: setLanguage, t } = useLanguage();
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string>(propChatId || '');
   const [showWelcome, setShowWelcome] = useState(!initialMessages?.length);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const retryPendingRef = useRef(false);
+  const retryAttemptRef = useRef(0);
   const chatIdRef = useRef<string | null>(propChatId || null);
   const initialSentRef = useRef(false);
 
@@ -446,12 +449,21 @@ export default function ChatInterface({
 
   const send = useCallback(
     async (text: string) => {
-      if (!text.trim() || loading) return;
+      const isRetry = retryPendingRef.current;
+      retryPendingRef.current = false;
+
+      if (!text.trim() || (loading && !isRetry)) return;
 
       setShowWelcome(false);
-      addMessage({ role: 'user', text });
-      setInput('');
+      if (!isRetry) {
+        retryAttemptRef.current = 0;
+        addMessage({ role: 'user', text });
+        setInput('');
+      }
       setLoading(true);
+      setLoadingMessage(null);
+
+      let retryScheduled = false;
 
       try {
         const res = await sendChat(
@@ -484,14 +496,37 @@ export default function ChatInterface({
           setLanguage(res.detectedLanguage);
         }
       } catch (err) {
-        addMessage({
-          role: 'assistant',
-          text: 'Unable to process your request at the moment. Please verify your network and try again.',
-        });
+        const isNetworkError = err instanceof TypeError;
+
+        if (isNetworkError) {
+          addMessage({
+            role: 'assistant',
+            text: 'The AI server is waking up from sleep (free hosting). Please wait 30 seconds and send your message again.',
+          });
+
+          if (retryAttemptRef.current === 0) {
+            retryAttemptRef.current = 1;
+            retryScheduled = true;
+            setLoadingMessage('Server is waking up... retrying in 30 seconds ⏳');
+            setTimeout(() => {
+              retryPendingRef.current = true;
+              send(text);
+            }, 30000);
+          }
+        } else {
+          addMessage({
+            role: 'assistant',
+            text: 'Unable to process your request at the moment. Please verify your network and try again.',
+          });
+        }
         console.error(err);
       } finally {
-        setLoading(false);
-        setTimeout(() => inputRef.current?.focus(), 100);
+        if (!retryScheduled) {
+          setLoading(false);
+          setLoadingMessage(null);
+          retryAttemptRef.current = 0;
+          setTimeout(() => inputRef.current?.focus(), 100);
+        }
       }
     },
     [loading, sessionId, token, onChatCreated, addMessage]
@@ -762,7 +797,14 @@ export default function ChatInterface({
                 >
                   <Bot size={18} />
                 </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <TypingIndicator />
+                {loadingMessage && (
+                  <span style={{ fontSize: 12.5, color: '#c2410c', fontWeight: 600 }}>
+                    {loadingMessage}
+                  </span>
+                )}
+              </div>
               </div>
             )}
           </div>
