@@ -21,7 +21,9 @@ import {
   HeartHandshake,
   ArrowRight,
   Globe,
-  CornerDownLeft
+  CornerDownLeft,
+  Mic,
+  MicOff,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 
@@ -43,10 +45,57 @@ const LANG_LABELS: Record<Language, string> = {
   mr: 'मराठी',
 };
 
-const SUGGESTIONS: Record<
-  Language,
-  { title: string; desc: string; query: string; icon: React.ElementType; tag: string; color: string; bg: string }[]
-> = {
+// ── Speech-to-text setup ────────────────────────────────────────────────────
+const SPEECH_LANG_MAP: Record<Language, string> = {
+  en: 'en-IN',
+  hi: 'hi-IN',
+  mr: 'mr-IN',
+};
+
+interface SpeechRecognitionResultLike {
+  isFinal: boolean;
+  0: { transcript: string };
+}
+interface SpeechRecognitionEventLike extends Event {
+  resultIndex: number;
+  results: ArrayLike<SpeechRecognitionResultLike>;
+}
+interface SpeechRecognitionErrorEventLike extends Event {
+  error: string;
+}
+interface SpeechRecognitionLike extends EventTarget {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  maxAlternatives: number;
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+  onresult: ((ev: SpeechRecognitionEventLike) => void) | null;
+  onerror: ((ev: SpeechRecognitionErrorEventLike) => void) | null;
+  onend: (() => void) | null;
+}
+
+function getSpeechRecognitionCtor(): (new () => SpeechRecognitionLike) | null {
+  if (typeof window === 'undefined') return null;
+  const w = window as unknown as {
+    SpeechRecognition?: new () => SpeechRecognitionLike;
+    webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+  };
+  return w.SpeechRecognition || w.webkitSpeechRecognition || null;
+}
+
+type SuggestionItem = {
+  title: string;
+  desc: string;
+  query: string;
+  icon: React.ElementType;
+  tag: string;
+  color: string;
+  bg: string;
+};
+
+const SUGGESTIONS: Record<Language, SuggestionItem[]> = {
   en: [
     {
       title: 'Small Business & Trade Loan',
@@ -202,7 +251,6 @@ function MessageBubble({
         flexDirection: isUser ? 'row-reverse' : 'row',
       }}
     >
-      {/* Role Avatar */}
       <div
         style={{
           width: 38,
@@ -220,7 +268,6 @@ function MessageBubble({
         {isUser ? <User size={18} /> : <Bot size={18} />}
       </div>
 
-      {/* Bubble + Cards Container */}
       <div
         style={{
           display: 'flex',
@@ -231,7 +278,6 @@ function MessageBubble({
           gap: 12,
         }}
       >
-        {/* Main Text Content */}
         <div
           style={{
             padding: '16px 20px',
@@ -255,7 +301,6 @@ function MessageBubble({
           </div>
         </div>
 
-        {/* Structured Data Result Cards */}
         {schemes.length > 0 && (
           <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
             {schemes.map((s, i) => (
@@ -310,7 +355,6 @@ function MessageBubble({
           </div>
         )}
 
-        {/* Grounding Disclaimer */}
         {msg.disclaimer && (
           <div
             style={{
@@ -331,7 +375,6 @@ function MessageBubble({
           </div>
         )}
 
-        {/* Quick Action Chips */}
         {msg.quickActions && msg.quickActions.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 6 }}>
             {msg.quickActions.map((qa, i) => (
@@ -411,10 +454,95 @@ export default function ChatInterface({
   const [sessionId, setSessionId] = useState<string>(propChatId || '');
   const [showWelcome, setShowWelcome] = useState(!initialMessages?.length);
 
+  const [isListening, setIsListening] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(true);
+  const [speechError, setSpeechError] = useState<string | null>(null);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const baseValueRef = useRef('');
+
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const chatIdRef = useRef<string | null>(propChatId || null);
   const initialSentRef = useRef(false);
+
+  useEffect(() => {
+    setSpeechSupported(getSpeechRecognitionCtor() !== null);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.abort();
+    };
+  }, []);
+
+  const stopListening = useCallback(() => {
+    recognitionRef.current?.stop();
+  }, []);
+
+  const startListening = useCallback(() => {
+    const Ctor = getSpeechRecognitionCtor();
+    if (!Ctor) {
+      setSpeechSupported(false);
+      return;
+    }
+
+    setSpeechError(null);
+    baseValueRef.current = input ? input + ' ' : '';
+
+    const recognition = new Ctor();
+    recognition.lang = SPEECH_LANG_MAP[language as Language] || 'en-IN';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = (event: SpeechRecognitionEventLike) => {
+      let finalTranscript = '';
+      let interimTranscript = '';
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        const transcript = result[0].transcript;
+        if (result.isFinal) {
+          finalTranscript += transcript;
+        } else {
+          interimTranscript += transcript;
+        }
+      }
+
+      if (finalTranscript) {
+        baseValueRef.current = baseValueRef.current + finalTranscript + ' ';
+      }
+
+      setInput((baseValueRef.current + interimTranscript).trimStart());
+    };
+
+    recognition.onerror = (event: SpeechRecognitionErrorEventLike) => {
+      if (event.error === 'not-allowed' || event.error === 'permission-denied') {
+        setSpeechError('Microphone access denied. Please allow microphone permissions and try again.');
+      } else if (event.error === 'no-speech') {
+        setSpeechError("Didn't catch that — try speaking again.");
+      } else if (event.error !== 'aborted') {
+        setSpeechError('Voice input failed. Please try again or type your message.');
+      }
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+    setIsListening(true);
+  }, [language, input]);
+
+  const toggleListening = () => {
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening();
+    }
+  };
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -447,6 +575,8 @@ export default function ChatInterface({
   const send = useCallback(
     async (text: string) => {
       if (!text.trim() || loading) return;
+
+      if (isListening) stopListening();
 
       setShowWelcome(false);
       addMessage({ role: 'user', text });
@@ -494,10 +624,9 @@ export default function ChatInterface({
         setTimeout(() => inputRef.current?.focus(), 100);
       }
     },
-    [loading, sessionId, token, onChatCreated, addMessage]
+    [loading, sessionId, token, onChatCreated, addMessage, isListening, stopListening]
   );
 
-  // Trigger query automatically if arriving with ?q=...
   useEffect(() => {
     if (initialQuery && !initialSentRef.current && messages.length === 0) {
       initialSentRef.current = true;
@@ -526,7 +655,6 @@ export default function ChatInterface({
         position: 'relative',
       }}
     >
-      {/* ── Conversation Scroll Stream ──────────────────────────────────────── */}
       <div
         style={{
           flex: 1,
@@ -539,8 +667,7 @@ export default function ChatInterface({
         }}
       >
         <div style={{ maxWidth: 880, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          
-          {/* Welcome State when No Messages */}
+
           {showWelcome && messages.length === 0 && (
             <div
               style={{
@@ -553,7 +680,6 @@ export default function ChatInterface({
                 gap: 28,
               }}
             >
-              {/* Emblem & Brand Header */}
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
                 <div
                   style={{
@@ -593,7 +719,6 @@ export default function ChatInterface({
                     : 'Describe your business idea, annual income, or educational goal to find verified concessional loan schemes.'}
                 </p>
 
-                {/* Language Selector Chips */}
                 <div
                   style={{
                     display: 'inline-flex',
@@ -629,7 +754,6 @@ export default function ChatInterface({
                 </div>
               </div>
 
-              {/* 4 Suggestion Cards (2x2 Grid) */}
               <div
                 style={{
                   display: 'grid',
@@ -735,7 +859,6 @@ export default function ChatInterface({
             </div>
           )}
 
-          {/* Active Messages Stream */}
           <div style={{ width: '100%' }}>
             {messages.map((msg) => (
               <MessageBubble key={msg.id} msg={msg} onAction={send} />
@@ -782,7 +905,7 @@ export default function ChatInterface({
         }}
       >
         <div style={{ maxWidth: 880, width: '100%', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          
+
           <div
             style={{
               background: '#f8fafc',
@@ -812,7 +935,13 @@ export default function ChatInterface({
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={
-                language === 'hi'
+                isListening
+                  ? language === 'hi'
+                    ? 'सुन रहा हूँ...'
+                    : language === 'mr'
+                    ? 'ऐकत आहे...'
+                    : 'Listening...'
+                  : language === 'hi'
                   ? 'अपनी स्थिति या प्रश्न लिखें... (उदा. सिलाई दुकान के लिए कौन सा लोन मिलेगा?)'
                   : language === 'mr'
                   ? 'तुमची गरज किंवा प्रश्न विचारा... (उदा. व्यवसायासाठी कोणते कर्ज मिळेल?)'
@@ -841,6 +970,35 @@ export default function ChatInterface({
               }}
             />
 
+            {speechSupported && (
+              <button
+                onClick={toggleListening}
+                disabled={loading}
+                title={isListening ? 'Stop listening' : 'Speak your message'}
+                style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: 12,
+                  background: isListening ? '#dc2626' : '#e2e8f0',
+                  color: '#ffffff',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  cursor: loading ? 'default' : 'pointer',
+                  opacity: loading ? 0.5 : 1,
+                  transition: 'all 180ms ease',
+                }}
+              >
+                {isListening ? (
+                  <MicOff size={18} color="#ffffff" />
+                ) : (
+                  <Mic size={18} color="#0b1f3a" />
+                )}
+              </button>
+            )}
+
             <button
               onClick={() => send(input)}
               disabled={!input.trim() || loading}
@@ -863,6 +1021,22 @@ export default function ChatInterface({
               <Send size={17} color={input.trim() && !loading ? '#fbbf24' : '#ffffff'} />
             </button>
           </div>
+
+          {isListening && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 4px', fontSize: 11.5, color: '#0b1f3a' }}>
+              <span style={{ position: 'relative', display: 'inline-flex', width: 8, height: 8 }}>
+                <span style={{ position: 'absolute', width: '100%', height: '100%', borderRadius: '50%', background: '#dc2626', opacity: 0.6, animation: 'pulse 1.5s infinite' }} />
+                <span style={{ position: 'relative', width: 8, height: 8, borderRadius: '50%', background: '#dc2626' }} />
+              </span>
+              <span style={{ fontWeight: 600 }}>Listening — speak now</span>
+            </div>
+          )}
+
+          {speechError && (
+            <div style={{ padding: '0 4px', fontSize: 11.5, color: '#dc2626' }}>
+              {speechError}
+            </div>
+          )}
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px', fontSize: 11.5, color: '#94a3b8' }}>
             <span>Press <kbd style={{ background: '#e2e8f0', color: '#475569', padding: '1px 5px', borderRadius: 4, fontWeight: 700 }}>Enter ↵</kbd> to send</span>
