@@ -188,6 +188,7 @@ html, body {
   background: linear-gradient(90deg, #ffffff 0%, #ffdcc2 40%, #ffffff 80%);
   background-size: 200% auto;
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   animation: textFlowShimmer 7s ease-in-out infinite;
 }
