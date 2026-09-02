@@ -18,7 +18,9 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 
-const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+import { API_BASE } from '@/lib/apiBase';
+
+const BASE = API_BASE;
 
 interface Partner {
   id: number;

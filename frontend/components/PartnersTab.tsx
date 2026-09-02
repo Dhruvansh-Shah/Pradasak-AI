@@ -4,7 +4,9 @@ import { useState } from 'react';
 import PartnerResultCard from './PartnerResultCard';
 import { Search, MapPin, Compass, Navigation, SlidersHorizontal } from 'lucide-react';
 
-const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+import { API_BASE } from '@/lib/apiBase';
+
+const BASE = API_BASE;
 
 const CATEGORIES = [
   { value: '', label: 'All Scheme Categories' },
