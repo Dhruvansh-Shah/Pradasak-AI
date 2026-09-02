@@ -28,9 +28,7 @@ This structure introduces three critical friction points:
 
 ### 1. 🤖 Grounded AI Scheme Recommender
 - **Natural Language Interaction:** Users speak or type queries in plain language (e.g., *"I want to set up a tailoring unit in Jaipur, family income ₹3 Lakh"*).
-- **Two-Stage Grounded Pipeline:**
-  1. *Intent & Entity Extraction:* Converts unstructured natural language into structured database parameters.
-  2. *Grounded Synthesis:* Interprets and compares real database rows with zero hallucination of interest rates or caps.
+- **Single Agentic Pipeline (Tool-Calling):** One LLM conversation reads the full chat context and decides for itself what's needed — no keyword/intent classifier and no separate entity-extraction pass. When it needs real numbers it calls a tool (scheme lookup, EMI math, partner search, document checklist) backed by the database or deterministic code, then explains the result using only that real data. If information is missing, the model asks its own natural counter-question instead of guessing.
 - **Multilingual Support:** Conversational intelligence across English, Hindi, and regional languages.
 
 ### 2. 🧮 Precision Financial & EMI Calculator
@@ -65,7 +63,8 @@ This structure introduces three critical friction points:
 │                    Backend API Gateway                   │
 │               Express.js 5 + TypeScript                  │
 ├──────────────────────────────────────────────────────────┤
-│  • IntentClassifier & EntityExtractor (OpenRouter)       │
+│  • Single tool-calling LLM agent (ChatOrchestrator)      │
+│    — decides intent/entities itself, no keyword rules    │
 │  • Deterministic EMI Calculation Engine                  │
 │  • Spatial Query Builder (PostGIS)                       │
 │  • User & Admin Authentication (JWT + Bcrypt)            │
@@ -123,9 +122,10 @@ This structure introduces three critical friction points:
 │   │   │   ├── partners.ts     # Spatial partner locator endpoint
 │   │   │   ├── userAuth.ts     # User authentication routes
 │   │   │   └── admin.ts        # Admin management routes
-│   │   ├── services/           # Business logic & AI orchestrators
-│   │   │   ├── ChatOrchestrator.ts
-│   │   │   ├── IntentClassifier.ts
+│   │   ├── services/           # Business logic & AI tool-calling agent
+│   │   │   ├── ChatOrchestrator.ts   # Single agentic loop (tool-calling)
+│   │   │   ├── Tools.ts              # Tool schemas + deterministic executors
+│   │   │   ├── IntentClassifier.ts   # Lightweight language-detection helper only
 │   │   │   ├── SchemeEngine.ts
 │   │   │   └── LocationService.ts
 │   │   └── index.ts            # Main application entry point

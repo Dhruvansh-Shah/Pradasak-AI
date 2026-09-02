@@ -1,6 +1,7 @@
 'use client';
 
-import { CheckCircle2, AlertTriangle, ArrowRight, Calculator, MapPin, Sparkles } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Calculator, MapPin, Sparkles } from 'lucide-react';
+import Interactive3DCard from './Interactive3DCard';
 
 interface Scheme {
   id: number;
@@ -24,12 +25,12 @@ interface Scheme {
 }
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  micro_finance:    { bg: '#ecfdf5', text: '#065f46', border: '#a7f3d0' },
-  term_loan:        { bg: '#eff6ff', text: '#1e40af', border: '#bfdbfe' },
-  education_loan:   { bg: '#faf5ff', text: '#6b21a8', border: '#e9d5ff' },
-  entrepreneurship: { bg: '#fff7ed', text: '#9a3412', border: '#fed7aa' },
-  skill_development:{ bg: '#fdf2f8', text: '#9d174d', border: '#fbcfe8' },
-  default:          { bg: '#f8fafc', text: '#334155', border: '#e2e8f0' },
+  micro_finance: { bg: '#ecfdf5', text: '#065f46', border: '#a7f3d0' },
+  term_loan: { bg: '#eff6ff', text: '#003366', border: '#bfdbfe' },
+  education_loan: { bg: '#faf5ff', text: '#6b21a8', border: '#e9d5ff' },
+  entrepreneurship: { bg: '#fff7ed', text: '#8f4e00', border: '#fed7aa' },
+  skill_development: { bg: '#fdf2f8', text: '#9d174d', border: '#fbcfe8' },
+  default: { bg: '#fbf9f8', text: '#1b1c1c', border: '#e4e2e1' },
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -60,13 +61,13 @@ export default function SchemeResultCard({ scheme, onCalculateEMI, onFindPartner
   const label = CATEGORY_LABELS[scheme.category] || scheme.category;
 
   return (
-    <div
+    <Interactive3DCard
+      maxTilt={5}
       style={{
         background: '#ffffff',
-        border: '1.5px solid #e2e8f0',
-        borderRadius: 18,
+        border: '1px solid #e4e2e1',
+        borderRadius: 14,
         padding: '22px 24px',
-        boxShadow: '0 2px 10px rgba(11,31,58,0.04)',
         display: 'flex',
         flexDirection: 'column',
         gap: 16,
@@ -84,9 +85,9 @@ export default function SchemeResultCard({ scheme, onCalculateEMI, onFindPartner
                   alignItems: 'center',
                   gap: 4,
                   fontSize: 11,
-                  fontWeight: 800,
+                  fontWeight: 700,
                   padding: '3px 10px',
-                  borderRadius: 20,
+                  borderRadius: 6,
                   background: '#e87722',
                   color: '#ffffff',
                   boxShadow: '0 2px 6px rgba(232,119,34,0.3)',
@@ -98,40 +99,63 @@ export default function SchemeResultCard({ scheme, onCalculateEMI, onFindPartner
             )}
             <span
               style={{
-                fontSize: 11,
-                fontWeight: 700,
+                fontSize: 11.5,
+                fontWeight: 600,
                 padding: '3px 10px',
-                borderRadius: 20,
+                borderRadius: 6,
                 background: meta.bg,
                 color: meta.text,
                 border: `1px solid ${meta.border}`,
-                textTransform: 'uppercase',
-                letterSpacing: '0.04em',
               }}
             >
               {label}
             </span>
           </div>
 
-          <h3 style={{ fontSize: 16.5, fontWeight: 800, color: '#0b1f3a', margin: 0, lineHeight: 1.3 }}>
+          <h3 style={{ fontSize: 17, fontWeight: 700, color: '#001e40', margin: 0, lineHeight: 1.3 }}>
             {scheme.name}
           </h3>
         </div>
+
+        {scheme.score !== undefined && (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-end',
+              flexShrink: 0,
+            }}
+          >
+            <span
+              style={{
+                fontSize: 13.5,
+                fontWeight: 800,
+                color: '#15803d',
+                background: '#f0fdf4',
+                border: '1px solid #bbf7d0',
+                padding: '3px 10px',
+                borderRadius: 6,
+              }}
+            >
+              {Math.max(0, Math.min(100, Math.round(scheme.score)))}% Match
+            </span>
+          </div>
+        )}
       </div>
 
       {/* 3 Metric Tiles */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
-          <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', display: 'block', marginBottom: 2 }}>
+        <div style={{ background: '#fbf9f8', border: '1px solid #e4e2e1', borderRadius: 8, padding: '10px 8px', textAlign: 'center' }}>
+          <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', color: '#64748b', display: 'block', marginBottom: 2 }}>
             Max Loan
           </span>
-          <strong style={{ fontSize: 14, fontWeight: 800, color: '#0b1f3a' }}>
+          <strong style={{ fontSize: 14, fontWeight: 800, color: '#001e40' }}>
             {fmt(scheme.max_loan_lakh * 100000)}
           </strong>
         </div>
 
-        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
-          <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', display: 'block', marginBottom: 2 }}>
+        <div style={{ background: '#fbf9f8', border: '1px solid #e4e2e1', borderRadius: 8, padding: '10px 8px', textAlign: 'center' }}>
+          <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', color: '#64748b', display: 'block', marginBottom: 2 }}>
             Interest Rate
           </span>
           <strong style={{ fontSize: 14, fontWeight: 800, color: '#15803d' }}>
@@ -141,11 +165,11 @@ export default function SchemeResultCard({ scheme, onCalculateEMI, onFindPartner
           </strong>
         </div>
 
-        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
-          <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', display: 'block', marginBottom: 2 }}>
+        <div style={{ background: '#fbf9f8', border: '1px solid #e4e2e1', borderRadius: 8, padding: '10px 8px', textAlign: 'center' }}>
+          <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', color: '#64748b', display: 'block', marginBottom: 2 }}>
             Income Limit
           </span>
-          <strong style={{ fontSize: 14, fontWeight: 800, color: '#475569' }}>
+          <strong style={{ fontSize: 14, fontWeight: 800, color: '#43474f' }}>
             ≤ {fmt(scheme.max_income_lakh * 100000)}
           </strong>
         </div>
@@ -153,7 +177,7 @@ export default function SchemeResultCard({ scheme, onCalculateEMI, onFindPartner
 
       {/* Description */}
       {scheme.description && (
-        <p style={{ fontSize: 13, color: '#475569', lineHeight: 1.55, margin: 0 }}>
+        <p style={{ fontSize: 13, color: '#43474f', lineHeight: 1.55, margin: 0 }}>
           {scheme.description}
         </p>
       )}
@@ -174,7 +198,7 @@ export default function SchemeResultCard({ scheme, onCalculateEMI, onFindPartner
                 background: '#ecfdf5',
                 border: '1px solid #a7f3d0',
                 padding: '6px 12px',
-                borderRadius: 8,
+                borderRadius: 6,
               }}
             >
               <CheckCircle2 size={14} color="#059669" style={{ flexShrink: 0 }} />
@@ -196,11 +220,11 @@ export default function SchemeResultCard({ scheme, onCalculateEMI, onFindPartner
                 gap: 8,
                 fontSize: 12,
                 fontWeight: 600,
-                color: '#9a3412',
+                color: '#8f4e00',
                 background: '#fff7ed',
                 border: '1px solid #fed7aa',
                 padding: '6px 12px',
-                borderRadius: 8,
+                borderRadius: 6,
               }}
             >
               <AlertTriangle size={14} color="#ea580c" style={{ flexShrink: 0 }} />
@@ -212,16 +236,16 @@ export default function SchemeResultCard({ scheme, onCalculateEMI, onFindPartner
 
       {/* Parameter Chips */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, fontSize: 11.5, color: '#64748b' }}>
-        <span style={{ background: '#f1f5f9', padding: '3px 8px', borderRadius: 6 }}>Tenure: up to {scheme.max_tenure_months} mo</span>
-        <span style={{ background: '#f1f5f9', padding: '3px 8px', borderRadius: 6 }}>Moratorium: {scheme.moratorium_months_min}–{scheme.moratorium_months_max} mo</span>
+        <span style={{ background: '#f0eded', padding: '3px 8px', borderRadius: 4 }}>Tenure: up to {scheme.max_tenure_months} mo</span>
+        <span style={{ background: '#f0eded', padding: '3px 8px', borderRadius: 4 }}>Moratorium: {scheme.moratorium_months_min}–{scheme.moratorium_months_max} mo</span>
         {scheme.gender_eligibility === 'women_only' && (
-          <span style={{ background: '#fdf2f8', color: '#be185d', fontWeight: 700, padding: '3px 8px', borderRadius: 6 }}>Women Exclusive</span>
+          <span style={{ background: '#fdf2f8', color: '#be185d', fontWeight: 700, padding: '3px 8px', borderRadius: 4 }}>Women Exclusive</span>
         )}
       </div>
 
       {/* Actions */}
       {(onCalculateEMI || onFindPartners) && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 6, borderTop: '1px solid #f1f5f9' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 6, borderTop: '1px solid #f0eded' }}>
           {onCalculateEMI && (
             <button
               onClick={() => onCalculateEMI(scheme)}
@@ -232,25 +256,25 @@ export default function SchemeResultCard({ scheme, onCalculateEMI, onFindPartner
                 justifyContent: 'center',
                 gap: 6,
                 padding: '10px 14px',
-                borderRadius: 10,
-                border: '1.5px solid #cbd5e1',
+                borderRadius: 8,
+                border: '1px solid #c3c6d1',
                 background: '#ffffff',
-                color: '#0b1f3a',
-                fontSize: 12.5,
+                color: '#001e40',
+                fontSize: 13,
                 fontWeight: 700,
                 cursor: 'pointer',
                 transition: 'all 150ms ease',
               }}
               onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.borderColor = '#0b1f3a';
-                (e.currentTarget as HTMLElement).style.background = '#f8fafc';
+                (e.currentTarget as HTMLElement).style.borderColor = '#001e40';
+                (e.currentTarget as HTMLElement).style.background = '#f6f3f2';
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.borderColor = '#cbd5e1';
+                (e.currentTarget as HTMLElement).style.borderColor = '#c3c6d1';
                 (e.currentTarget as HTMLElement).style.background = '#ffffff';
               }}
             >
-              <Calculator size={14} color="#ea580c" />
+              <Calculator size={14} color="#e87722" />
               <span>Calculate EMI</span>
             </button>
           )}
@@ -265,21 +289,21 @@ export default function SchemeResultCard({ scheme, onCalculateEMI, onFindPartner
                 justifyContent: 'center',
                 gap: 6,
                 padding: '10px 14px',
-                borderRadius: 10,
+                borderRadius: 8,
                 border: 'none',
-                background: '#0b1f3a',
+                background: '#001e40',
                 color: '#ffffff',
-                fontSize: 12.5,
+                fontSize: 13,
                 fontWeight: 700,
                 cursor: 'pointer',
-                boxShadow: '0 2px 6px rgba(11,31,58,0.18)',
+                boxShadow: '0 2px 6px rgba(0,30,64,0.2)',
                 transition: 'all 150ms ease',
               }}
               onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.background = '#132e54';
+                (e.currentTarget as HTMLElement).style.background = '#003366';
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.background = '#0b1f3a';
+                (e.currentTarget as HTMLElement).style.background = '#001e40';
               }}
             >
               <MapPin size={14} color="#fbbf24" />
@@ -288,6 +312,6 @@ export default function SchemeResultCard({ scheme, onCalculateEMI, onFindPartner
           )}
         </div>
       )}
-    </div>
+    </Interactive3DCard>
   );
 }

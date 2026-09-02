@@ -1,5 +1,11 @@
 import type { Language } from './IntentClassifier';
 
+/**
+ * UserEntities is kept as a shared shape for tool arguments (see Tools.ts) —
+ * it's no longer populated by a separate extraction step here. Each turn,
+ * the model reads the conversation itself and passes these fields directly
+ * as tool call arguments when it needs real data.
+ */
 export interface UserEntities {
   loan_amount_rs?: number;        // in rupees
   family_income_rs?: number;      // annual, in rupees
@@ -20,12 +26,12 @@ export interface UserEntities {
 export interface Session {
   id: string;
   language: Language;
-  entities: UserEntities;
-  recommendedSchemes?: Record<string, unknown>[];
-  selectedScheme?: Record<string, unknown>;
   conversationHistory: { role: 'user' | 'assistant'; content: string }[];
+  /** Compact JSON snapshot of the most recent tool result(s), re-injected as
+   *  context each turn so the model can refer to earlier real data (e.g. a
+   *  previously recommended scheme) without needing the full tool-call trace. */
+  lastContext?: Record<string, unknown>;
   lastIntent?: string;
-  pendingQuestion?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -47,7 +53,6 @@ export function getOrCreate(sessionId?: string): Session {
   const session: Session = {
     id: sessionId || generateId(),
     language: 'unknown',
-    entities: {},
     conversationHistory: [],
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -59,15 +64,6 @@ export function getOrCreate(sessionId?: string): Session {
 export function updateSession(session: Session): void {
   session.updatedAt = new Date();
   store.set(session.id, session);
-}
-
-/** Merge new entities into session, never overwriting with null/undefined */
-export function mergeEntities(session: Session, incoming: Partial<UserEntities>): void {
-  for (const [k, v] of Object.entries(incoming)) {
-    if (v !== null && v !== undefined) {
-      (session.entities as Record<string, unknown>)[k] = v;
-    }
-  }
 }
 
 // Cleanup expired sessions every 15 minutes

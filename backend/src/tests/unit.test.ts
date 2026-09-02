@@ -1,5 +1,5 @@
 import { scoreSchemes } from '../services/SchemeEngine';
-import { classifyIntent, detectLanguage } from '../services/IntentClassifier';
+import { detectLanguage } from '../services/IntentClassifier';
 import { geocodeCity } from '../services/LocationService';
 import type { Scheme } from '../services/SchemeEngine';
 import type { UserEntities } from '../services/ConversationSession';
@@ -168,20 +168,13 @@ assert(
   'Income > ₹5L attaches clear warning without discarding scheme'
 );
 
-// ── 2. Intent Classifier Tests ──
-console.log('\n🧠 Testing IntentClassifier:');
-
-// Test 2.1: Substantive questions with polite greetings are NOT swallowed as greetings
-const politeLoan = classifyIntent('नमस्ते, मुझे सिलाई का काम शुरू करने के लिए 1 लाख चाहिए');
-assert(politeLoan.intent === 'business_loan' || politeLoan.intent === 'scheme_recommendation', 'Greeting preceding loan query routes to loan intent');
-
-// Test 2.2: Pure greetings return greeting intent
-const pureGreeting = classifyIntent('Hello good morning');
-assert(pureGreeting.intent === 'greeting', 'Pure greeting returns greeting intent');
-
-// Test 2.3: EMI inquiries return emi_calculation intent
-const emiInquiry = classifyIntent('Calculate EMI for 5 lakhs at 6% for 5 years');
-assert(emiInquiry.intent === 'emi_calculation', 'EMI calculation inquiry correctly classified');
+// ── 2. Language Detection Tests ──
+// NOTE: Intent classification is no longer a pure/offline function — it's a
+// single grounded LLM call in `Understanding.ts` that reads the whole
+// conversation and decides intent + entities + readiness together. That
+// behavior is covered by the end-to-end journeys in integration.test.ts
+// instead of here, since it requires a live LLM call.
+console.log('\n🧠 Testing Language Detection:');
 
 // Test 2.4: Language detection
 assert(detectLanguage('मुझे अमरावती में लोन चाहिए') === 'hi', 'Hindi Devanagari detected as "hi"');

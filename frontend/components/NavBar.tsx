@@ -13,15 +13,19 @@ import {
   Layers,
   MapPin,
   User,
+  Calculator,
+  PhoneCall,
+  ShieldCheck,
 } from 'lucide-react';
 import type { UserProfile } from '@/lib/api';
 import { useLanguage } from '@/context/LanguageContext';
 import type { Language } from '@/lib/translations';
+import EmblemOfIndia from './EmblemOfIndia';
 
 const LANGS: { code: Language; label: string; name: string }[] = [
   { code: 'en', label: 'English', name: 'English' },
-  { code: 'hi', label: 'हिंदी (Hindi)', name: 'हिंदी' },
-  { code: 'mr', label: 'मराठी (Marathi)', name: 'मराठी' },
+  { code: 'hi', label: 'हिंदी', name: 'हिंदी' },
+  { code: 'mr', label: 'मराठी', name: 'मराठी' },
 ];
 
 export default function NavBar() {
@@ -62,292 +66,373 @@ export default function NavBar() {
   const currentLangObj = LANGS.find((l) => l.code === lang) || LANGS[0];
 
   const navLinks = [
-    { label: t('nav.schemes', 'Explore Schemes'), href: '/schemes', icon: Layers },
-    { label: t('nav.chat', 'AI Assistant'),       href: '/chat',    icon: Bot },
+    { label: t('nav.schemes', 'Schemes Catalog'), href: '/schemes', icon: Layers },
+    { label: t('nav.chat', 'AI Assistant'), href: '/chat', icon: Bot },
+    { label: t('nav.emi', 'EMI Calculator'), href: '/chat?tab=emi', icon: Calculator },
     { label: t('nav.partners', 'Partner Locator'), href: '/partners', icon: MapPin },
   ];
 
   return (
-    <header
-      style={{
-        background: '#0b1f3a',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-        position: 'sticky',
-        top: 0,
-        zIndex: 50,
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
-        width: '100%',
-      }}
-    >
+    <header className="w-full sticky top-0 z-50">
+      {/* ── Official Government Institutional Top Strip ───────────────────── */}
       <div
         style={{
-          maxWidth: 1200,
-          margin: '0 auto',
-          padding: '0 24px',
-          height: 72,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
+          background: '#00132b',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          color: '#cbd5e1',
+          fontSize: '11.5px',
+          padding: '5px 0',
         }}
       >
-        {/* ── Brand Logo (Left) ────────────────────────────────────────────── */}
-        <Link
-          href="/"
+        <div
           style={{
+            maxWidth: 1200,
+            margin: '0 auto',
+            padding: '0 24px',
             display: 'flex',
             alignItems: 'center',
-            gap: 12,
-            textDecoration: 'none',
+            justifyContent: 'space-between',
           }}
         >
-          <div
-            style={{
-              width: 42,
-              height: 42,
-              borderRadius: 12,
-              background: 'linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0.05))',
-              border: '1px solid rgba(255,255,255,0.2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#fbbf24',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-            }}
-          >
-            <Landmark size={20} />
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 18, fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em' }}>
-                {t('brand.name', 'Pradarshak AI')}
-              </span>
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 800,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                  background: 'rgba(251, 191, 36, 0.2)',
-                  border: '1px solid rgba(251, 191, 36, 0.35)',
-                  color: '#fbbf24',
-                  padding: '2px 6px',
-                  borderRadius: 4,
-                }}
-              >
-                SIH • NSFDC
-              </span>
-            </div>
-            <span style={{ fontSize: 11.5, color: '#94a3b8', fontWeight: 500, letterSpacing: '0.01em' }}>
-              {t('brand.subtitle', 'Channel Finance & Concessional Loans')}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontWeight: 700, color: '#f8fafc', letterSpacing: '0.02em' }}>
+              भारत सरकार | Government of India
+            </span>
+            <span style={{ opacity: 0.4 }}>•</span>
+            <span className="hidden md:inline" style={{ color: '#94a3b8' }}>
+              Ministry of Social Justice & Empowerment (MoSJE)
             </span>
           </div>
-        </Link>
 
-        {/* ── Desktop Navigation Links (Center) ────────────────────────────── */}
-        <nav style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {navLinks.map(({ label, href, icon: Icon }) => {
-            const active = isActive(href);
-            return (
-              <Link
-                key={href}
-                href={href}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  padding: '8px 16px',
-                  borderRadius: 10,
-                  fontSize: 14,
-                  fontWeight: active ? 700 : 500,
-                  textDecoration: 'none',
-                  color: active ? '#ffffff' : '#cbd5e1',
-                  background: active ? 'rgba(255, 255, 255, 0.14)' : 'transparent',
-                  border: active ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid transparent',
-                  boxShadow: active ? '0 2px 8px rgba(0, 0, 0, 0.12)' : 'none',
-                  transition: 'all 150ms ease',
-                }}
-                onMouseEnter={(e) => {
-                  if (!active) {
-                    (e.currentTarget as HTMLElement).style.background = 'rgba(255, 255, 255, 0.08)';
-                    (e.currentTarget as HTMLElement).style.color = '#ffffff';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!active) {
-                    (e.currentTarget as HTMLElement).style.background = 'transparent';
-                    (e.currentTarget as HTMLElement).style.color = '#cbd5e1';
-                  }
-                }}
-              >
-                <Icon size={16} color={active ? '#fbbf24' : '#94a3b8'} />
-                <span>{label}</span>
-              </Link>
-            );
-          })}
-        </nav>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div className="hidden sm:flex items-center gap-1.5" style={{ color: '#fed7aa' }}>
+              <PhoneCall size={12} color="#fe9832" />
+              <span style={{ fontSize: 11 }}>Toll-Free Helpline: <strong>1800-11-2001</strong></span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <ShieldCheck size={13} color="#8dfc75" />
+              <span style={{ fontSize: 11, color: '#e6eef8' }}>NSFDC Verified Portal</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
-        {/* ── Right Controls: Language & Sign In ───────────────────────────── */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          
-          {/* Language Dropdown */}
-          <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
-            <button
-              onClick={() => setLangOpen((v) => !v)}
+      {/* ── Main Government Blue Navbar ──────────────────────────────────── */}
+      <div
+        style={{
+          background: '#001e40',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.15)',
+          width: '100%',
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 1200,
+            margin: '0 auto',
+            padding: '0 24px',
+            height: 68,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          {/* ── Brand Emblem & Title ───────────────────────────────────────── */}
+          <Link
+            href="/"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              textDecoration: 'none',
+            }}
+          >
+            <div
               style={{
+                width: 44,
+                height: 48,
+                borderRadius: 4,
+                background: '#ffffff',
+                border: '1px solid rgba(255, 255, 255, 0.4)',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 6,
-                padding: '8px 14px',
-                borderRadius: 10,
-                background: 'rgba(255, 255, 255, 0.08)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                color: '#e2e8f0',
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 150ms ease',
+                justifyContent: 'center',
+                padding: '3px',
+                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)',
               }}
             >
-              <Globe size={15} color="#fbbf24" />
-              <span>{currentLangObj.name}</span>
-              <ChevronDown size={13} style={{ transform: langOpen ? 'rotate(180deg)' : 'none', transition: 'transform 200ms' }} />
-            </button>
+              <EmblemOfIndia size={38} />
+            </div>
 
-            {langOpen && (
-              <div
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span
+                  style={{
+                    fontSize: 17,
+                    fontWeight: 700,
+                    color: '#ffffff',
+                    letterSpacing: '-0.01em',
+                    lineHeight: 1.2,
+                  }}
+                >
+                  {t('brand.name', 'Pradarshak AI')}
+                </span>
+              </div>
+              <span
                 style={{
-                  position: 'absolute',
-                  right: 0,
-                  marginTop: 8,
-                  width: 170,
-                  background: '#ffffff',
-                  color: '#0f172a',
-                  borderRadius: 14,
-                  boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
-                  border: '1px solid #e2e8f0',
-                  padding: '6px',
-                  zIndex: 100,
+                  fontSize: 11,
+                  color: '#cbd5e1',
+                  fontWeight: 500,
                 }}
               >
-                <div style={{ padding: '6px 10px', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', borderBottom: '1px solid #f1f5f9', marginBottom: 4 }}>
-                  {t('nav.select_lang', 'Select Language')}
-                </div>
-                {LANGS.map((l) => {
-                  const isCurrent = lang === l.code;
-                  return (
-                    <button
-                      key={l.code}
-                      onClick={() => {
-                        setLang(l.code);
-                        setLangOpen(false);
-                      }}
-                      style={{
-                        width: '100%',
-                        textAlign: 'left',
-                        padding: '8px 10px',
-                        fontSize: 13,
-                        fontWeight: isCurrent ? 700 : 500,
-                        borderRadius: 8,
-                        border: 'none',
-                        background: isCurrent ? '#eef3f9' : 'transparent',
-                        color: isCurrent ? '#0b1f3a' : '#334155',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                      }}
-                    >
-                      <span>{l.label}</span>
-                      {isCurrent && (
-                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#0b1f3a' }} />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                National SC Financial Assistance Portal
+              </span>
+            </div>
+          </Link>
 
-          {/* User Profile or Sign In */}
-          {user ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div
+          {/* ── Desktop Navigation Tabs (Clean Institutional) ──────────────── */}
+          <nav className="hidden md:flex items-center gap-1">
+            {navLinks.map((link) => {
+              const Icon = link.icon;
+              const active = isActive(link.href);
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '8px 14px',
+                    borderRadius: 4,
+                    fontSize: 13.5,
+                    fontWeight: active ? 700 : 500,
+                    color: active ? '#ffffff' : '#cbd5e1',
+                    background: active ? '#003366' : 'transparent',
+                    border: active ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid transparent',
+                    textDecoration: 'none',
+                    transition: 'all 120ms ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!active) {
+                      (e.currentTarget as HTMLElement).style.background = 'rgba(255, 255, 255, 0.08)';
+                      (e.currentTarget as HTMLElement).style.color = '#ffffff';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!active) {
+                      (e.currentTarget as HTMLElement).style.background = 'transparent';
+                      (e.currentTarget as HTMLElement).style.color = '#cbd5e1';
+                    }
+                  }}
+                >
+                  <Icon size={15} color={active ? '#ffdcc2' : '#94a3b8'} />
+                  <span>{link.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* ── Right Controls: Language Selector & User Auth ───────────────── */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {/* Language Selector Dropdown */}
+            <div style={{ position: 'relative' }}>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLangOpen((prev) => !prev);
+                }}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: 6,
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid rgba(255, 255, 255, 0.18)',
-                  padding: '6px 12px',
-                  borderRadius: 10,
-                  fontSize: 12.5,
+                  padding: '7px 11px',
+                  borderRadius: 4,
+                  fontSize: 13,
                   fontWeight: 600,
-                  color: '#ffffff',
-                }}
-              >
-                <User size={14} color="#fbbf24" />
-                <span style={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {user.name || user.email.split('@')[0]}
-                </span>
-              </div>
-
-              <button
-                onClick={logout}
-                style={{
+                  color: '#f8fafc',
                   background: 'rgba(255, 255, 255, 0.08)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  color: '#f87171',
-                  padding: '7px 12px',
-                  borderRadius: 10,
-                  fontSize: 12.5,
-                  fontWeight: 600,
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
                   cursor: 'pointer',
                 }}
-                title="Sign out"
               >
-                {t('nav.signout', 'Sign Out')}
+                <Globe size={14} color="#ffdcc2" />
+                <span>{currentLangObj.name}</span>
+                <ChevronDown size={13} style={{ transform: langOpen ? 'rotate(180deg)' : 'none', transition: 'transform 150ms' }} />
               </button>
+
+              {langOpen && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 6px)',
+                    right: 0,
+                    width: 160,
+                    background: '#001e40',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    borderRadius: 4,
+                    padding: '4px',
+                    boxShadow: '0 10px 25px rgba(0, 0, 0, 0.3)',
+                    zIndex: 100,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 2,
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div style={{ fontSize: 10.5, fontWeight: 700, color: '#94a3b8', padding: '4px 8px', textTransform: 'uppercase' }}>
+                    Language
+                  </div>
+                  {LANGS.map((item) => {
+                    const isSelected = item.code === lang;
+                    return (
+                      <button
+                        key={item.code}
+                        type="button"
+                        onClick={() => {
+                          setLang(item.code);
+                          setLangOpen(false);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '7px 8px',
+                          borderRadius: 3,
+                          fontSize: 12.5,
+                          fontWeight: isSelected ? 700 : 500,
+                          color: isSelected ? '#ffffff' : '#cbd5e1',
+                          background: isSelected ? '#003366' : 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                        }}
+                      >
+                        <span>{item.label}</span>
+                        {isSelected && <span style={{ color: '#ffdcc2', fontSize: 12 }}>✓</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          ) : (
-            <Link
-              href="/auth"
+
+            {/* Auth Login / User Badge */}
+            {user ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Link
+                  href="/profile"
+                  className="btn-bounce"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '7px 11px',
+                    borderRadius: 4,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: '#ffffff',
+                    background: '#003366',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    textDecoration: 'none',
+                  }}
+                >
+                  <User size={14} color="#ffdcc2" />
+                  <span>{user.name?.split(' ')[0] || 'Citizen'}</span>
+                </Link>
+                <button
+                  onClick={logout}
+                  className="btn-bounce"
+                  style={{
+                    padding: '7px 9px',
+                    borderRadius: 4,
+                    fontSize: 12,
+                    color: '#fca5a5',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid rgba(239, 68, 68, 0.25)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <Link
+                href="/auth"
+                className="btn btn-amber btn-bounce"
+                style={{
+                  fontSize: 13.5,
+                  padding: '7px 16px',
+                  borderRadius: 4,
+                  fontWeight: 700,
+                }}
+              >
+                <User size={14} />
+                <span>{t('nav.login', 'Citizen Login')}</span>
+              </Link>
+            )}
+
+            {/* Mobile Hamburger Menu */}
+            <button
+              type="button"
+              className="md:hidden"
+              onClick={() => setMobileOpen((prev) => !prev)}
               style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '9px 20px',
-                borderRadius: 10,
-                background: '#e87722',
+                padding: '7px',
+                borderRadius: 4,
+                background: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
                 color: '#ffffff',
-                fontSize: 13.5,
-                fontWeight: 700,
-                textDecoration: 'none',
-                boxShadow: '0 2px 10px rgba(232, 119, 34, 0.35)',
-                transition: 'all 150ms ease',
+                cursor: 'pointer',
               }}
             >
-              {t('nav.signin', 'Sign In')}
-            </Link>
-          )}
-
-          {/* Mobile Menu Trigger */}
-          <button
-            onClick={() => setMobileOpen((v) => !v)}
-            style={{
-              display: 'none',
-              background: 'rgba(255,255,255,0.1)',
-              border: 'none',
-              borderRadius: 8,
-              color: '#ffffff',
-              padding: 8,
-              cursor: 'pointer',
-            }}
-          >
-            {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
+              {mobileOpen ? <X size={18} /> : <Menu size={18} />}
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* ── Mobile Menu Dropdown ───────────────────────────────────────────── */}
+      {mobileOpen && (
+        <div
+          className="md:hidden"
+          style={{
+            background: '#001e40',
+            borderBottom: '2px solid rgba(255, 255, 255, 0.15)',
+            padding: '12px 20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 6,
+          }}
+        >
+          {navLinks.map((link) => {
+            const Icon = link.icon;
+            const active = isActive(link.href);
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setMobileOpen(false)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '9px 12px',
+                  borderRadius: 4,
+                  fontSize: 13.5,
+                  fontWeight: active ? 700 : 500,
+                  color: active ? '#ffffff' : '#cbd5e1',
+                  background: active ? '#003366' : 'transparent',
+                  textDecoration: 'none',
+                }}
+              >
+                <Icon size={16} color={active ? '#ffdcc2' : '#94a3b8'} />
+                <span>{link.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </header>
   );
 }

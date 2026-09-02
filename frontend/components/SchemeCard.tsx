@@ -1,6 +1,6 @@
 'use client';
 
-import { IndianRupee, Clock, TrendingUp, CheckCircle } from 'lucide-react';
+import { IndianRupee, Clock, TrendingUp, CheckCircle, Award } from 'lucide-react';
 
 interface Scheme {
   id: number;
@@ -26,88 +26,91 @@ interface Props {
   selected?: boolean;
 }
 
-const CATEGORY_COLORS: Record<string, string> = {
-  micro_finance: '#059669',
-  term_loan: '#1a56db',
-  education_loan: '#7c3aed',
+const CATEGORY_COLORS: Record<string, { color: string; bg: string; border: string }> = {
+  micro_finance: { color: '#059669', bg: '#ecfdf5', border: '#a7f3d0' },
+  term_loan: { color: '#003366', bg: '#eff6ff', border: '#bfdbfe' },
+  education_loan: { color: '#7c3aed', bg: '#faf5ff', border: '#e9d5ff' },
+  entrepreneurship: { color: '#c2410c', bg: '#fff7ed', border: '#fed7aa' },
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
   micro_finance: 'Micro Finance',
   term_loan: 'Term Loan',
   education_loan: 'Education Loan',
+  entrepreneurship: 'Entrepreneurship',
 };
 
 export default function SchemeCard({ scheme, onSelect, selected }: Props) {
-  const color = CATEGORY_COLORS[scheme.category] || '#6b7280';
+  const catInfo = CATEGORY_COLORS[scheme.category] || { color: '#003366', bg: '#eff6ff', border: '#bfdbfe' };
   const label = CATEGORY_LABELS[scheme.category] || scheme.category;
 
   return (
     <div
-      className="rounded-xl border p-4 cursor-pointer transition-all"
+      className="card-3d p-5 cursor-pointer transition-transform hover:-translate-y-1"
       style={{
-        background: 'var(--surface)',
-        borderColor: selected ? color : 'var(--border)',
-        boxShadow: selected ? `0 0 0 2px ${color}30` : 'none',
+        background: '#ffffff',
+        border: selected ? `2px solid ${catInfo.color}` : '1px solid #e4e2e1',
+        borderRadius: 12,
+        boxShadow: selected ? `0 12px 28px -6px ${catInfo.color}30, 0 0 0 1px ${catInfo.color}` : '0 2px 8px rgba(0, 30, 64, 0.04)',
       }}
       onClick={() => onSelect?.(scheme)}
     >
       <div className="flex items-start justify-between gap-2 mb-3">
         <div>
           <span
-            className="text-xs font-medium px-2 py-0.5 rounded-full"
-            style={{ background: `${color}15`, color }}
+            className="text-xs font-semibold px-2.5 py-0.5 rounded"
+            style={{ background: catInfo.bg, color: catInfo.color, border: `1px solid ${catInfo.border}` }}
           >
             {label}
           </span>
-          <h3 className="font-semibold mt-1 text-sm leading-tight" style={{ color: 'var(--foreground)' }}>
+          <h3 className="font-bold mt-1.5 text-base leading-tight text-primary">
             {scheme.name}
           </h3>
         </div>
-        {selected && <CheckCircle className="w-5 h-5 flex-shrink-0" style={{ color }} />}
+        {selected && <CheckCircle className="w-5 h-5 flex-shrink-0" style={{ color: catInfo.color }} />}
       </div>
 
-      <div className="grid grid-cols-3 gap-3 mb-3">
+      <div className="grid grid-cols-3 gap-2 my-3.5 p-2.5 rounded-lg bg-surface-container border border-outline-variant/30">
         <div className="text-center">
-          <div className="flex items-center justify-center gap-1 mb-1">
-            <IndianRupee className="w-3 h-3" style={{ color: 'var(--muted)' }} />
-            <span className="text-xs" style={{ color: 'var(--muted)' }}>Max Loan</span>
+          <div className="flex items-center justify-center gap-1 mb-0.5">
+            <IndianRupee className="w-3 h-3 text-muted" />
+            <span className="text-xs text-muted">Max Loan</span>
           </div>
-          <span className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
+          <span className="text-sm font-bold text-on-surface">
             ₹{scheme.max_loan_lakh}L
           </span>
         </div>
-        <div className="text-center">
-          <div className="flex items-center justify-center gap-1 mb-1">
-            <TrendingUp className="w-3 h-3" style={{ color: 'var(--muted)' }} />
-            <span className="text-xs" style={{ color: 'var(--muted)' }}>Interest</span>
+        <div className="text-center border-x border-outline-variant/30">
+          <div className="flex items-center justify-center gap-1 mb-0.5">
+            <TrendingUp className="w-3 h-3 text-muted" />
+            <span className="text-xs text-muted">Interest</span>
           </div>
-          <span className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
+          <span className="text-sm font-bold text-success">
             {scheme.interest_rate_min}–{scheme.interest_rate_max}%
           </span>
         </div>
         <div className="text-center">
-          <div className="flex items-center justify-center gap-1 mb-1">
-            <Clock className="w-3 h-3" style={{ color: 'var(--muted)' }} />
-            <span className="text-xs" style={{ color: 'var(--muted)' }}>Tenure</span>
+          <div className="flex items-center justify-center gap-1 mb-0.5">
+            <Clock className="w-3 h-3 text-muted" />
+            <span className="text-xs text-muted">Tenure</span>
           </div>
-          <span className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
+          <span className="text-sm font-bold text-on-surface">
             {Math.round(scheme.max_tenure_months / 12)}yr
           </span>
         </div>
       </div>
 
-      <p className="text-xs leading-relaxed" style={{ color: 'var(--muted)' }}>
+      <p className="text-xs leading-relaxed text-on-surface-variant line-clamp-2">
         {scheme.description}
       </p>
 
-      {onSelect && (
-        <button
-          className="mt-3 w-full text-xs font-medium py-1.5 rounded-lg transition-colors"
-          style={{ background: `${color}15`, color }}
-        >
-          {selected ? 'Selected — use for EMI & Partner search' : 'Select this scheme'}
-        </button>
+      {scheme.coverage_percent > 0 && (
+        <div className="mt-3 pt-2.5 border-t border-border flex items-center justify-between text-xs text-muted">
+          <span>Project Coverage: <strong className="text-primary font-semibold">Up to {scheme.coverage_percent}%</strong></span>
+          {scheme.moratorium_months_max > 0 && (
+            <span>Moratorium: <strong className="text-primary font-semibold">{scheme.moratorium_months_max}m</strong></span>
+          )}
+        </div>
       )}
     </div>
   );

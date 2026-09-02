@@ -1,6 +1,6 @@
 import http from 'http';
 import { scoreSchemes, Scheme } from '../services/SchemeEngine';
-import { classifyIntent, detectLanguage } from '../services/IntentClassifier';
+import { detectLanguage } from '../services/IntentClassifier';
 import { geocodeCity } from '../services/LocationService';
 
 const API_BASE = process.env.API_URL || 'http://localhost:4000/api';
@@ -108,7 +108,10 @@ async function runPerformanceTests() {
   const scoringOpsPerSec = Math.round((scoringIterations / scoringDuration) * 1000);
   console.log(`⚡ SchemeEngine.scoreSchemes: ${scoringIterations} runs in ${scoringDuration}ms (~${scoringOpsPerSec.toLocaleString()} ops/sec)`);
 
-  // 2. In-Memory Microbenchmark: Intent Classification & Language Detection
+  // 2. In-Memory Microbenchmark: Language Detection
+  // NOTE: Intent classification is now a single grounded LLM call
+  // (Understanding.ts), so it's no longer an in-memory microbenchmark —
+  // its latency is measured via the /api/chat route profiling below instead.
   const intentIterations = 20000;
   const startIntent = Date.now();
   const sampleMessages = [
@@ -120,12 +123,11 @@ async function runPerformanceTests() {
   ];
   for (let i = 0; i < intentIterations; i++) {
     const msg = sampleMessages[i % sampleMessages.length];
-    classifyIntent(msg);
     detectLanguage(msg);
   }
   const intentDuration = Date.now() - startIntent;
   const intentOpsPerSec = Math.round((intentIterations / intentDuration) * 1000);
-  console.log(`⚡ IntentClassifier + LangDetect: ${intentIterations} runs in ${intentDuration}ms (~${intentOpsPerSec.toLocaleString()} ops/sec)`);
+  console.log(`⚡ LangDetect: ${intentIterations} runs in ${intentDuration}ms (~${intentOpsPerSec.toLocaleString()} ops/sec)`);
 
   // 3. In-Memory Microbenchmark: Location Geocoding
   const geoIterations = 50000;

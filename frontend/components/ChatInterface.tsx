@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { sendChat } from '@/lib/api';
 import type { ChatResponse, ChatMessage } from '@/lib/api';
 import TypingIndicator from './TypingIndicator';
+import TypewriterText from './TypewriterText';
 import SchemeResultCard from './SchemeResultCard';
 import EMIResultCard from './EMIResultCard';
 import PartnerResultCard from './PartnerResultCard';
@@ -24,6 +25,7 @@ import {
   CornerDownLeft
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
+import { renderText } from '@/lib/textFormat';
 
 interface Message {
   id: string;
@@ -33,6 +35,9 @@ interface Message {
   data?: Record<string, unknown>;
   quickActions?: ChatResponse['quickActions'];
   disclaimer?: string;
+  /** True only for freshly-received assistant replies — drives the typing
+   *  animation. Messages loaded from chat history render instantly. */
+  animate?: boolean;
 }
 
 type Language = 'en' | 'hi' | 'mr';
@@ -163,27 +168,18 @@ const SUGGESTIONS: Record<
   ],
 };
 
-function renderText(text: string) {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
-  return parts.map((part, i) =>
-    part.startsWith('**') && part.endsWith('**') ? (
-      <strong key={i} style={{ fontWeight: 700, color: '#0f172a' }}>
-        {part.slice(2, -2)}
-      </strong>
-    ) : (
-      <span key={i}>{part}</span>
-    )
-  );
-}
-
 function MessageBubble({
   msg,
   onAction,
+  scrollRef,
 }: {
   msg: Message;
   onAction: (text: string) => void;
+  scrollRef?: React.RefObject<HTMLDivElement | null>;
 }) {
   const isUser = msg.role === 'user';
+  const [textDone, setTextDone] = useState(!msg.animate);
+  const showExtras = !msg.animate || textDone;
 
   const schemes = msg.type === 'schemes' ? (msg.data?.schemes as unknown[]) || [] : [];
   const emiData = msg.type === 'emi' ? msg.data : null;
@@ -247,16 +243,26 @@ function MessageBubble({
           }}
         >
           <div style={{ whiteSpace: 'pre-wrap' }}>
-            {msg.text.split('\n').map((line, i) => (
-              <p key={i} style={{ margin: i > 0 ? '6px 0 0' : 0, color: isUser ? '#ffffff' : '#1e293b' }}>
-                {renderText(line)}
-              </p>
-            ))}
+            {isUser ? (
+              msg.text.split('\n').map((line, i) => (
+                <p key={i} style={{ margin: i > 0 ? '6px 0 0' : 0, color: '#ffffff' }}>
+                  {renderText(line)}
+                </p>
+              ))
+            ) : (
+              <TypewriterText
+                text={msg.text}
+                animate={!!msg.animate}
+                color="#1e293b"
+                onTick={() => scrollRef?.current?.scrollIntoView({ behavior: 'auto', block: 'end' })}
+                onDone={() => setTextDone(true)}
+              />
+            )}
           </div>
         </div>
 
-        {/* Structured Data Result Cards */}
-        {schemes.length > 0 && (
+        {/* Structured Data Result Cards — held back until the reply finishes typing */}
+        {showExtras && schemes.length > 0 && (
           <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
             {schemes.map((s, i) => (
               <SchemeResultCard
@@ -272,7 +278,7 @@ function MessageBubble({
           </div>
         )}
 
-        {emiData && (
+        {showExtras && emiData && (
           <div style={{ width: '100%' }}>
             <EMIResultCard
               data={emiData as unknown as Parameters<typeof EMIResultCard>[0]['data']}
@@ -280,7 +286,7 @@ function MessageBubble({
           </div>
         )}
 
-        {partners.length > 0 && (
+        {showExtras && partners.length > 0 && (
           <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
             {partners.map((p, i) => (
               <PartnerResultCard
@@ -292,7 +298,7 @@ function MessageBubble({
           </div>
         )}
 
-        {comparison && (
+        {showExtras && comparison && (
           <div style={{ width: '100%' }}>
             <ComparisonCard
               schemeA={comparison.schemeA as Parameters<typeof ComparisonCard>[0]['schemeA']}
@@ -301,7 +307,7 @@ function MessageBubble({
           </div>
         )}
 
-        {documents.length > 0 && (
+        {showExtras && documents.length > 0 && (
           <div style={{ width: '100%' }}>
             <DocumentCard
               documents={documents}
@@ -311,7 +317,7 @@ function MessageBubble({
         )}
 
         {/* Grounding Disclaimer */}
-        {msg.disclaimer && (
+        {showExtras && msg.disclaimer && (
           <div
             style={{
               display: 'flex',
@@ -332,7 +338,7 @@ function MessageBubble({
         )}
 
         {/* Quick Action Chips */}
-        {msg.quickActions && msg.quickActions.length > 0 && (
+        {showExtras && msg.quickActions && msg.quickActions.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 6 }}>
             {msg.quickActions.map((qa, i) => (
               <button
@@ -474,6 +480,7 @@ export default function ChatInterface({
           data: res.data,
           quickActions: res.quickActions,
           disclaimer: res.disclaimer,
+          animate: true,
         });
 
         if (
@@ -487,6 +494,7 @@ export default function ChatInterface({
         addMessage({
           role: 'assistant',
           text: 'Unable to process your request at the moment. Please verify your network and try again.',
+          animate: true,
         });
         console.error(err);
       } finally {
@@ -738,7 +746,7 @@ export default function ChatInterface({
           {/* Active Messages Stream */}
           <div style={{ width: '100%' }}>
             {messages.map((msg) => (
-              <MessageBubble key={msg.id} msg={msg} onAction={send} />
+              <MessageBubble key={msg.id} msg={msg} onAction={send} scrollRef={bottomRef} />
             ))}
 
             {loading && (
