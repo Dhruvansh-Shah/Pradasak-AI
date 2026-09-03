@@ -1,4 +1,4 @@
-# Pradarshak AI (प्रदर्शक AI)
+# Pradarsak AI (प्रदर्शक AI)
 
 **Smart India Hackathon 2026 — Problem Statement ID 26092**
 AI-Driven Scheme Matching for Marginalized Entrepreneurs · Theme: FinTech · Category: Software
