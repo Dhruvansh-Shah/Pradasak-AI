@@ -33,14 +33,33 @@ export default function AuthPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
+
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !/^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(cleanEmail)) {
+      setError('Only @gmail.com email addresses are allowed for signup');
+      return;
+    }
+
+    if (!password || password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
+    if (mode === 'register') {
+      const cleanPhone = phone.trim();
+      if (!cleanPhone || !/^\d{10}$/.test(cleanPhone)) {
+        setError('Please enter a valid 10-digit mobile number');
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       let result: { token: string; user: { name: string | null; email: string } };
       if (mode === 'login') {
-        result = await userLogin(email, password);
+        result = await userLogin(cleanEmail, password);
       } else {
-        if (!phone.trim()) throw new Error('Phone number is required');
-        result = await userRegister({ name: name || undefined, email, phone, password });
+        result = await userRegister({ name: name || undefined, email: cleanEmail, phone: phone.trim(), password });
       }
       localStorage.setItem('auth_token', result.token);
       localStorage.setItem('auth_user', JSON.stringify(result.user));
@@ -262,7 +281,7 @@ export default function AuthPage() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@example.com"
+                    placeholder="Enter your Gmail address"
                     required
                     style={{
                       width: '100%',

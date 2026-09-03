@@ -57,7 +57,27 @@ export async function fetchSchemeByName(name: string): Promise<Scheme | null> {
 }
 
 function purposeMatchScore(scheme: Scheme, purpose: string | undefined): number {
-  const p = (purpose || '').toLowerCase().replace(/[-_]/g, ' ');
+  const p = (purpose || '').toLowerCase().trim();
+  const cleanP = p.replace(/[-_]/g, ' ');
+
+  // Direct Generic Match against scheme short_name or full scheme name
+  if (p) {
+    const sName = scheme.name.toLowerCase();
+    const sShort = (scheme.short_name || '').toLowerCase().trim();
+    const pTokens = cleanP.split(/\s+/);
+
+    if (sShort && (sShort === cleanP || pTokens.includes(sShort))) {
+      return 100;
+    }
+    if (cleanP.length >= 3 && (sName.includes(cleanP) || cleanP.includes(sName))) {
+      return 100;
+    }
+    const parensMatch = sName.match(/\(([^)]+)\)/);
+    if (parensMatch && parensMatch[1] && pTokens.includes(parensMatch[1].toLowerCase())) {
+      return 100;
+    }
+  }
+
   const rawTypes = scheme.eligible_project_types || [];
   const normalizedTypes = rawTypes.map((t) => t.toLowerCase().replace(/[-_]/g, ' '));
 
@@ -74,7 +94,7 @@ function purposeMatchScore(scheme: Scheme, purpose: string | undefined): number 
   const isArtisanScheme = scheme.name.includes('Shilpi') || scheme.name.includes('SSY');
   const isAgriScheme = scheme.name.includes('Kisan') || scheme.name.includes('MKY');
 
-  if (p) {
+  if (cleanP) {
     if (sanitationWords.some((w) => p.includes(w))) {
       if (isSanitationScheme) return 50;
       return 5;

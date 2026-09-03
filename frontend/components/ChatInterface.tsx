@@ -638,12 +638,14 @@ export default function ChatInterface({
     [loading, sessionId, token, onChatCreated, addMessage, isListening, stopListening]
   );
 
+  const lastProcessedQueryRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (initialQuery && !initialSentRef.current && messages.length === 0) {
-      initialSentRef.current = true;
+    if (initialQuery && initialQuery.trim() && lastProcessedQueryRef.current !== initialQuery) {
+      lastProcessedQueryRef.current = initialQuery;
       send(initialQuery);
     }
-  }, [initialQuery, messages.length, send]);
+  }, [initialQuery, send]);
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {

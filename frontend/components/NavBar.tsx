@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   Globe,
   ChevronDown,
@@ -31,6 +31,7 @@ const LANGS: { code: Language; label: string; name: string }[] = [
 export default function NavBar() {
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { lang, setLang, t } = useLanguage();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -60,8 +61,15 @@ export default function NavBar() {
     router.push('/');
   }
 
-  const isActive = (href: string) =>
-    pathname === href || (href !== '/' && pathname.startsWith(href));
+  const isActive = (href: string) => {
+    if (href === '/chat?tab=emi') {
+      return pathname === '/chat' && searchParams.get('tab') === 'emi';
+    }
+    if (href === '/chat') {
+      return pathname === '/chat' && searchParams.get('tab') !== 'emi';
+    }
+    return pathname === href || (href !== '/' && pathname.startsWith(href));
+  };
 
   const currentLangObj = LANGS.find((l) => l.code === lang) || LANGS[0];
 

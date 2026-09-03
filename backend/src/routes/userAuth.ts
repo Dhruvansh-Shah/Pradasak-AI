@@ -17,8 +17,19 @@ router.post('/register', async (req: Request, res: Response) => {
     name?: string; email?: string; phone?: string; password?: string;
   };
 
-  if (!email || !phone || !password) {
+  const emailStr = email ? email.toLowerCase().trim() : '';
+  const phoneStr = phone ? phone.trim() : '';
+
+  if (!emailStr || !phoneStr || !password) {
     res.status(400).json({ error: 'email, phone, and password are required' });
+    return;
+  }
+  if (!/^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(emailStr)) {
+    res.status(400).json({ error: 'Only @gmail.com email addresses are allowed for signup' });
+    return;
+  }
+  if (!/^\d{10}$/.test(phoneStr)) {
+    res.status(400).json({ error: 'Invalid phone number. Please enter a 10-digit mobile number.' });
     return;
   }
   if (password.length < 6) {

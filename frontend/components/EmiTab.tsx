@@ -520,7 +520,14 @@ export default function EmiTab({ onSchemeSelect }: { onSchemeSelect?: (schemeNam
           {/* Action Triggers */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 4 }}>
             <button
-              onClick={() => router.push(`/chat?q=I want to apply for a ₹${amount / 100000} Lakh loan at ${rate}% interest for ${tenure} months`)}
+              onClick={() => {
+                const query = `I want to apply for a ₹${amount / 100000} Lakh loan at ${rate}% interest for ${tenure} months`;
+                if (onSchemeSelect) {
+                  onSchemeSelect(query);
+                } else {
+                  router.push(`/chat?tab=chat&q=${encodeURIComponent(query)}`);
+                }
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',

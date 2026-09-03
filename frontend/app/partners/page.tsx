@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
 import PartnerResultCard from '@/components/PartnerResultCard';
@@ -14,7 +16,9 @@ import {
   X,
   SlidersHorizontal,
   Compass,
-  CheckCircle2
+  CheckCircle2,
+  Bot,
+  Calculator,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 
@@ -39,6 +43,7 @@ interface Partner {
 const CITY_COORDS: Record<string, [number, number]> = {
   delhi: [28.6139, 77.209],
   mumbai: [19.076, 72.8777],
+  'navi mumbai': [19.0368, 73.0158],
   bangalore: [12.9716, 77.5946],
   bengaluru: [12.9716, 77.5946],
   hyderabad: [17.385, 78.4867],
@@ -66,7 +71,8 @@ function getMapUrl(city: string, lat?: number, lng?: number): string {
   return 'https://www.openstreetmap.org/export/embed.html?bbox=68,8,97,37&layer=mapnik';
 }
 
-export default function PartnersPage() {
+function PartnersContent() {
+  const searchParams = useSearchParams();
   const { t } = useLanguage();
   const [city, setCity] = useState('');
   const [inputCity, setInputCity] = useState('');
@@ -103,6 +109,16 @@ export default function PartnersPage() {
     }
   }
 
+  useEffect(() => {
+    const initCity = searchParams.get('city') || searchParams.get('location') || searchParams.get('q');
+    if (initCity && initCity.trim()) {
+      const queryCity = initCity.trim();
+      setInputCity(queryCity);
+      search(queryCity);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (inputCity.trim()) search(inputCity.trim());
@@ -110,9 +126,63 @@ export default function PartnersPage() {
 
   const hasResults = partners.length > 0;
 
+  const TABS = [
+    { id: 'chat', label: t('chat.tab_ai', 'AI Scheme Assistant'), href: '/chat', Icon: Bot },
+    { id: 'emi', label: t('chat.tab_emi', 'EMI Calculator'), href: '/chat?tab=emi', Icon: Calculator },
+    { id: 'partners', label: t('chat.tab_partners', 'Channel Partners'), href: '/partners', Icon: MapPin },
+  ];
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f8fafc' }}>
       <NavBar />
+
+      {/* ── Subheader Segment Control (Matching /chat) ─────────────────────────── */}
+      <div
+        style={{
+          background: '#ffffff',
+          borderBottom: '1px solid #e2e8f0',
+          padding: '0 24px',
+          minHeight: 56,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexShrink: 0,
+          zIndex: 20,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', background: '#f1f5f9', padding: '3px', borderRadius: 10 }}>
+            {TABS.map(({ id, label, href, Icon }) => {
+              const active = id === 'partners';
+              return (
+                <Link
+                  key={id}
+                  href={href}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '6px 14px',
+                    borderRadius: 8,
+                    fontSize: 12.5,
+                    fontWeight: active ? 700 : 500,
+                    border: 'none',
+                    background: active ? '#ffffff' : 'transparent',
+                    color: active ? '#0b1f3a' : '#64748b',
+                    boxShadow: active ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
+                    textDecoration: 'none',
+                    transition: 'all 150ms ease',
+                  }}
+                >
+                  <Icon size={14} color={active ? '#e87722' : '#94a3b8'} />
+                  <span>{label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </div>
 
       <main style={{ maxWidth: 1200, width: '100%', margin: '0 auto', padding: '36px 24px 64px', flex: 1 }}>
         
@@ -420,5 +490,19 @@ export default function PartnersPage() {
 
       <Footer />
     </div>
+  );
+}
+
+export default function PartnersPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="h-screen flex items-center justify-center bg-slate-50">
+          <div className="skeleton w-48 h-6 rounded-xl" />
+        </div>
+      }
+    >
+      <PartnersContent />
+    </Suspense>
   );
 }

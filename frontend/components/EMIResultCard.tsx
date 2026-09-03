@@ -6,6 +6,11 @@ interface EMIData {
   emi?: number;
   totalPayable?: number;
   totalInterest?: number;
+  principal?: number;
+  interestRatePct?: number;
+  rate?: number;
+  tenureMonths?: number;
+  moratoriumMonths?: number;
   params?: { principal?: number; rate?: number; tenureMonths?: number; moratoriumMonths?: number };
   schemeName?: string;
 }
@@ -21,11 +26,10 @@ export default function EMIResultCard({ data }: { data: EMIData }) {
   const emi = data.emi ?? 0;
   const totalPayable = data.totalPayable ?? 0;
   const totalInterest = data.totalInterest ?? 0;
-  const params = data.params || {};
-  const principal = params.principal ?? 0;
-  const rate = params.rate ?? 0;
-  const tenureMonths = params.tenureMonths ?? 0;
-  const moratoriumMonths = params.moratoriumMonths ?? 0;
+  const principal = data.principal ?? data.params?.principal ?? 0;
+  const rate = data.interestRatePct ?? data.rate ?? data.params?.rate ?? 0;
+  const tenureMonths = data.tenureMonths ?? data.params?.tenureMonths ?? 0;
+  const moratoriumMonths = data.moratoriumMonths ?? data.params?.moratoriumMonths ?? 0;
 
   return (
     <div

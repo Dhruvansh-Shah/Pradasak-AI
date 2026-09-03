@@ -71,10 +71,13 @@ export function geocodeCity(location: string): GeoPoint | null {
   const coords = CITY_COORDS[key];
   if (coords) return { lat: coords[0], lng: coords[1] };
 
-  // Partial match
-  for (const [city, coords] of Object.entries(CITY_COORDS)) {
-    if (city.includes(key) || key.includes(city)) {
-      return { lat: coords[0], lng: coords[1] };
+  // Sort keys by length in descending order so longer/more specific city names (e.g. 'navi mumbai') match before shorter substring cities (e.g. 'mumbai')
+  const sortedCities = Object.keys(CITY_COORDS).sort((a, b) => b.length - a.length);
+
+  for (const city of sortedCities) {
+    if (key.includes(city) || city.includes(key)) {
+      const c = CITY_COORDS[city];
+      return { lat: c[0], lng: c[1] };
     }
   }
   return null;

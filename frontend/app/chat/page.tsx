@@ -66,8 +66,13 @@ function ChatPage() {
     }
 
     const tabParam = searchParams.get('tab');
-    if (tabParam === 'emi') setTab('emi');
-    if (tabParam === 'partners') setTab('partners');
+    if (tabParam === 'emi') {
+      setTab('emi');
+    } else if (tabParam === 'partners') {
+      setTab('partners');
+    } else {
+      setTab('chat');
+    }
 
     const cid = searchParams.get('chatId');
     if (cid) loadChat(cid, t || null);
@@ -273,7 +278,12 @@ function ChatPage() {
 
           {tab === 'emi' && (
             <div className="flex-1 overflow-y-auto p-4 sm:p-8">
-              <EmiTab />
+              <EmiTab
+                onSchemeSelect={(query) => {
+                  setTab('chat');
+                  router.push(`/chat?tab=chat&q=${encodeURIComponent(query)}`);
+                }}
+              />
             </div>
           )}
 
