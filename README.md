@@ -38,9 +38,32 @@ The conversational flow is built around four steps:
 
 ### Architecture
 
-![Pradarshak AI system architecture](docs/architecture.svg)
-
-The **Intent Router** dispatches each conversational turn to the relevant backend service (scheme matching, EMI calculation, or partner lookup) based on intent and entities extracted upstream by the NLU layer. Every service does its real work — database lookups, financial math, spatial queries — in deterministic code; the LLM's role is confined to understanding the user and explaining verified results back to them.
+```
+┌──────────────────────────────────────────────────────────┐
+│                      Client Layer                        │
+│   Next.js 16 + React 19 + Tailwind CSS + Leaflet Maps    │
+└────────────────────────────┬─────────────────────────────┘
+                             │ HTTPS / JSON API
+┌────────────────────────────▼─────────────────────────────┐
+│                    Backend API Gateway                   │
+│               Express.js 5 + TypeScript                  │
+├──────────────────────────────────────────────────────────┤
+│  • Single tool-calling LLM agent (ChatOrchestrator)      │
+│    — decides intent/entities itself, no keyword rules    │
+│  • Deterministic EMI Calculation Engine                  │
+│  • Spatial Query Builder (PostGIS)                       │
+│  • User & Admin Authentication (JWT + Bcrypt)            │
+└──────────────┬────────────────────────────┬──────────────┘
+               │                            │
+   SQL Queries │               LLM Requests │
+┌──────────────▼──────────┐      ┌──────────▼──────────────┐
+│  PostgreSQL + PostGIS   │      │    OpenRouter AI API    │
+│  • Schemes Catalog      │      │  • Google Gemini Flash  │
+│  • Channel Partners     │      │  • Claude 3.5 Haiku     │
+│  • Spatial Coordinates  │      │  • Multilingual Grounded│
+│  • Users & Chat Logs    │      │    Explanations         │
+└─────────────────────────┘      └─────────────────────────┘
+```
 
 ---
 
@@ -178,8 +201,8 @@ The **Intent Router** dispatches each conversational turn to the relevant backen
 ### 1. Clone
 
 ```bash
-git clone https://github.com/arnav-2205/Pradasak-AI.git
-cd Pradasak-AI
+git clone https://github.com/palakchiraniya03/PradarsakAI.git
+cd PradarsakAI
 ```
 
 ### 2. Backend
@@ -285,7 +308,7 @@ App runs at `http://localhost:3000`.
 
 Developed for the **Smart India Hackathon (SIH) 2026** — Team Pradarsak.
 
-**Repository:** [arnav-2205/Pradasak-AI](https://github.com/arnav-2205/Pradasak-AI)
+**Repository:** [palakchiraniya03/PradarsakAI](https://github.com/palakchiraniya03/PradarsakAI)
 
 ## License
 
