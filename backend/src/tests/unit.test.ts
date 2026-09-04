@@ -113,6 +113,44 @@ const mockSchemes: Scheme[] = [
     education_required: true,
     gender_eligibility: 'all',
   },
+  {
+    id: 3,
+    name: 'Mahila Kisan Yojana (MKY)',
+    category: 'term_loan',
+    description: 'Loan for SC women engaged in agriculture and mixed farming',
+    min_income_lakh: 0,
+    max_income_lakh: 3.0,
+    min_loan_lakh: 0.1,
+    max_loan_lakh: 2.0,
+    interest_rate_min: 5.0,
+    interest_rate_max: 5.0,
+    moratorium_months_min: 12,
+    moratorium_months_max: 12,
+    max_tenure_months: 120,
+    coverage_percent: 90,
+    eligible_project_types: ['agriculture', 'horticulture', 'dairy'],
+    education_required: false,
+    gender_eligibility: 'women_only',
+  },
+  {
+    id: 13,
+    name: 'Vocational Education & Training Loan Scheme (VETLS)',
+    category: 'education_loan',
+    description: 'Loan for short-term vocational courses',
+    min_income_lakh: 0,
+    max_income_lakh: 5.0,
+    min_loan_lakh: 0.05,
+    max_loan_lakh: 4.0,
+    interest_rate_min: 3.5,
+    interest_rate_max: 4.0,
+    moratorium_months_min: 6,
+    moratorium_months_max: 12,
+    max_tenure_months: 84,
+    coverage_percent: 90,
+    eligible_project_types: ['vocational_training', 'skill_development'],
+    education_required: true,
+    gender_eligibility: 'all',
+  },
 ];
 
 console.log('\n================== RUNNING UNIT TESTS ==================\n');
@@ -120,7 +158,7 @@ console.log('\n================== RUNNING UNIT TESTS ==================\n');
 // ── 1. Scheme Engine & Demographic Filter Tests ──
 console.log('📦 Testing SchemeEngine (Demographics & Scoring):');
 
-// Test 1.1: General/Male user should NOT receive Mahila scheme
+// Test 1.1: General/Male user should NOT receive Mahila scheme for general business purpose
 const maleTailoring: UserEntities = { purpose: 'tailoring', loan_amount_rs: 100000, gender: 'male' };
 const maleTailoringResults = scoreSchemes(mockSchemes, maleTailoring);
 assert(
@@ -128,12 +166,48 @@ assert(
   'Male applicant does NOT receive Mahila schemes'
 );
 
-// Test 1.2: Unspecified gender user should NOT receive Mahila scheme
+// Test 1.2: Unspecified gender user should NOT receive Mahila scheme for general business purpose
 const generalGrocery: UserEntities = { purpose: 'grocery shop', loan_amount_rs: 100000 };
 const generalGroceryResults = scoreSchemes(mockSchemes, generalGrocery);
 assert(
   !generalGroceryResults.some((s) => s.name.includes('Mahila')),
   'Unspecified gender applicant does NOT receive Mahila schemes'
+);
+
+// Test 1.3: Direct scheme query for MSY ("Mahila Samriddhi Yojana (MSY)" & "MSY")
+const directMsyFull = scoreSchemes(mockSchemes, { purpose: 'Mahila Samriddhi Yojana (MSY)' });
+const directMsyShort = scoreSchemes(mockSchemes, { purpose: 'MSY' });
+assert(
+  directMsyFull[0]?.name.includes('Mahila Samriddhi Yojana') && directMsyFull[0]?.score >= 100,
+  'Direct scheme query "Mahila Samriddhi Yojana (MSY)" resolves directly to MSY'
+);
+assert(
+  directMsyShort[0]?.name.includes('Mahila Samriddhi Yojana') && directMsyShort[0]?.score >= 100,
+  'Direct scheme query "MSY" resolves directly to MSY'
+);
+
+// Test 1.4: Direct scheme query for MKY ("Mahila Kisan Yojana" & "MKY")
+const directMkyFull = scoreSchemes(mockSchemes, { purpose: 'Mahila Kisan Yojana' });
+const directMkyShort = scoreSchemes(mockSchemes, { purpose: 'MKY' });
+assert(
+  directMkyFull[0]?.name.includes('Mahila Kisan Yojana') && directMkyFull[0]?.score >= 100,
+  'Direct scheme query "Mahila Kisan Yojana" resolves directly to MKY'
+);
+assert(
+  directMkyShort[0]?.name.includes('Mahila Kisan Yojana') && directMkyShort[0]?.score >= 100,
+  'Direct scheme query "MKY" resolves directly to MKY'
+);
+
+// Test 1.5: Direct scheme query for VETLS ("Vocational Education & Training Loan Scheme" & "VETLS")
+const directVetlsFull = scoreSchemes(mockSchemes, { purpose: 'Vocational Education & Training Loan Scheme (VETLS)' });
+const directVetlsShort = scoreSchemes(mockSchemes, { purpose: 'VETLS' });
+assert(
+  directVetlsFull[0]?.name.includes('Vocational Education') && directVetlsFull[0]?.score >= 100,
+  'Direct scheme query "Vocational Education & Training Loan Scheme" resolves directly to VETLS'
+);
+assert(
+  directVetlsShort[0]?.name.includes('Vocational Education') && directVetlsShort[0]?.score >= 100,
+  'Direct scheme query "VETLS" resolves directly to VETLS'
 );
 
 // Test 1.3: Female user receives Mahila Samriddhi Yojana with top rank

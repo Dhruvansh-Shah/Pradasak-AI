@@ -4,35 +4,44 @@ import type { UserEntities } from './ConversationSession';
 export interface Scheme {
   id: number;
   name: string;
-  short_name: string | null;
+  short_name?: string | null;
   category: string;
   description: string;
-  min_income_lakh: number | null;
+  min_income_lakh?: number | null;
   max_income_lakh: number;
-  min_loan_lakh: number | null;
+  min_loan_lakh?: number | null;
   max_loan_lakh: number;
   interest_rate_min: number;
   interest_rate_max: number;
   moratorium_months_min: number;
   moratorium_months_max: number;
   max_tenure_months: number;
-  min_tenure_months: number | null;
-  coverage_percent: number | null;
+  min_tenure_months?: number | null;
+  coverage_percent?: number | null;
   eligible_project_types: string[];
   education_required: boolean;
-  gender_eligibility: string;
-  age_min: number | null;
-  age_max: number | null;
-  documents_required: string[] | null;
-  channel_partner_types: string[] | null;
-  notes: string | null;
-  active: boolean;
+  gender_eligibility?: string;
+  age_min?: number | null;
+  age_max?: number | null;
+  documents_required?: string[] | null;
+  channel_partner_types?: string[] | null;
+  notes?: string | null;
+  active?: boolean;
 }
 
 export interface ScoredScheme extends Scheme {
   score: number;
   matchReasons: string[];
   warnings: string[];
+}
+
+export function normalizeSchemeText(str: string): string {
+  return (str || '')
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 export async function fetchActiveSchemes(category?: string): Promise<Scheme[]> {
@@ -49,6 +58,26 @@ export async function fetchSchemeById(id: number): Promise<Scheme | null> {
 }
 
 export async function fetchSchemeByName(name: string): Promise<Scheme | null> {
+  const all = await fetchActiveSchemes();
+  const normInput = normalizeSchemeText(name);
+
+  for (const s of all) {
+    const parensMatch = s.name.match(/\(([^)]+)\)/);
+    const acronym = parensMatch ? normalizeSchemeText(parensMatch[1]) : '';
+    const baseName = normalizeSchemeText(s.name.replace(/\([^)]+\)/, ''));
+    const fullName = normalizeSchemeText(s.name);
+    const shortName = s.short_name ? normalizeSchemeText(s.short_name) : '';
+
+    if (
+      (acronym && (normInput === acronym || normInput.split(' ').includes(acronym))) ||
+      (shortName && (normInput === shortName || normInput.split(' ').includes(shortName))) ||
+      (baseName && (normInput === baseName || normInput.includes(baseName) || baseName.includes(normInput))) ||
+      (fullName && (normInput === fullName || normInput.includes(fullName) || fullName.includes(normInput)))
+    ) {
+      return s;
+    }
+  }
+
   const { rows } = await readonlyPool.query<Scheme>(
     "SELECT * FROM schemes WHERE name ILIKE $1 OR short_name ILIKE $1 LIMIT 1",
     [`%${name}%`]
@@ -57,25 +86,31 @@ export async function fetchSchemeByName(name: string): Promise<Scheme | null> {
 }
 
 function purposeMatchScore(scheme: Scheme, purpose: string | undefined): number {
-  const p = (purpose || '').toLowerCase().trim();
-  const cleanP = p.replace(/[-_]/g, ' ');
+  const p = (purpose || '').trim();
+  if (!p) return 15;
 
-  // Direct Generic Match against scheme short_name or full scheme name
-  if (p) {
-    const sName = scheme.name.toLowerCase();
-    const sShort = (scheme.short_name || '').toLowerCase().trim();
-    const pTokens = cleanP.split(/\s+/);
+  const normP = normalizeSchemeText(p);
+  const cleanP = normP;
+  const pTokens = normP.split(/\s+/).filter(Boolean);
 
-    if (sShort && (sShort === cleanP || pTokens.includes(sShort))) {
-      return 100;
-    }
-    if (cleanP.length >= 3 && (sName.includes(cleanP) || cleanP.includes(sName))) {
-      return 100;
-    }
-    const parensMatch = sName.match(/\(([^)]+)\)/);
-    if (parensMatch && parensMatch[1] && pTokens.includes(parensMatch[1].toLowerCase())) {
-      return 100;
-    }
+  // Extract acronym and base name from scheme.name (e.g. "Mahila Samriddhi Yojana (MSY)")
+  const parensMatch = scheme.name.match(/\(([^)]+)\)/);
+  const acronym = parensMatch ? parensMatch[1].trim() : '';
+  const baseName = scheme.name.replace(/\([^)]+\)/, '').trim();
+
+  const normAcronym = normalizeSchemeText(acronym);
+  const normBaseName = normalizeSchemeText(baseName);
+  const normFullName = normalizeSchemeText(scheme.name);
+  const normShortName = scheme.short_name ? normalizeSchemeText(scheme.short_name) : '';
+
+  // Check direct scheme match against acronym, short_name, base_name, or full_name
+  const isAcronymMatch = normAcronym.length > 0 && (normP === normAcronym || pTokens.includes(normAcronym));
+  const isShortMatch = normShortName.length > 0 && (normP === normShortName || pTokens.includes(normShortName));
+  const isBaseNameMatch = normBaseName.length >= 3 && (normP === normBaseName || normP.includes(normBaseName) || normBaseName.includes(normP));
+  const isFullNameMatch = normFullName.length >= 3 && (normP === normFullName || normP.includes(normFullName) || normFullName.includes(normP));
+
+  if (isAcronymMatch || isShortMatch || isBaseNameMatch || isFullNameMatch) {
+    return 100;
   }
 
   const rawTypes = scheme.eligible_project_types || [];
@@ -95,37 +130,37 @@ function purposeMatchScore(scheme: Scheme, purpose: string | undefined): number 
   const isAgriScheme = scheme.name.includes('Kisan') || scheme.name.includes('MKY');
 
   if (cleanP) {
-    if (sanitationWords.some((w) => p.includes(w))) {
+    if (sanitationWords.some((w) => normP.includes(w))) {
       if (isSanitationScheme) return 50;
       return 5;
     }
-    if (greenWords.some((w) => p.includes(w))) {
+    if (greenWords.some((w) => normP.includes(w))) {
       if (isGreenScheme) return 50;
       return 10;
     }
-    if (artisanWords.some((w) => p.includes(w))) {
+    if (artisanWords.some((w) => normP.includes(w))) {
       if (isArtisanScheme) return 50;
       return 10;
     }
-    if (agriWords.some((w) => p.includes(w))) {
+    if (agriWords.some((w) => normP.includes(w))) {
       if (isAgriScheme) return 50;
       if (scheme.name.includes('Term Loan')) return 30;
       return 5;
     }
-    if (techWords.some((w) => p.includes(w))) {
+    if (techWords.some((w) => normP.includes(w))) {
       if (scheme.name.includes('Term Loan') || scheme.name.includes('Utkarsh') || normalizedTypes.includes('services') || normalizedTypes.includes('it services')) {
         return 40;
       }
       return 5;
     }
-    if (businessWords.some((w) => p.includes(w))) {
+    if (businessWords.some((w) => normP.includes(w))) {
       if (isAgriScheme) return -30; // Kisan schemes are strictly for agriculture/farming
       if (isSanitationScheme || isArtisanScheme) return -15;
-      if (p.includes('सिलाई') || p.includes('tailoring') || p.includes('शिलाई')) {
+      if (normP.includes('सिलाई') || normP.includes('tailoring') || normP.includes('शिलाई')) {
         if (scheme.name.includes('Mahila Samriddhi')) return 50;
         if (normalizedTypes.some((t) => t.includes('tailoring'))) return 45;
       }
-      if (normalizedTypes.some((t) => businessWords.some((w) => p.includes(w) && t.includes(w)))) return 45;
+      if (normalizedTypes.some((t) => businessWords.some((w) => normP.includes(w) && t.includes(w)))) return 45;
       if (scheme.name.includes('Term Loan') || scheme.name.includes('Micro Credit Finance') || scheme.name.includes('Laghu Vyavasaya') || scheme.name.includes('Mahila Samriddhi')) {
         return 40;
       }
@@ -133,7 +168,7 @@ function purposeMatchScore(scheme: Scheme, purpose: string | undefined): number 
     }
 
     // Direct token overlap
-    const pWords = p.split(/\s+/).filter((w) => w.length > 2);
+    const pWords = normP.split(/\s+/).filter((w) => w.length > 2);
     const typeWords = normalizedTypes.flatMap((t) => t.split(/\s+/));
     if (pWords.some((w) => typeWords.includes(w))) return 35;
   }
@@ -216,6 +251,8 @@ export function scoreSchemes(schemes: Scheme[], entities: UserEntities): ScoredS
       score += pScore;
       if (pScore >= 30) matchReasons.push('Purpose matches this scheme\'s eligible activities');
 
+      const isDirectMatch = pScore >= 100;
+
       const { score: iScore, warning: iWarn } = incomeScore(scheme, entities.family_income_rs);
       score += iScore;
       if (iWarn) warnings.push(iWarn);
@@ -226,11 +263,17 @@ export function scoreSchemes(schemes: Scheme[], entities: UserEntities): ScoredS
       if (lWarn) warnings.push(lWarn);
       else if (entities.loan_amount_rs) matchReasons.push('Loan requirement fits within scheme limits');
 
-      const eScore = educationScore(scheme, isEducation);
+      let eScore = educationScore(scheme, isEducation);
+      if (isDirectMatch && eScore < 0 && scheme.education_required) {
+        eScore = 50;
+      }
       score += eScore;
-      if (isEducation && eScore > 0) matchReasons.push('Designed for education/vocational financing');
+      if ((isEducation || isDirectMatch) && scheme.education_required) matchReasons.push('Designed for education/vocational financing');
 
-      const { score: gScore, warning: gWarn } = genderScore(scheme, entities.gender);
+      let { score: gScore, warning: gWarn } = genderScore(scheme, entities.gender);
+      if (isDirectMatch && gScore < 0) {
+        gScore = 0; // Neutralize -300 score penalty for direct scheme name/acronym lookups
+      }
       score += gScore;
       if (gWarn) warnings.push(gWarn);
       else if (entities.gender === 'female' && gScore > 0) matchReasons.push('Exclusive concessional scheme for women entrepreneurs');

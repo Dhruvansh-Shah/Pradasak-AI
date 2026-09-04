@@ -41,7 +41,7 @@ router.post('/register', async (req: Request, res: Response) => {
     const passwordHash = await bcrypt.hash(password, 10);
     const { rows } = await pool.query(
       'INSERT INTO users (name, email, phone, password_hash) VALUES ($1, $2, $3, $4) RETURNING id, name, email, phone',
-      [name || null, email.toLowerCase().trim(), phone.trim(), passwordHash]
+      [name || null, emailStr, phoneStr, passwordHash]
     );
     const user = rows[0] as { id: number; name: string; email: string; phone: string };
     const token = issueToken(user.id, user.email);
