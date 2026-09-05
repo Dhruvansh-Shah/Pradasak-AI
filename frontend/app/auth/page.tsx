@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
@@ -17,6 +17,20 @@ import {
 import Link from 'next/link';
 
 export default function AuthPage() {
+  return (
+    <Suspense
+      fallback={
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
+          <div style={{ fontSize: 14, color: '#64748b', fontWeight: 600 }}>Loading…</div>
+        </div>
+      }
+    >
+      <AuthContent />
+    </Suspense>
+  );
+}
+
+function AuthContent() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

@@ -18,6 +18,9 @@ interface Scheme {
   coverage_percent: number;
   eligible_project_types: string[];
   notes: string;
+  scheme_type?: string;
+  current_official_name?: string | null;
+  channel_partner_applicable?: boolean;
 }
 
 interface Props {
@@ -31,6 +34,7 @@ const CATEGORY_COLORS: Record<string, { color: string; bg: string; border: strin
   term_loan: { color: '#003366', bg: '#eff6ff', border: '#bfdbfe' },
   education_loan: { color: '#7c3aed', bg: '#faf5ff', border: '#e9d5ff' },
   entrepreneurship: { color: '#c2410c', bg: '#fff7ed', border: '#fed7aa' },
+  other_programme: { color: '#475569', bg: '#f1f5f9', border: '#cbd5e1' },
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -38,11 +42,13 @@ const CATEGORY_LABELS: Record<string, string> = {
   term_loan: 'Term Loan',
   education_loan: 'Education Loan',
   entrepreneurship: 'Entrepreneurship',
+  other_programme: 'Government Programme',
 };
 
 export default function SchemeCard({ scheme, onSelect, selected }: Props) {
   const catInfo = CATEGORY_COLORS[scheme.category] || { color: '#003366', bg: '#eff6ff', border: '#bfdbfe' };
   const label = CATEGORY_LABELS[scheme.category] || scheme.category;
+  const isInformational = scheme.scheme_type === 'informational' || scheme.channel_partner_applicable === false;
 
   return (
     <div
@@ -57,13 +63,25 @@ export default function SchemeCard({ scheme, onSelect, selected }: Props) {
     >
       <div className="flex items-start justify-between gap-2 mb-3">
         <div>
-          <span
-            className="text-xs font-semibold px-2.5 py-0.5 rounded"
-            style={{ background: catInfo.bg, color: catInfo.color, border: `1px solid ${catInfo.border}` }}
-          >
-            {label}
-          </span>
-          <h3 className="font-bold mt-1.5 text-base leading-tight text-primary">
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            {isInformational ? (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 uppercase">
+                🔵 OTHER GOVERNMENT PROGRAMME
+              </span>
+            ) : (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase">
+                🟢 FINANCING SCHEME
+              </span>
+            )}
+            <span
+              className="text-xs font-semibold px-2.5 py-0.5 rounded"
+              style={{ background: catInfo.bg, color: catInfo.color, border: `1px solid ${catInfo.border}` }}
+            >
+              {label}
+            </span>
+          </div>
+
+          <h3 className="font-bold mt-1 text-base leading-tight text-primary">
             {scheme.name}
           </h3>
         </div>

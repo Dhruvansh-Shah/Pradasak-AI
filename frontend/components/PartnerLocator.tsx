@@ -35,10 +35,14 @@ interface Props {
 }
 
 const PARTNER_TYPE_LABELS: Record<string, string> = {
-  SCA: 'State Channelizing Agency',
-  PSB: 'Public Sector Bank',
-  RRB: 'Regional Rural Bank',
+  SCA: 'State Channelizing Agency (SCA)',
+  PSB: 'Public Sector Bank (PSB)',
+  RRB: 'Regional Rural Bank (RRB)',
   NBFC_MFI: 'NBFC-MFI',
+  Cooperative_Bank: 'Co-operative Bank',
+  Other_Agency_SIDBI: 'Other Agencies & SIDBI',
+  Small_Finance_Bank: 'Small Finance Bank',
+  Cooperative_Society: 'Cooperative Society',
 };
 
 function HealthBadge({ npa, util }: { npa?: number; util?: number }) {

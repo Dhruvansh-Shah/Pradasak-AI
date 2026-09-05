@@ -192,34 +192,46 @@ export async function process(message: string, sessionId?: string): Promise<Chat
   let lastToolData: Record<string, unknown> | undefined;
   let finalText = '';
 
-  for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-    const assistantMsg = await llmChat({ messages, tools: TOOL_DEFS, maxTokens: 700 });
+  try {
+    for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+      const assistantMsg = await llmChat({ messages, tools: TOOL_DEFS, maxTokens: 700 });
 
-    if (assistantMsg.tool_calls && assistantMsg.tool_calls.length > 0) {
-      messages.push({ role: 'assistant', content: assistantMsg.content ?? null, tool_calls: assistantMsg.tool_calls });
+      if (assistantMsg.tool_calls && assistantMsg.tool_calls.length > 0) {
+        messages.push({ role: 'assistant', content: assistantMsg.content ?? null, tool_calls: assistantMsg.tool_calls });
 
-      for (const call of assistantMsg.tool_calls) {
-        let args: Record<string, unknown> = {};
-        try {
-          args = JSON.parse(call.function.arguments || '{}');
-        } catch {
-          args = {};
+        for (const call of assistantMsg.tool_calls) {
+          let args: Record<string, unknown> = {};
+          try {
+            args = JSON.parse(call.function.arguments || '{}');
+          } catch {
+            args = {};
+          }
+          const result = await executeTool(call.function.name, args);
+          lastToolName = result.toolName;
+          lastToolData = result.data;
+
+          messages.push({
+            role: 'tool',
+            tool_call_id: call.id,
+            content: JSON.stringify(result.data),
+          });
         }
-        const result = await executeTool(call.function.name, args);
-        lastToolName = result.toolName;
-        lastToolData = result.data;
-
-        messages.push({
-          role: 'tool',
-          tool_call_id: call.id,
-          content: JSON.stringify(result.data),
-        });
+        continue; // let the model produce the grounded explanation (or another tool call) next round
       }
-      continue; // let the model produce the grounded explanation (or another tool call) next round
-    }
 
-    finalText = assistantMsg.content || '';
-    break;
+      finalText = assistantMsg.content || '';
+      break;
+    }
+  } catch (llmErr) {
+    console.warn('[ChatOrchestrator] LLM call fallback triggered:', (llmErr as Error)?.message);
+    const fallbackResult = await executeTool('recommend_schemes', { query: message });
+    lastToolName = fallbackResult.toolName;
+    lastToolData = fallbackResult.data;
+    finalText = session.language === 'hi'
+      ? 'आपकी आवश्यकता के अनुसार उपयुक्त योजनाएं नीचे प्रदर्शित की गई हैं।'
+      : session.language === 'mr'
+      ? 'तुमच्या गरजेनुसार योग्य योजना खाली दाखवल्या आहेत.'
+      : 'Here are the recommended schemes matching your inquiry.';
   }
 
   if (!finalText) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
@@ -71,6 +71,20 @@ const sectionHeadingStyle: React.CSSProperties = {
 type CertStatus = 'IDLE' | 'UPLOADING' | 'VERIFYING' | 'VERIFIED' | 'FAILED' | 'MANUAL_REVIEW';
 
 export default function RegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
+          <div style={{ fontSize: 14, color: '#64748b', fontWeight: 600 }}>Loading…</div>
+        </div>
+      }
+    >
+      <RegisterContent />
+    </Suspense>
+  );
+}
+
+function RegisterContent() {
   const router = useRouter();
 
   // Basic Details

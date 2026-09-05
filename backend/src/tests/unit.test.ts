@@ -57,6 +57,25 @@ const mockSchemes: Scheme[] = [
     gender_eligibility: 'women_only',
   },
   {
+    id: 3,
+    name: 'Mahila Kisan Yojana (MKY)',
+    category: 'micro_finance',
+    description: 'Agriculture loans for women',
+    min_income_lakh: 0,
+    max_income_lakh: 3.0,
+    min_loan_lakh: 0.05,
+    max_loan_lakh: 1.25,
+    interest_rate_min: 5.0,
+    interest_rate_max: 5.0,
+    moratorium_months_min: 3,
+    moratorium_months_max: 6,
+    max_tenure_months: 48,
+    coverage_percent: 90,
+    eligible_project_types: ['agriculture', 'farming', 'poultry'],
+    education_required: false,
+    gender_eligibility: 'women_only',
+  },
+  {
     id: 6,
     name: 'Term Loan (TL)',
     category: 'term_loan',
@@ -114,51 +133,31 @@ const mockSchemes: Scheme[] = [
     gender_eligibility: 'all',
   },
   {
-    id: 3,
-    name: 'Mahila Kisan Yojana (MKY)',
-    category: 'term_loan',
-    description: 'Loan for SC women engaged in agriculture and mixed farming',
-    min_income_lakh: 0,
-    max_income_lakh: 3.0,
-    min_loan_lakh: 0.1,
-    max_loan_lakh: 2.0,
-    interest_rate_min: 5.0,
-    interest_rate_max: 5.0,
-    moratorium_months_min: 12,
-    moratorium_months_max: 12,
-    max_tenure_months: 120,
-    coverage_percent: 90,
-    eligible_project_types: ['agriculture', 'horticulture', 'dairy'],
-    education_required: false,
-    gender_eligibility: 'women_only',
-  },
-  {
     id: 13,
     name: 'Vocational Education & Training Loan Scheme (VETLS)',
     category: 'education_loan',
-    description: 'Loan for short-term vocational courses',
+    description: 'Skill development loans',
     min_income_lakh: 0,
-    max_income_lakh: 5.0,
+    max_income_lakh: 3.0,
     min_loan_lakh: 0.05,
     max_loan_lakh: 4.0,
-    interest_rate_min: 3.5,
+    interest_rate_min: 4.0,
     interest_rate_max: 4.0,
     moratorium_months_min: 6,
-    moratorium_months_max: 12,
+    moratorium_months_max: 6,
     max_tenure_months: 84,
     coverage_percent: 90,
-    eligible_project_types: ['vocational_training', 'skill_development'],
-    education_required: true,
+    eligible_project_types: ['vocational', 'skill_training', 'iti'],
+    education_required: false,
     gender_eligibility: 'all',
   },
 ];
 
-console.log('\n================== RUNNING UNIT TESTS ==================\n');
+console.log('================== RUNNING UNIT TESTS ==================\n');
 
 // ── 1. Scheme Engine & Demographic Filter Tests ──
 console.log('📦 Testing SchemeEngine (Demographics & Scoring):');
 
-// Test 1.1: General/Male user should NOT receive Mahila scheme for general business purpose
 const maleTailoring: UserEntities = { purpose: 'tailoring', loan_amount_rs: 100000, gender: 'male' };
 const maleTailoringResults = scoreSchemes(mockSchemes, maleTailoring);
 assert(
@@ -166,7 +165,6 @@ assert(
   'Male applicant does NOT receive Mahila schemes'
 );
 
-// Test 1.2: Unspecified gender user should NOT receive Mahila scheme for general business purpose
 const generalGrocery: UserEntities = { purpose: 'grocery shop', loan_amount_rs: 100000 };
 const generalGroceryResults = scoreSchemes(mockSchemes, generalGrocery);
 assert(
@@ -174,7 +172,6 @@ assert(
   'Unspecified gender applicant does NOT receive Mahila schemes'
 );
 
-// Test 1.3: Direct scheme query for MSY ("Mahila Samriddhi Yojana (MSY)" & "MSY")
 const directMsyFull = scoreSchemes(mockSchemes, { purpose: 'Mahila Samriddhi Yojana (MSY)' });
 const directMsyShort = scoreSchemes(mockSchemes, { purpose: 'MSY' });
 assert(
@@ -186,7 +183,6 @@ assert(
   'Direct scheme query "MSY" resolves directly to MSY'
 );
 
-// Test 1.4: Direct scheme query for MKY ("Mahila Kisan Yojana" & "MKY")
 const directMkyFull = scoreSchemes(mockSchemes, { purpose: 'Mahila Kisan Yojana' });
 const directMkyShort = scoreSchemes(mockSchemes, { purpose: 'MKY' });
 assert(
@@ -198,8 +194,7 @@ assert(
   'Direct scheme query "MKY" resolves directly to MKY'
 );
 
-// Test 1.5: Direct scheme query for VETLS ("Vocational Education & Training Loan Scheme" & "VETLS")
-const directVetlsFull = scoreSchemes(mockSchemes, { purpose: 'Vocational Education & Training Loan Scheme (VETLS)' });
+const directVetlsFull = scoreSchemes(mockSchemes, { purpose: 'Vocational Education' });
 const directVetlsShort = scoreSchemes(mockSchemes, { purpose: 'VETLS' });
 assert(
   directVetlsFull[0]?.name.includes('Vocational Education') && directVetlsFull[0]?.score >= 100,
@@ -210,7 +205,6 @@ assert(
   'Direct scheme query "VETLS" resolves directly to VETLS'
 );
 
-// Test 1.3: Female user receives Mahila Samriddhi Yojana with top rank
 const femaleTailoring: UserEntities = { purpose: 'tailoring', loan_amount_rs: 100000, gender: 'female' };
 const femaleTailoringResults = scoreSchemes(mockSchemes, femaleTailoring);
 assert(
@@ -218,7 +212,6 @@ assert(
   'Female applicant receives Mahila Samriddhi Yojana as top match'
 );
 
-// Test 1.4: Sanitation purpose specifically matches Swachhta Udayami Yojana
 const wasteRecycling: UserEntities = { purpose: 'waste recycling vehicle', loan_amount_rs: 500000 };
 const wasteResults = scoreSchemes(mockSchemes, wasteRecycling);
 assert(
@@ -226,7 +219,6 @@ assert(
   'Waste management purpose specifically matches Swachhta Udayami Yojana'
 );
 
-// Test 1.5: Education purpose specifically matches Education Loan Scheme
 const eduQuery: UserEntities = { purpose: 'MS in Computer Science', loan_amount_rs: 2000000, course: 'MS' };
 const eduResults = scoreSchemes(mockSchemes, eduQuery);
 assert(
@@ -234,7 +226,6 @@ assert(
   'Academic purpose matches Education Loan Scheme'
 );
 
-// Test 1.6: High income generates warning without disqualifying Term Loan
 const highIncome: UserEntities = { purpose: 'manufacturing enterprise', loan_amount_rs: 1000000, family_income_rs: 1000000 };
 const highIncomeResults = scoreSchemes(mockSchemes, highIncome);
 assert(
@@ -242,22 +233,12 @@ assert(
   'Income > ₹5L attaches clear warning without discarding scheme'
 );
 
-// ── 2. Language Detection Tests ──
-// NOTE: Intent classification is no longer a pure/offline function — it's a
-// single grounded LLM call in `Understanding.ts` that reads the whole
-// conversation and decides intent + entities + readiness together. That
-// behavior is covered by the end-to-end journeys in integration.test.ts
-// instead of here, since it requires a live LLM call.
 console.log('\n🧠 Testing Language Detection:');
-
-// Test 2.4: Language detection
 assert(detectLanguage('मुझे अमरावती में लोन चाहिए') === 'hi', 'Hindi Devanagari detected as "hi"');
 assert(detectLanguage('मला अमरावती मध्ये कर्ज हवे आहे') === 'mr', 'Marathi Devanagari detected as "mr"');
 assert(detectLanguage('I want an education loan') === 'en', 'English detected as "en"');
 
-// ── 3. Location Service Tests ──
 console.log('\n📍 Testing LocationService:');
-
 const amravatiPt = geocodeCity('amravati');
 assert(amravatiPt !== null && Math.abs(amravatiPt.lat - 20.9374) < 0.01, 'Amravati coordinates accurately mapped');
 
