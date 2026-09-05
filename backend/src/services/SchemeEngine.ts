@@ -27,6 +27,12 @@ export interface Scheme {
   channel_partner_types?: string[] | null;
   notes?: string | null;
   active?: boolean;
+  scheme_type?: string;
+  official_source?: string | null;
+  official_source_url?: string | null;
+  aliases?: string[] | null;
+  current_official_name?: string | null;
+  channel_partner_applicable?: boolean;
 }
 
 export interface ScoredScheme extends Scheme {
@@ -67,19 +73,21 @@ export async function fetchSchemeByName(name: string): Promise<Scheme | null> {
     const baseName = normalizeSchemeText(s.name.replace(/\([^)]+\)/, ''));
     const fullName = normalizeSchemeText(s.name);
     const shortName = s.short_name ? normalizeSchemeText(s.short_name) : '';
+    const normAliases = (s.aliases || []).map((a) => normalizeSchemeText(a));
 
     if (
       (acronym && (normInput === acronym || normInput.split(' ').includes(acronym))) ||
       (shortName && (normInput === shortName || normInput.split(' ').includes(shortName))) ||
       (baseName && (normInput === baseName || normInput.includes(baseName) || baseName.includes(normInput))) ||
-      (fullName && (normInput === fullName || normInput.includes(fullName) || fullName.includes(normInput)))
+      (fullName && (normInput === fullName || normInput.includes(fullName) || fullName.includes(normInput))) ||
+      normAliases.some((alias) => alias.length >= 2 && (normInput === alias || normInput.includes(alias) || alias.includes(normInput)))
     ) {
       return s;
     }
   }
 
   const { rows } = await readonlyPool.query<Scheme>(
-    "SELECT * FROM schemes WHERE name ILIKE $1 OR short_name ILIKE $1 LIMIT 1",
+    "SELECT * FROM schemes WHERE name ILIKE $1 OR short_name ILIKE $1 OR array_to_string(aliases, ',') ILIKE $1 LIMIT 1",
     [`%${name}%`]
   );
   return rows[0] || null;
@@ -102,14 +110,16 @@ function purposeMatchScore(scheme: Scheme, purpose: string | undefined): number 
   const normBaseName = normalizeSchemeText(baseName);
   const normFullName = normalizeSchemeText(scheme.name);
   const normShortName = scheme.short_name ? normalizeSchemeText(scheme.short_name) : '';
+  const normAliases = (scheme.aliases || []).map((a) => normalizeSchemeText(a));
 
-  // Check direct scheme match against acronym, short_name, base_name, or full_name
+  // Check direct scheme match against acronym, short_name, base_name, full_name, or aliases
   const isAcronymMatch = normAcronym.length > 0 && (normP === normAcronym || pTokens.includes(normAcronym));
   const isShortMatch = normShortName.length > 0 && (normP === normShortName || pTokens.includes(normShortName));
   const isBaseNameMatch = normBaseName.length >= 3 && (normP === normBaseName || normP.includes(normBaseName) || normBaseName.includes(normP));
   const isFullNameMatch = normFullName.length >= 3 && (normP === normFullName || normP.includes(normFullName) || normFullName.includes(normP));
+  const isAliasMatch = normAliases.some((alias) => alias.length >= 2 && (normP === alias || normP.includes(alias) || alias.includes(normP)));
 
-  if (isAcronymMatch || isShortMatch || isBaseNameMatch || isFullNameMatch) {
+  if (isAcronymMatch || isShortMatch || isBaseNameMatch || isFullNameMatch || isAliasMatch) {
     return 100;
   }
 
