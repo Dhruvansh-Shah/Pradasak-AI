@@ -217,7 +217,7 @@ function loanAmountScore(scheme: Scheme, amountRs: number | undefined): { score:
 
 function educationScore(scheme: Scheme, isEducation: boolean): number {
   if (isEducation && scheme.education_required) return 50;
-  if (isEducation && !scheme.education_required) return -40;
+  if (isEducation && !scheme.education_required) return 0;
   if (!isEducation && scheme.education_required) return -150;
   return 5;
 }

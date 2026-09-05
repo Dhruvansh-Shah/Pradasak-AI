@@ -38,6 +38,7 @@ export default function CameraCapture({ title, description, onPhotoSet, isDocume
   // MediaPipe & Detection Refs
   const faceLandmarkerRef = useRef<FaceLandmarker | null>(null);
   const requestRef = useRef<number | null>(null);
+  const lastLandmarkerTimestampRef = useRef<number>(0);
   
   // Real-time mutable state (avoids React render thrashing)
   const liveState = useRef({
@@ -86,7 +87,7 @@ export default function CameraCapture({ title, description, onPhotoSet, isDocume
   const initAI = async () => {
     if (faceLandmarkerRef.current) return true;
     try {
-      const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm");
+      const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm");
       const landmarker = await FaceLandmarker.createFromOptions(vision, {
         baseOptions: {
           modelAssetPath: "/models/face_landmarker.task",
@@ -128,8 +129,17 @@ export default function CameraCapture({ title, description, onPhotoSet, isDocume
     const landmarker = faceLandmarkerRef.current;
     const state = liveState.current;
     
-    // Safety checks
-    if (!video || !landmarker || video.readyState < 2 || !streamRef.current) {
+    // Safety checks: ensure video element, stream, landmarker exist, video has loaded data and has valid non-zero dimensions
+    if (
+      !video || 
+      !landmarker || 
+      video.readyState < 3 || 
+      video.paused || 
+      video.ended || 
+      video.videoWidth === 0 || 
+      video.videoHeight === 0 || 
+      !streamRef.current
+    ) {
       requestRef.current = requestAnimationFrame(processVideoFrame);
       return;
     }
@@ -139,17 +149,17 @@ export default function CameraCapture({ title, description, onPhotoSet, isDocume
       return;
     }
 
-    const startTimeMs = performance.now();
-    if (startTimeMs <= state.lastVideoTime) {
-      requestRef.current = requestAnimationFrame(processVideoFrame);
-      return;
-    }
+    // MediaPipe requires strictly monotonically increasing timestamps for VIDEO mode
+    const now = performance.now();
+    const startTimeMs = Math.max(now, (lastLandmarkerTimestampRef.current || 0) + 1);
+    lastLandmarkerTimestampRef.current = startTimeMs;
     
     state.lastVideoTime = startTimeMs;
     state.isProcessing = true;
 
     try {
       const results = landmarker.detectForVideo(video, startTimeMs);
+      if (!results) return;
       const numFaces = results.faceBlendshapes?.length || 0;
       state.faceCount = numFaces;
 
