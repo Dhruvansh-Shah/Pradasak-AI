@@ -152,7 +152,7 @@ export default function Sidebar({
             title="Start new conversation"
           >
             <Plus size={13} color="#fbbf24" />
-            <span>New</span>
+            <span>{t('chat.new_chat', 'New Chat')}</span>
           </button>
 
           {onClose && (
@@ -212,10 +212,10 @@ export default function Sidebar({
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               <strong style={{ fontSize: 13.5, color: '#0f172a' }}>
-                Sign In to Save History
+                {t('chat.sign_in_history', 'Sign In to Save History')}
               </strong>
               <p style={{ fontSize: 12, color: '#64748b', margin: 0, lineHeight: 1.5 }}>
-                Sync and revisit your past loan inquiries and matched schemes across sessions.
+                {t('chat.sync_history_desc', 'Sync and revisit your past loan inquiries and matched schemes across sessions.')}
               </p>
             </div>
 
@@ -243,7 +243,7 @@ export default function Sidebar({
           </div>
         ) : chats.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '48px 16px', color: '#94a3b8', fontSize: 13 }}>
-            No previous conversations yet.
+            {t('chat.no_chats', 'No previous conversations yet.')}
           </div>
         ) : (
           Object.entries(groups).map(([group, items]) =>

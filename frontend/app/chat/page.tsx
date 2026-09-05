@@ -103,11 +103,42 @@ function ChatPage() {
   function handleChatCreated(id: string) {
     setChatId(id);
     setRefreshSignal((n) => n + 1);
-    setJourneyDone((prev) => ({ ...prev, eligibility: true }));
+    handleStepComplete('eligibility');
+  }
+
+  function handleStepComplete(stepKey: 'eligibility' | 'scheme' | 'emi' | 'partner') {
+    setJourneyDone((prev) => {
+      const next = { ...prev };
+      if (stepKey === 'eligibility') {
+        next.eligibility = true;
+      } else if (stepKey === 'scheme') {
+        next.eligibility = true;
+        next.scheme = true;
+      } else if (stepKey === 'emi') {
+        next.eligibility = true;
+        next.scheme = true;
+        next.emi = true;
+      } else if (stepKey === 'partner') {
+        next.eligibility = true;
+        next.scheme = true;
+        next.emi = true;
+        next.partner = true;
+      }
+      return next;
+    });
   }
 
   function markStep(key: string) {
-    setJourneyDone((prev) => ({ ...prev, [key]: !prev[key] }));
+    setJourneyDone((prev) => {
+      const isDone = !prev[key];
+      const next = { ...prev, [key]: isDone };
+      if (isDone) {
+        if (key === 'scheme' || key === 'emi' || key === 'partner') next.eligibility = true;
+        if (key === 'emi' || key === 'partner') next.scheme = true;
+        if (key === 'partner') next.emi = true;
+      }
+      return next;
+    });
   }
 
   const completedCount = JOURNEY_STEPS.filter((s) => journeyDone[s.key]).length;
@@ -154,7 +185,7 @@ function ChatPage() {
               }}
             >
               <History size={14} color={sidebarOpen ? '#fbbf24' : '#e87722'} />
-              <span>Past Chats</span>
+              <span>{t('chat.past_chats', 'Past Chats')}</span>
             </button>
           )}
 
@@ -211,7 +242,7 @@ function ChatPage() {
                 }}
               >
                 <ClipboardList size={14} color="#ea580c" />
-                <span>Checklist: <strong style={{ color: '#c2410c' }}>{progressPct}%</strong></span>
+                <span>{t('chat.checklist', 'Checklist')}: <strong style={{ color: '#c2410c' }}>{progressPct}%</strong></span>
               </button>
 
               <button
@@ -232,7 +263,7 @@ function ChatPage() {
                 }}
               >
                 <Plus size={14} color="#fbbf24" />
-                <span>New Chat</span>
+                <span>{t('chat.new_chat', 'New Chat')}</span>
               </button>
             </>
           )}
@@ -271,8 +302,10 @@ function ChatPage() {
               chatId={chatId}
               token={token}
               onChatCreated={handleChatCreated}
+              onStepComplete={handleStepComplete}
               initialMessages={initialMessages}
               initialQuery={queryParam}
+              category={searchParams.get('category')}
             />
           )}
 
@@ -338,7 +371,7 @@ function ChatPage() {
                   <ClipboardList size={16} />
                 </div>
                 <h3 style={{ fontSize: 14.5, fontWeight: 800, color: '#0b1f3a', margin: 0 }}>
-                  Application Checklist
+                  {t('chat.checklist_title', 'Application Checklist')}
                 </h3>
               </div>
               <button
@@ -374,7 +407,7 @@ function ChatPage() {
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12.5, fontWeight: 700 }}>
-                  <span style={{ color: 'rgba(255,255,255,0.8)' }}>Application Progress</span>
+                  <span style={{ color: 'rgba(255,255,255,0.8)' }}>{t('chat.app_progress', 'Application Progress')}</span>
                   <span style={{ color: '#fbbf24', fontSize: 14, fontWeight: 900 }}>{progressPct}% Done</span>
                 </div>
                 <div style={{ height: 8, width: '100%', background: 'rgba(255,255,255,0.2)', borderRadius: 4, overflow: 'hidden' }}>
@@ -393,7 +426,7 @@ function ChatPage() {
               {/* Checklist Items */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#94a3b8', paddingLeft: 4 }}>
-                  Steps to Follow
+                  {t('chat.steps_to_follow', 'Steps to Follow')}
                 </span>
                 {JOURNEY_STEPS.map((step) => {
                   const isDone = journeyDone[step.key];
@@ -443,7 +476,7 @@ function ChatPage() {
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#9a3412', fontSize: 12.5, fontWeight: 800 }}>
                   <Lightbulb size={15} color="#ea580c" />
-                  <span>Beneficiary Guidance</span>
+                  <span>{t('chat.beneficiary_guidance', 'Beneficiary Guidance')}</span>
                 </div>
                 <p style={{ fontSize: 12, color: '#7c2d12', lineHeight: 1.55, margin: 0 }}>
                   State Channelizing Agencies (SCAs) disburse up to ₹50 Lakh. Microfinance partners handle quick loans up to ₹1.4 Lakh.

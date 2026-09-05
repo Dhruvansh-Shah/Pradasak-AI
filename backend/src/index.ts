@@ -10,6 +10,8 @@ import authRoutes from './routes/auth';
 import adminRoutes from './routes/admin';
 import userAuthRoutes from './routes/userAuth';
 import chatsRoutes from './routes/chats';
+import ttsRoutes from './routes/tts';
+import sttRoutes from './routes/stt';
 import registrationRoutes from './routes/registration';
 import { pool } from './db/pool';
 import fs from 'fs';
@@ -26,6 +28,8 @@ app.use(cors());
 app.use(express.json());
 
 app.use('/api/chat', chatRoutes);
+app.use('/api/tts', ttsRoutes);
+app.use('/api/stt', sttRoutes);
 app.use('/api/users', userAuthRoutes);
 app.use('/api/chats', chatsRoutes);
 app.use('/api/registration', registrationRoutes);

@@ -10,11 +10,14 @@ import {
   Eye,
   EyeOff,
   CheckCircle2,
+Mail,
+  Phone,
   ArrowRight,
   User,
   Lock
 } from 'lucide-react';
 import Link from 'next/link';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function AuthPage() {
   return (
@@ -32,6 +35,10 @@ export default function AuthPage() {
 
 function AuthContent() {
   const router = useRouter();
+const { t } = useLanguage();
+  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
@@ -114,8 +121,8 @@ function AuthContent() {
                   <Landmark size={20} />
                 </div>
                 <div>
-                  <div style={{ fontSize: 17, fontWeight: 900, color: '#ffffff' }}>Pradarshak AI</div>
-                  <div style={{ fontSize: 11, color: '#94a3b8' }}>National SC Finance &amp; Dev. Corp.</div>
+                  <div style={{ fontSize: 17, fontWeight: 900, color: '#ffffff' }}>{t('brand.name', 'Pradarshak AI')}</div>
+                  <div style={{ fontSize: 11, color: '#94a3b8' }}>{t('brand.org', 'National SC Finance & Dev. Corp.')}</div>
                 </div>
               </div>
 
@@ -138,11 +145,11 @@ function AuthContent() {
                 </span>
 
                 <h1 style={{ fontSize: 28, fontWeight: 900, color: '#ffffff', lineHeight: 1.25, margin: 0 }}>
-                  Access Concessional Finance with Complete Clarity
+                  {t('auth.title', 'Citizen Portal Sign In')}
                 </h1>
 
                 <p style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 1.6, margin: 0 }}>
-                  Sign in to save your recommended schemes, view real-time eligibility status, and keep your inquiry history across sessions.
+                  {t('auth.desc', 'Access your saved loan inquiries, scheme recommendations, and partner applications.')}
                 </p>
               </div>
 
@@ -151,7 +158,7 @@ function AuthContent() {
                   'Instant scheme matching for family income ≤ ₹5L',
                   'Deterministic moratorium & repayment schedules',
                   'Direct channel partner branch routing & contacts',
-                  'Full multilingual assistance in Hindi & Marathi',
+                  'Full 11-language assistance',
                 ].map((text, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: '#e2e8f0' }}>
                     <CheckCircle2 size={16} color="#34d399" style={{ flexShrink: 0 }} />
@@ -178,14 +185,62 @@ function AuthContent() {
           >
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               <h2 style={{ fontSize: 24, fontWeight: 900, color: '#0b1f3a', margin: 0, letterSpacing: '-0.02em' }}>
-                Welcome Back
+{mode === 'login' ? t('auth.welcome_back', 'Welcome Back') : t('auth.create_account', 'Create Beneficiary Account')}
               </h2>
               <p style={{ fontSize: 13.5, color: '#64748b', margin: 0 }}>
-                Sign in to access your chat history and saved schemes.
+                {t('auth.subtitle', 'Sign in to access your chat history and saved schemes.')}
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Mode Switch Tabs */}
+            <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: 12 }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('login');
+                  setError('');
+                }}
+                style={{
+                  flex: 1,
+                  padding: '9px',
+                  borderRadius: 9,
+                  fontSize: 13,
+                  fontWeight: mode === 'login' ? 700 : 500,
+                  border: 'none',
+                  background: mode === 'login' ? '#ffffff' : 'transparent',
+                  color: mode === 'login' ? '#0b1f3a' : '#64748b',
+                  boxShadow: mode === 'login' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+                  cursor: 'pointer',
+                  transition: 'all 150ms ease',
+                }}
+              >
+                {t('nav.signin', 'Sign In')}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('register');
+                  setError('');
+                }}
+                style={{
+                  flex: 1,
+                  padding: '9px',
+                  borderRadius: 9,
+                  fontSize: 13,
+                  fontWeight: mode === 'register' ? 700 : 500,
+                  border: 'none',
+                  background: mode === 'register' ? '#ffffff' : 'transparent',
+                  color: mode === 'register' ? '#0b1f3a' : '#64748b',
+                  boxShadow: mode === 'register' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+                  cursor: 'pointer',
+                  transition: 'all 150ms ease',
+                }}
+              >
+                Register
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {error && (
                 <div style={{ padding: '12px 16px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12, color: '#b91c1c', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#ef4444' }} />
@@ -193,12 +248,39 @@ function AuthContent() {
                 </div>
               )}
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ fontSize: 12.5, fontWeight: 700, color: '#334155' }}>Email Address</label>
-                <div style={{ position: 'relative' }}>
-                  <div style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }}>
-                    <User size={18} />
+              {mode === 'register' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <label style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#475569' }}>
+                    {t('auth.full_name', 'Full Name')}
+                  </label>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <User size={16} color="#94a3b8" style={{ position: 'absolute', left: 14 }} />
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="e.g. Ramesh Kumar"
+                      style={{
+                        width: '100%',
+                        padding: '11px 14px 11px 40px',
+                        borderRadius: 12,
+                        border: '1.5px solid #cbd5e1',
+                        background: '#f8fafc',
+                        fontSize: 13.5,
+                        color: '#0f172a',
+                        outline: 'none',
+                      }}
+                    />
                   </div>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+<label style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#475569' }}>
+                  {t('auth.email_label', 'Email Address')}
+                </label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <Mail size={16} color="#94a3b8" style={{ position: 'absolute', left: 14 }} />
                   <input
                     type="email"
                     required
@@ -222,12 +304,42 @@ function AuthContent() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ fontSize: 12.5, fontWeight: 700, color: '#334155' }}>Password</label>
-                <div style={{ position: 'relative' }}>
-                  <div style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }}>
-                    <Lock size={18} />
+{/* Mobile Phone (for Register) */}
+              {mode === 'register' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <label style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#475569' }}>
+                    {t('auth.mobile_label', 'Mobile Number')}
+                  </label>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <Phone size={16} color="#94a3b8" style={{ position: 'absolute', left: 14 }} />
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder={t('auth.mobile_ph', '10-digit mobile number')}
+                      required
+                      style={{
+                        width: '100%',
+                        padding: '11px 14px 11px 40px',
+                        borderRadius: 12,
+                        border: '1.5px solid #cbd5e1',
+                        background: '#f8fafc',
+                        fontSize: 13.5,
+                        color: '#0f172a',
+                        outline: 'none',
+                      }}
+                    />
                   </div>
+                </div>
+              )}
+
+              {/* Password */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#475569' }}>
+                  {t('auth.password_label', 'Password')}
+                </label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <Lock size={16} color="#94a3b8" style={{ position: 'absolute', left: 14 }} />
                   <input
                     type={showPw ? 'text' : 'password'}
                     required
@@ -293,18 +405,17 @@ function AuthContent() {
                 onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
                 onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
               >
-                {loading ? 'Signing in...' : 'Sign In'}
-                {!loading && <ArrowRight size={16} />}
+{loading ? 'Please wait…' : mode === 'login' ? t('auth.login_btn', 'Sign In to Portal') : t('auth.register_btn', 'Create My Account')}
               </button>
             </form>
-            
-            <div style={{ marginTop: '24px', textAlign: 'center' }}>
-              <p style={{ fontSize: 13.5, color: '#64748b' }}>
-                Don't have an account?{' '}
-                <Link href="/register" style={{ color: '#0b1f3a', fontWeight: 700, textDecoration: 'none' }}>
-                  Register here
-                </Link>
-              </p>
+
+            <div style={{ textAlign: 'center', paddingTop: 4 }}>
+              <Link
+                href="/"
+                style={{ fontSize: 12.5, color: '#64748b', textDecoration: 'none', fontWeight: 600 }}
+              >
+                {t('auth.back_home', '← Back to homepage')}
+              </Link>
             </div>
 
           </div>

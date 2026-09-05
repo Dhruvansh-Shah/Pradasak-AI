@@ -9,10 +9,22 @@ router.use(optionalUser);
 
 // POST /api/chat
 router.post('/', async (req: UserAuthRequest, res: Response) => {
-  const { message, chatId: incomingChatId, sessionId: incomingSessionId } = req.body as {
+  const {
+    message,
+    chatId: incomingChatId,
+    sessionId: incomingSessionId,
+    language,
+    detectedLanguageCode,
+    languageProbability,
+    category,
+  } = req.body as {
     message?: string;
     chatId?: string;
     sessionId?: string;
+    language?: string;
+    detectedLanguageCode?: string;
+    languageProbability?: number;
+    category?: string;
   };
 
   if (!message?.trim()) {
@@ -56,7 +68,14 @@ router.post('/', async (req: UserAuthRequest, res: Response) => {
     }
 
     // Use activeSessionId (chatId or incomingSessionId) for multi-turn session continuity
-    const response = await orchestrate(message.trim(), activeSessionId);
+    const response = await orchestrate(
+      message.trim(),
+      activeSessionId,
+      language,
+      detectedLanguageCode,
+      languageProbability,
+      category
+    );
 
     if (userId && chatId) {
       // Save assistant response to DB

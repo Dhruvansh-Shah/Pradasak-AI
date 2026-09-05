@@ -1,5 +1,23 @@
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
+export class OpenRouterError extends Error {
+  public readonly status: number;
+  public readonly isCreditError: boolean;
+  public readonly isRateLimit: boolean;
+  public readonly isServerError: boolean;
+
+  constructor(status: number, rawMessage: string) {
+    const apiKeyPattern = /sk-[a-zA-Z0-9_-]{10,}/g;
+    const sanitizedMsg = rawMessage.replace(apiKeyPattern, '[REDACTED]');
+    super(`OpenRouter error ${status}: ${sanitizedMsg}`);
+    this.name = 'OpenRouterError';
+    this.status = status;
+    this.isCreditError = status === 402 || /credit|afford|insufficient|balance/i.test(sanitizedMsg);
+    this.isRateLimit = status === 429;
+    this.isServerError = status >= 500;
+  }
+}
+
 export async function llmCall(params: {
   model?: string;
   systemPrompt: string;
@@ -18,7 +36,7 @@ export async function llmCall(params: {
     },
     body: JSON.stringify({
       model,
-      max_tokens: params.maxTokens ?? 1024,
+      max_tokens: params.maxTokens ?? 450,
       messages: [
         { role: 'system', content: params.systemPrompt },
         { role: 'user', content: params.userMessage },
@@ -29,7 +47,7 @@ export async function llmCall(params: {
 
   if (!response.ok) {
     const err = await response.text();
-    throw new Error(`OpenRouter error ${response.status}: ${err}`);
+    throw new OpenRouterError(response.status, err);
   }
 
   const data = await response.json() as { choices: { message: { content: string } }[] };
@@ -87,7 +105,7 @@ export async function llmChat(params: {
     },
     body: JSON.stringify({
       model,
-      max_tokens: params.maxTokens ?? 1024,
+      max_tokens: params.maxTokens ?? 450,
       messages: params.messages,
       ...(params.tools && params.tools.length > 0 ? { tools: params.tools, tool_choice: 'auto' } : {}),
     }),
@@ -95,7 +113,7 @@ export async function llmChat(params: {
 
   if (!response.ok) {
     const err = await response.text();
-    throw new Error(`OpenRouter error ${response.status}: ${err}`);
+    throw new OpenRouterError(response.status, err);
   }
 
   const data = await response.json() as { choices: { message: AssistantMessage }[] };
