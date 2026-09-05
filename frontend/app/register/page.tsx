@@ -1,0 +1,755 @@
+'use client';
+
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter } from 'next/navigation';
+import NavBar from '@/components/NavBar';
+import Footer from '@/components/Footer';
+import CameraCapture from '@/components/CameraCapture';
+import { Loader2, Eye, EyeOff, CheckCircle2, XCircle, FileImage, RefreshCw, AlertTriangle } from 'lucide-react';
+
+const BACKEND = process.env.NEXT_PUBLIC_API_URL
+  ? process.env.NEXT_PUBLIC_API_URL.replace(/\/api$/, '')
+  : 'http://localhost:4000';
+
+function dataURLtoFile(dataurl: string, filename: string): File {
+  const arr = dataurl.split(',');
+  const mimeMatch = arr[0].match(/:(.*?);/);
+  const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) u8arr[n] = bstr.charCodeAt(n);
+  return new File([u8arr], filename, { type: mime });
+}
+
+const STATES = [
+  'Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat','Haryana',
+  'Himachal Pradesh','Jharkhand','Karnataka','Kerala','Madhya Pradesh','Maharashtra','Manipur',
+  'Meghalaya','Mizoram','Nagaland','Odisha','Punjab','Rajasthan','Sikkim','Tamil Nadu','Telangana',
+  'Tripura','Uttar Pradesh','Uttarakhand','West Bengal','Delhi','Puducherry','Jammu & Kashmir',
+  'Ladakh','Chandigarh','Dadra & Nagar Haveli','Andaman & Nicobar Islands','Lakshadweep',
+];
+
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '12px 16px',
+  borderRadius: 12,
+  border: '1.5px solid #e2e8f0',
+  background: '#f8fafc',
+  outline: 'none',
+  fontSize: 14,
+  color: '#0f172a',
+  boxSizing: 'border-box',
+};
+
+const labelStyle: React.CSSProperties = {
+  fontSize: 13,
+  fontWeight: 700,
+  color: '#334155',
+  display: 'block',
+  marginBottom: 6,
+};
+
+const sectionStyle: React.CSSProperties = {
+  background: '#fff',
+  padding: '36px 40px',
+  borderRadius: 24,
+  boxShadow: '0 4px 24px rgba(11, 31, 58, 0.07)',
+  border: '1px solid #e8edf3',
+};
+
+const sectionHeadingStyle: React.CSSProperties = {
+  fontSize: 18,
+  fontWeight: 800,
+  color: '#0b1f3a',
+  borderBottom: '2px solid #f1f5f9',
+  paddingBottom: 14,
+  marginBottom: 24,
+  marginTop: 0,
+};
+
+type CertStatus = 'IDLE' | 'UPLOADING' | 'VERIFYING' | 'VERIFIED' | 'FAILED' | 'MANUAL_REVIEW';
+
+export default function RegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
+          <div style={{ fontSize: 14, color: '#64748b', fontWeight: 600 }}>Loading…</div>
+        </div>
+      }
+    >
+      <RegisterContent />
+    </Suspense>
+  );
+}
+
+function RegisterContent() {
+  const router = useRouter();
+
+  // Basic Details
+  const [fullName, setFullName] = useState('');
+  const [mobile, setMobile] = useState('');
+  const [isSc, setIsSc] = useState(false);
+  const [isLowIncome, setIsLowIncome] = useState(false);
+  const [dob, setDob] = useState('');
+  const [gender, setGender] = useState('');
+  const [email, setEmail] = useState('');
+  const [addressLine1, setAddressLine1] = useState('');
+  const [addressLine2, setAddressLine2] = useState('');
+  const [city, setCity] = useState('');
+  const [district, setDistrict] = useState('');
+  const [state, setState] = useState('');
+  const [pincode, setPincode] = useState('');
+  const [aadhaar, setAadhaar] = useState('');
+
+  // Password
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPw, setShowPw] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+
+  // Verification States
+  const [emailStep, setEmailStep] = useState<'idle' | 'sending' | 'sent' | 'verifying' | 'verified'>('idle');
+  const [otp, setOtp] = useState('');
+  const [otpError, setOtpError] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  // Documents
+  const [selfiePhoto, setSelfiePhoto] = useState<string | null>(null);
+
+  const [scServerFileName, setScServerFileName] = useState('');
+  const [scStatus, setScStatus] = useState<CertStatus>('IDLE');
+  const [scMessage, setScMessage] = useState('');
+
+  const [incomeServerFileName, setIncomeServerFileName] = useState('');
+  const [incomeStatus, setIncomeStatus] = useState<CertStatus>('IDLE');
+  const [incomeMessage, setIncomeMessage] = useState('');
+  const [extractedIncome, setExtractedIncome] = useState<number | null>(null);
+
+  // App state
+  const [loading, setLoading] = useState(false);
+  const [statusText, setStatusText] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendCooldown]);
+
+  const handleSendOtp = async () => {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError('Please enter a valid email address.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    setError('');
+    setOtpError('');
+    setEmailStep('sending');
+    try {
+      const res = await fetch(`${BACKEND}/api/registration/send-email-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
+      
+      setEmailStep('sent');
+      setResendCooldown(30);
+    } catch (err: any) {
+      setEmailStep('idle');
+      setError(err.message);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (otp.length !== 6) return;
+    setOtpError('');
+    setEmailStep('verifying');
+    try {
+      const res = await fetch(`${BACKEND}/api/registration/verify-email-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Verification failed');
+      
+      setEmailStep('verified');
+      setError('');
+    } catch (err: any) {
+      setEmailStep('sent');
+      setOtpError(err.message);
+    }
+  };
+
+  const handleVerifyCaste = async (base64: string | null) => {
+    if (!base64) return;
+    setScStatus('UPLOADING');
+    setScMessage('');
+    try {
+      const formData = new FormData();
+      const ext = base64.startsWith('data:application/pdf') ? 'pdf' : 'jpg';
+      formData.append('sc_certificate', dataURLtoFile(base64, `sc_cert.${ext}`));
+      
+      const uploadRes = await fetch(`${BACKEND}/api/registration/upload-docs`, { method: 'POST', body: formData });
+      if (!uploadRes.ok) throw new Error('Document upload failed');
+      const uploadData = await uploadRes.json();
+      setScServerFileName(uploadData.sc_certificate);
+      
+      setScStatus('VERIFYING');
+      const verifyRes = await fetch(`${BACKEND}/api/registration/verify-caste`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sc_certificate: uploadData.sc_certificate, full_name: fullName || 'Applicant', email: email })
+      });
+      const verifyData = await verifyRes.json();
+      
+      if (verifyData.success && verifyData.status === 'VERIFIED') {
+        setScStatus('VERIFIED');
+        setScMessage(verifyData.reason || 'Your caste certificate has been successfully verified.');
+      } else {
+        setScStatus(verifyData.status || 'FAILED');
+        setScMessage(verifyData.reason || 'We could not verify this caste certificate. Please upload a valid Scheduled Caste certificate.');
+      }
+    } catch (err: any) {
+      setScStatus('FAILED');
+      setScMessage(err.message || 'An error occurred during verification');
+    }
+  };
+
+  const handleVerifyIncome = async (base64: string | null) => {
+    if (!base64) return;
+    setIncomeStatus('UPLOADING');
+    setIncomeMessage('');
+    setExtractedIncome(null);
+    try {
+      const formData = new FormData();
+      const ext = base64.startsWith('data:application/pdf') ? 'pdf' : 'jpg';
+      formData.append('income_certificate', dataURLtoFile(base64, `income_cert.${ext}`));
+      
+      const uploadRes = await fetch(`${BACKEND}/api/registration/upload-docs`, { method: 'POST', body: formData });
+      if (!uploadRes.ok) throw new Error('Document upload failed');
+      const uploadData = await uploadRes.json();
+      setIncomeServerFileName(uploadData.income_certificate);
+      
+      setIncomeStatus('VERIFYING');
+      const verifyRes = await fetch(`${BACKEND}/api/registration/verify-income`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ income_certificate: uploadData.income_certificate, full_name: fullName || 'Applicant', email: email })
+      });
+      const verifyData = await verifyRes.json();
+      
+      if (verifyData.success && verifyData.status === 'VERIFIED') {
+        setIncomeStatus('VERIFIED');
+        setIncomeMessage(verifyData.reason || 'Your income certificate has been successfully verified.');
+        if (verifyData.income) setExtractedIncome(verifyData.income);
+      } else {
+        setIncomeStatus(verifyData.status || 'FAILED');
+        setIncomeMessage(verifyData.reason || 'We could not verify this income certificate. Please upload a valid income certificate with annual family income below ₹5,00,000.');
+      }
+    } catch (err: any) {
+      setIncomeStatus('FAILED');
+      setIncomeMessage(err.message || 'An error occurred during verification');
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (!isSc || !isLowIncome) {
+      setError('You must confirm that you belong to a Scheduled Caste and that your family income is below ₹5 lakh to be eligible.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    if (emailStep !== 'verified') {
+      setError('Please verify your email address to continue.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    if (mobile.length !== 10) {
+      setError('Please enter a valid 10-digit mobile number.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    if (scStatus !== 'VERIFIED' || incomeStatus !== 'VERIFIED') {
+      setError('Please ensure both certificates are verified before continuing.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters long.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match. Please re-enter.');
+      return;
+    }
+    if (!selfiePhoto) {
+      setError('Please provide your live selfie.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Step 1: Upload only the selfie, certificates are already uploaded
+      setStatusText('Securely finalizing your registration...');
+      const formData = new FormData();
+      formData.append('selfie', dataURLtoFile(selfiePhoto, 'selfie.jpg'));
+
+      const uploadRes = await fetch(`${BACKEND}/api/registration/upload-docs`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (!uploadRes.ok) throw new Error('Selfie upload failed');
+      const uploadData = await uploadRes.json();
+
+      // Step 2: Create account
+      setStatusText('Creating your account...');
+      const completeRes = await fetch(`${BACKEND}/api/registration/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name: fullName,
+          mobile,
+          dob: dob || null,
+          gender: gender || null,
+          email: email || null,
+          address_line1: addressLine1 || null,
+          address_line2: addressLine2 || null,
+          city: city || null,
+          district: district || null,
+          state: state || null,
+          pincode: pincode || null,
+          password,
+          aadhaar: aadhaar || null,
+          selfie_image: uploadData.selfie,
+          sc_certificate_file: scServerFileName,
+          income_certificate_file: incomeServerFileName,
+          eligibility_status: 'verified',
+        }),
+      });
+
+      const completeData = await completeRes.json();
+      if (!completeRes.ok) throw new Error(completeData.error || 'Registration failed');
+
+      localStorage.setItem('auth_token', completeData.token);
+      localStorage.setItem('auth_user', JSON.stringify(completeData.user));
+      localStorage.setItem('registration_summary', JSON.stringify({
+        full_name: fullName,
+        mobile,
+        eligibility_status: 'verified',
+        overall_confidence: 1, // Deterministic verification
+      }));
+
+      router.push('/register/summary');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'An unexpected error occurred.';
+      setError(message);
+      setLoading(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const pwStrength = password.length === 0 ? 0 : password.length < 8 ? 1 : password.length < 12 ? 2 : 3;
+  const pwColor = ['#e2e8f0', '#ef4444', '#f59e0b', '#10b981'][pwStrength];
+  const pwLabel = ['', 'Too short', 'Fair', 'Strong'][pwStrength];
+
+  const renderCertStatus = (status: CertStatus, message: string, title: string, onRetry: () => void) => {
+    if (status === 'IDLE') return null;
+
+    return (
+      <div style={{
+        marginTop: 16,
+        padding: 20,
+        borderRadius: 14,
+        border: '1.5px solid',
+        borderColor: status === 'VERIFIED' ? '#a7f3d0' : status === 'MANUAL_REVIEW' ? '#fde68a' : status === 'FAILED' ? '#fecaca' : '#e2e8f0',
+        background: status === 'VERIFIED' ? '#ecfdf5' : status === 'MANUAL_REVIEW' ? '#fffbeb' : status === 'FAILED' ? '#fef2f2' : '#f8fafc',
+        transition: 'all 0.2s ease',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+          {status === 'UPLOADING' && <Loader2 size={24} color="#64748b" style={{ animation: 'spin 1s linear infinite', flexShrink: 0, marginTop: 2 }} />}
+          {status === 'VERIFYING' && <RefreshCw size={24} color="#0ea5e9" style={{ animation: 'spin 1s linear infinite', flexShrink: 0, marginTop: 2 }} />}
+          {status === 'VERIFIED' && <CheckCircle2 size={24} color="#10b981" style={{ flexShrink: 0, marginTop: 2 }} />}
+          {status === 'MANUAL_REVIEW' && <AlertTriangle size={24} color="#f59e0b" style={{ flexShrink: 0, marginTop: 2 }} />}
+          {status === 'FAILED' && <XCircle size={24} color="#ef4444" style={{ flexShrink: 0, marginTop: 2 }} />}
+          
+          <div style={{ flex: 1 }}>
+            <p style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700, color: status === 'VERIFIED' ? '#065f46' : status === 'MANUAL_REVIEW' ? '#92400e' : status === 'FAILED' ? '#991b1b' : '#334155' }}>
+              {status === 'UPLOADING' && 'Uploading document...'}
+              {status === 'VERIFYING' && `Verifying ${title}...`}
+              {status === 'VERIFIED' && `${title} Verified`}
+              {status === 'FAILED' && `Verification Failed`}
+              {status === 'MANUAL_REVIEW' && `Manual Review Required`}
+            </p>
+
+            {(status === 'VERIFIED' || status === 'FAILED' || status === 'MANUAL_REVIEW') && (
+              <p style={{ margin: 0, fontSize: 14, color: status === 'VERIFIED' ? '#047857' : status === 'MANUAL_REVIEW' ? '#b45309' : '#b91c1c', lineHeight: 1.5 }}>
+                {message}
+              </p>
+            )}
+
+            {(status === 'FAILED' || status === 'MANUAL_REVIEW') && (
+              <div style={{ marginTop: 14 }}>
+                <button
+                  type="button"
+                  onClick={onRetry}
+                  style={{
+                    padding: '8px 16px',
+                    background: '#fff',
+                    border: '1.5px solid #cbd5e1',
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: '#334155',
+                    cursor: 'pointer',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                  }}
+                >
+                  Upload Another Certificate
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const isCertVerified = scStatus === 'VERIFIED' && incomeStatus === 'VERIFIED';
+
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f1f5f9' }}>
+      <NavBar />
+
+      <main style={{ flex: 1, padding: '48px 24px' }}>
+        <div style={{ maxWidth: 760, margin: '0 auto' }}>
+
+          <div style={{ textAlign: 'center', marginBottom: 40 }}>
+            <h1 style={{ fontSize: 30, fontWeight: 900, color: '#0b1f3a', marginBottom: 10, letterSpacing: '-0.02em' }}>
+              Create Your Account
+            </h1>
+            <p style={{ fontSize: 15.5, color: '#64748b', margin: 0 }}>
+              Complete the form below to register and verify your eligibility for NSFDC schemes.
+            </p>
+          </div>
+
+          {error && (
+            <div style={{ padding: '14px 20px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12, color: '#b91c1c', fontSize: 14, fontWeight: 600, marginBottom: 28 }}>
+              ⚠ {error}
+            </div>
+          )}
+
+          {loading ? (
+            <div style={{ ...sectionStyle, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 60, gap: 20 }}>
+              <Loader2 size={52} color="#0b1f3a" style={{ animation: 'spin 1s linear infinite' }} />
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', margin: '0 0 8px' }}>Processing your application</p>
+                <p style={{ fontSize: 14, color: '#64748b', margin: 0 }}>{statusText}</p>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+
+              {/* ── SECTION 1: Eligibility & Personal ── */}
+              <section style={sectionStyle}>
+                <h2 style={sectionHeadingStyle}>1. Eligibility & Personal Details</h2>
+
+                <div style={{ background: '#f8fafc', borderRadius: 12, padding: '16px 20px', border: '1px solid #e2e8f0', marginBottom: 20 }}>
+                  <p style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 700, color: '#475569' }}>
+                    ELIGIBILITY CONFIRMATION (both required)
+                  </p>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', marginBottom: 12 }}>
+                    <input
+                      type="checkbox"
+                      checked={isSc}
+                      onChange={e => setIsSc(e.target.checked)}
+                      style={{ width: 18, height: 18, accentColor: '#0b1f3a' }}
+                    />
+                    <span style={{ fontSize: 14, color: '#334155', fontWeight: 600 }}>
+                      I belong to a Scheduled Caste (SC) community
+                    </span>
+                    {isSc && <CheckCircle2 size={18} color="#10b981" />}
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={isLowIncome}
+                      onChange={e => setIsLowIncome(e.target.checked)}
+                      style={{ width: 18, height: 18, accentColor: '#0b1f3a' }}
+                    />
+                    <span style={{ fontSize: 14, color: '#334155', fontWeight: 600 }}>
+                      My annual family income is below ₹5,00,000
+                    </span>
+                    {isLowIncome && <CheckCircle2 size={18} color="#10b981" />}
+                  </label>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div>
+                    <label style={labelStyle}>Full Name <span style={{ color: '#ef4444' }}>*</span></label>
+                    <input style={inputStyle} type="text" required placeholder="As it appears on official documents" value={fullName} onChange={e => setFullName(e.target.value)} disabled={scStatus === 'VERIFIED' || incomeStatus === 'VERIFIED'} />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                    <div>
+                      <label style={labelStyle}>Mobile Number <span style={{ color: '#ef4444' }}>*</span></label>
+                      <input style={inputStyle} type="tel" required maxLength={10} placeholder="10-digit mobile" value={mobile} onChange={e => setMobile(e.target.value.replace(/\D/g, ''))} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Email ID <span style={{ color: '#ef4444' }}>*</span></label>
+                      <input
+                        style={{...inputStyle, background: emailStep !== 'idle' ? '#f1f5f9' : '#f8fafc' }}
+                        type="email" required placeholder="name@example.com" value={email}
+                        onChange={e => {
+                          setEmail(e.target.value);
+                          if (emailStep !== 'idle') {
+                            setEmailStep('idle');
+                            setOtp('');
+                            setOtpError('');
+                          }
+                        }}
+                        disabled={emailStep === 'sent' || emailStep === 'verifying' || emailStep === 'verified' || scStatus === 'VERIFIED' || incomeStatus === 'VERIFIED'}
+                      />
+                      
+                      {emailStep === 'idle' && (
+                        <button type="button" onClick={handleSendOtp} style={{ marginTop: 8, padding: '8px 16px', background: '#0b1f3a', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                          Verify Email
+                        </button>
+                      )}
+                      
+                      {emailStep === 'sending' && (
+                        <p style={{ marginTop: 8, fontSize: 13, color: '#64748b', display: 'flex', alignItems: 'center' }}>
+                          <Loader2 size={14} style={{ animation: 'spin 1s linear infinite', marginRight: 6 }} /> Sending OTP...
+                        </p>
+                      )}
+                      
+                      {(emailStep === 'sent' || emailStep === 'verifying' || emailStep === 'verified') && (
+                        <div style={{ marginTop: 12, padding: 16, border: '1px solid #e2e8f0', borderRadius: 12, background: '#fff' }}>
+                          {emailStep === 'verified' ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#10b981', fontWeight: 600, fontSize: 14 }}>
+                              <CheckCircle2 size={18} /> Email verified successfully
+                            </div>
+                          ) : (
+                            <div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                                <span style={{ fontSize: 13, color: '#334155', fontWeight: 600 }}>✓ OTP sent</span>
+                                <button type="button" onClick={() => setEmailStep('idle')} style={{ fontSize: 12, color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Change</button>
+                              </div>
+                              <input type="text" maxLength={6} placeholder="Enter 6-digit OTP" value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, ''))} style={{ ...inputStyle, textAlign: 'center', letterSpacing: '4px', fontSize: 16, fontWeight: 700 }} />
+                              {otpError && <p style={{ fontSize: 12, color: '#ef4444', margin: '8px 0 0' }}>{otpError}</p>}
+                              <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
+                                 <button type="button" onClick={handleVerifyOtp} disabled={otp.length !== 6 || emailStep === 'verifying'} style={{ flex: 1, padding: '10px', background: otp.length === 6 ? '#0b1f3a' : '#94a3b8', color: 'white', border: 'none', borderRadius: 8, cursor: otp.length === 6 ? 'pointer' : 'not-allowed', fontSize: 14, fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}>
+                                   {emailStep === 'verifying' ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }}/> : null} Verify OTP
+                                 </button>
+                                 <button type="button" onClick={handleSendOtp} disabled={resendCooldown > 0} style={{ padding: '10px 16px', background: '#f1f5f9', color: resendCooldown > 0 ? '#94a3b8' : '#0f172a', border: 'none', borderRadius: 8, cursor: resendCooldown > 0 ? 'not-allowed' : 'pointer', fontSize: 14, fontWeight: 600 }}>
+                                   {resendCooldown > 0 ? `Resend ${resendCooldown}s` : 'Resend'}
+                                 </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                    <div>
+                      <label style={labelStyle}>Date of Birth <span style={{ color: '#ef4444' }}>*</span></label>
+                      <input style={inputStyle} type="date" required value={dob} onChange={e => setDob(e.target.value)} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Gender <span style={{ color: '#ef4444' }}>*</span></label>
+                      <select style={inputStyle} required value={gender} onChange={e => setGender(e.target.value)}>
+                        <option value="">Select...</option>
+                        <option>Male</option><option>Female</option><option>Other</option><option>Prefer not to say</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {emailStep === 'verified' ? (
+                <>
+                  {/* ── SECTION 2: Address ── */}
+                  <section style={sectionStyle}>
+                    <h2 style={sectionHeadingStyle}>2. Current Address</h2>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                      <div>
+                        <label style={labelStyle}>House/Flat, Building, Street <span style={{ color: '#ef4444' }}>*</span></label>
+                        <input style={inputStyle} type="text" required value={addressLine1} onChange={e => setAddressLine1(e.target.value)} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Address Line 2 <span style={{ color: '#94a3b8', fontWeight: 400 }}>(optional)</span></label>
+                        <input style={inputStyle} type="text" value={addressLine2} onChange={e => setAddressLine2(e.target.value)} />
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                        <div><label style={labelStyle}>City / Town / Village <span style={{ color: '#ef4444' }}>*</span></label><input style={inputStyle} type="text" required value={city} onChange={e => setCity(e.target.value)} /></div>
+                        <div><label style={labelStyle}>District <span style={{ color: '#ef4444' }}>*</span></label><input style={inputStyle} type="text" required value={district} onChange={e => setDistrict(e.target.value)} /></div>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                        <div>
+                          <label style={labelStyle}>State <span style={{ color: '#ef4444' }}>*</span></label>
+                          <select style={inputStyle} required value={state} onChange={e => setState(e.target.value)}>
+                            <option value="">Select State</option>
+                            {STATES.map(s => <option key={s}>{s}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label style={labelStyle}>PIN Code <span style={{ color: '#ef4444' }}>*</span></label>
+                          <input style={inputStyle} type="text" required maxLength={6} placeholder="6 digits" value={pincode} onChange={e => setPincode(e.target.value.replace(/\D/g, ''))} />
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* ── SECTION 3: Identity Verification ── */}
+                  <section style={sectionStyle}>
+                    <h2 style={sectionHeadingStyle}>3. Live Identity Check</h2>
+                    <CameraCapture
+                      title="Live Selfie (for identity verification)"
+                      description="Face the camera directly in good lighting. Remove cap, mask, or sunglasses."
+                      onPhotoSet={setSelfiePhoto}
+                      isDocument={false}
+                    />
+                  </section>
+
+                  {/* ── SECTION 4: Certificate Verification ── */}
+                  <section style={sectionStyle}>
+                    <h2 style={sectionHeadingStyle}>4. Document Verification</h2>
+                    <p style={{ fontSize: 14, color: '#475569', marginBottom: 24 }}>
+                      Please upload images (JPG/PNG) of your certificates containing a government QR code. 
+                      Our system will fetch the official digital record to verify eligibility.
+                    </p>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+                      
+                      {/* Caste Certificate */}
+                      <div>
+                        {scStatus === 'IDLE' ? (
+                          <CameraCapture
+                            title="SC Caste Certificate"
+                            description="Upload or capture a clear photo of your Scheduled Caste certificate. JPG/PNG accepted."
+                            onPhotoSet={handleVerifyCaste}
+                            isDocument={true}
+                          />
+                        ) : (
+                          renderCertStatus(scStatus, scMessage, 'SC Caste Certificate', () => { setScStatus('IDLE'); setScMessage(''); })
+                        )}
+                      </div>
+
+                      {/* Income Certificate */}
+                      <div>
+                        {incomeStatus === 'IDLE' ? (
+                          <CameraCapture
+                            title="Family Income Certificate"
+                            description="Upload or capture a clear photo of your Family Income certificate. JPG/PNG accepted."
+                            onPhotoSet={handleVerifyIncome}
+                            isDocument={true}
+                          />
+                        ) : (
+                          renderCertStatus(incomeStatus, incomeMessage, 'Family Income Certificate', () => { setIncomeStatus('IDLE'); setIncomeMessage(''); })
+                        )}
+                      </div>
+
+                      <div style={{ padding: '16px 20px', borderRadius: 14, border: '1.5px solid #e2e8f0', background: '#f8fafc', marginTop: 12 }}>
+                        <label style={labelStyle}>
+                          Aadhaar Number <span style={{ color: '#94a3b8', fontWeight: 400 }}>(optional — aids faster verification)</span>
+                        </label>
+                        <input style={inputStyle} type="text" placeholder="XXXX XXXX XXXX" maxLength={14} value={aadhaar} onChange={e => {
+                          const digits = e.target.value.replace(/\D/g, '').slice(0, 12);
+                          setAadhaar(digits.replace(/(.{4})/g, '$1 ').trim());
+                        }} />
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* ── SECTION 5: Security ── */}
+                  <section style={{ ...sectionStyle, opacity: isCertVerified ? 1 : 0.6, pointerEvents: isCertVerified ? 'auto' : 'none' }}>
+                    <h2 style={sectionHeadingStyle}>5. Set Your Password</h2>
+
+                    {!isCertVerified ? (
+                       <div style={{ padding: 24, background: '#f1f5f9', borderRadius: 12, textAlign: 'center', color: '#64748b' }}>
+                          <p style={{ margin: 0, fontWeight: 600, fontSize: 15, color: '#334155' }}>🔒 Locked until certificates are verified.</p>
+                          <p style={{ margin: '8px 0 0', fontSize: 14 }}>Please complete the Document Verification step above.</p>
+                       </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        <div>
+                          <label style={labelStyle}>Password <span style={{ color: '#ef4444' }}>*</span></label>
+                          <div style={{ position: 'relative' }}>
+                            <input style={{ ...inputStyle, paddingRight: 44 }} type={showPw ? 'text' : 'password'} required placeholder="Minimum 8 characters" value={password} onChange={e => setPassword(e.target.value)} />
+                            <button type="button" onClick={() => setShowPw(v => !v)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0 }}>
+                              {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                            </button>
+                          </div>
+                          {password.length > 0 && (
+                            <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <div style={{ flex: 1, height: 4, borderRadius: 4, background: '#e2e8f0', overflow: 'hidden' }}>
+                                <div style={{ height: '100%', width: `${(pwStrength / 3) * 100}%`, background: pwColor, transition: 'all 0.3s' }} />
+                              </div>
+                              <span style={{ fontSize: 12, color: pwColor, fontWeight: 600 }}>{pwLabel}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div>
+                          <label style={labelStyle}>Confirm Password <span style={{ color: '#ef4444' }}>*</span></label>
+                          <input style={{ ...inputStyle, borderColor: confirmPassword && confirmPassword !== password ? '#ef4444' : '#e2e8f0' }} type={showPw ? 'text' : 'password'} required placeholder="Re-enter your password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+                          {confirmPassword && confirmPassword !== password && <p style={{ margin: '6px 0 0', fontSize: 12, color: '#ef4444' }}>Passwords do not match</p>}
+                        </div>
+
+                        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginTop: 8, cursor: 'pointer', background: '#f8fafc', padding: 16, borderRadius: 12, border: '1px solid #e2e8f0' }}>
+                          <input type="checkbox" required checked={acceptedTerms} onChange={e => setAcceptedTerms(e.target.checked)} style={{ width: 18, height: 18, marginTop: 2, accentColor: '#0b1f3a', flexShrink: 0 }} />
+                          <span style={{ fontSize: 13, color: '#334155', lineHeight: 1.6 }}>
+                            I declare that all information and documents are true and correct. I consent to Pradarshak AI processing this data to determine my eligibility for NSFDC concessional finance schemes.
+                          </span>
+                        </label>
+
+                        <button
+                          type="submit"
+                          disabled={!acceptedTerms}
+                          style={{
+                            width: '100%', marginTop: 8, padding: '17px', borderRadius: 14,
+                            background: acceptedTerms ? '#0b1f3a' : '#94a3b8', color: '#fff', fontSize: 15, fontWeight: 800,
+                            border: 'none', cursor: acceptedTerms ? 'pointer' : 'not-allowed',
+                            boxShadow: acceptedTerms ? '0 4px 16px rgba(11, 31, 58, 0.2)' : 'none', transition: 'all 0.2s', letterSpacing: '0.01em',
+                          }}
+                        >
+                          Submit Application & Create Account
+                        </button>
+
+                        <p style={{ textAlign: 'center', fontSize: 13.5, color: '#64748b', margin: 0 }}>
+                          Already registered? <a href="/auth" style={{ color: '#0b1f3a', fontWeight: 700, textDecoration: 'none' }}>Sign in here</a>
+                        </p>
+                      </div>
+                    )}
+                  </section>
+                </>
+              ) : (
+                <div style={{ padding: '32px 24px', background: '#fff', border: '1px dashed #cbd5e1', borderRadius: 24, textAlign: 'center', color: '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 24, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+                     <CheckCircle2 size={24} />
+                  </div>
+                  <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#334155' }}>Complete Section 1 First</p>
+                  <p style={{ margin: 0, fontSize: 14, maxWidth: 300 }}>Please verify your email address to continue to the remaining registration steps.</p>
+                </div>
+              )}
+
+            </form>
+          )}
+        </div>
+      </main>
+
+      <Footer />
+    </div>
+  );
+}

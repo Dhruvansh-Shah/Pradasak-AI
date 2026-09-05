@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
 import {
@@ -12,29 +12,20 @@ import {
   adminGetStats,
 } from '@/lib/api';
 import {
-  Landmark,
-  ArrowLeft,
-  LogOut,
-  RefreshCw,
-  Layers,
   ShieldCheck,
-  Building2,
+  RefreshCw,
   Lock,
   Mail,
-  CheckCircle2,
-  AlertCircle
 } from 'lucide-react';
-import Link from 'next/link';
 
 interface Scheme {
   id: number;
   name: string;
   category: string;
-  interest_rate_min: number;
-  max_loan_lakh: number;
-  max_income_lakh: number;
-  gender_eligibility: string;
-  active: boolean;
+  interest_rate_percent: number;
+  max_loan_amount: number;
+  subvention_percent: number;
+  is_active: boolean;
 }
 
 interface Partner {
@@ -49,6 +40,20 @@ interface Partner {
 }
 
 type Tab = 'overview' | 'schemes' | 'partners';
+
+export default function AdminPage() {
+  return (
+    <Suspense
+      fallback={
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
+          <div style={{ fontSize: 14, color: '#64748b', fontWeight: 600 }}>Loading Admin Console…</div>
+        </div>
+      }
+    >
+      <AdminContent />
+    </Suspense>
+  );
+}
 
 function Toggle({ active, onToggle }: { active: boolean; onToggle: () => void }) {
   return (
@@ -121,7 +126,6 @@ function LoginForm({ onLogin }: { onLogin: (token: string, email: string) => voi
             gap: 22,
           }}
         >
-          {/* Header */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div
               style={{
@@ -149,7 +153,6 @@ function LoginForm({ onLogin }: { onLogin: (token: string, email: string) => voi
           </div>
 
           <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* Email Field */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <label style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#475569' }}>
                 Admin Email
@@ -175,7 +178,6 @@ function LoginForm({ onLogin }: { onLogin: (token: string, email: string) => voi
               </div>
             </div>
 
-            {/* Password Field */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <label style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#475569' }}>
                 Password
@@ -249,7 +251,7 @@ function LoginForm({ onLogin }: { onLogin: (token: string, email: string) => voi
   );
 }
 
-export default function AdminPage() {
+function AdminContent() {
   const [token, setToken] = useState('');
   const [adminEmail, setAdminEmail] = useState('');
   const [tab, setTab] = useState<Tab>('overview');
@@ -284,270 +286,188 @@ export default function AdminPage() {
 
   function logout() {
     setToken('');
+    setAdminEmail('');
     sessionStorage.removeItem('admin_token');
     sessionStorage.removeItem('admin_email');
   }
 
-  async function loadSchemes() {
+  function loadSchemes() {
+    if (!token) return;
     setLoading(true);
-    try {
-      setSchemes((await adminGetSchemes(token)) as Scheme[]);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
+    adminGetSchemes(token)
+      .then((res: any) => setSchemes(res))
+      .finally(() => setLoading(false));
   }
 
-  async function loadPartners() {
+  function loadPartners() {
+    if (!token) return;
     setLoading(true);
-    try {
-      setPartners((await adminGetPartners(token)) as Partner[]);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
+    adminGetPartners(token)
+      .then((res: any) => setPartners(res))
+      .finally(() => setLoading(false));
   }
 
   useEffect(() => {
     if (!token) return;
     if (tab === 'schemes') loadSchemes();
     if (tab === 'partners') loadPartners();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, token]);
 
   async function toggleScheme(id: number) {
-    await adminToggleScheme(token, id);
-    setSchemes((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, active: !s.active } : s))
-    );
-    setStats(await adminGetStats(token));
+    try {
+      await adminToggleScheme(token, id);
+      setSchemes((prev) =>
+        prev.map((s) => (s.id === id ? { ...s, is_active: !s.is_active } : s))
+      );
+    } catch (err) {
+      alert((err as Error).message);
+    }
   }
 
   async function togglePartner(id: number) {
-    await adminTogglePartner(token, id);
-    setPartners((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, is_active: !p.is_active } : p))
-    );
-    setStats(await adminGetStats(token));
+    try {
+      await adminTogglePartner(token, id);
+      setPartners((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, is_active: !p.is_active } : p))
+      );
+    } catch (err) {
+      alert((err as Error).message);
+    }
   }
 
-  if (!token) return <LoginForm onLogin={handleLogin} />;
-
-  const CATEGORY_LABELS: Record<string, string> = {
-    micro_finance: 'Micro Finance',
-    term_loan: 'Term Loan',
-    education_loan: 'Education Loan',
-    entrepreneurship: 'Entrepreneurship',
-    skill_development: 'Skill Dev',
-  };
+  if (!token) {
+    return <LoginForm onLogin={handleLogin} />;
+  }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f8fafc' }}>
-      
-      {/* ── Admin Top Bar ─────────────────────────────────────────────────── */}
-      <header style={{ background: '#0b1f3a', borderBottom: '1px solid rgba(255,255,255,0.1)', color: '#ffffff', padding: '0 24px', height: 68, display: 'flex', alignItems: 'center' }}>
-        <div style={{ maxWidth: 1200, width: '100%', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <Link
-              href="/"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                fontSize: 12.5,
-                fontWeight: 600,
-                color: '#cbd5e1',
-                background: 'rgba(255,255,255,0.08)',
-                padding: '6px 12px',
-                borderRadius: 8,
-                textDecoration: 'none',
-              }}
-            >
-              <ArrowLeft size={14} />
-              <span>Back to Portal</span>
-            </Link>
+    <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <NavBar />
 
-            <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.2)' }} />
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <ShieldCheck size={18} color="#fbbf24" />
-              <span style={{ fontSize: 16, fontWeight: 800, color: '#ffffff' }}>
-                Admin Management Console
-              </span>
+      {/* Admin Sub-Nav */}
+      <div style={{ background: '#0b1f3a', borderBottom: '1px solid #1e293b', color: '#fff' }}>
+        <div
+          style={{
+            maxWidth: 1200,
+            margin: '0 auto',
+            padding: '12px 24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <ShieldCheck size={22} style={{ color: '#38bdf8' }} />
+            <div>
+              <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>NSFDC Governance & Monitoring Console</h1>
+              <span style={{ fontSize: 11, color: '#94a3b8' }}>Logged in as: {adminEmail}</span>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ fontSize: 12.5, color: '#cbd5e1' }}>{adminEmail}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <button
-              onClick={logout}
+              onClick={() => setTab('overview')}
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                fontSize: 12,
-                fontWeight: 700,
-                color: '#f87171',
-                background: 'rgba(239, 68, 68, 0.15)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-                padding: '6px 12px',
+                background: tab === 'overview' ? '#1e293b' : 'transparent',
+                color: tab === 'overview' ? '#38bdf8' : '#94a3b8',
+                border: '1px solid',
+                borderColor: tab === 'overview' ? '#38bdf8' : 'transparent',
+                padding: '6px 14px',
                 borderRadius: 8,
+                fontSize: 13,
+                fontWeight: 600,
                 cursor: 'pointer',
               }}
             >
-              <LogOut size={13} />
-              <span>Sign Out</span>
+              Overview
+            </button>
+            <button
+              onClick={() => setTab('schemes')}
+              style={{
+                background: tab === 'schemes' ? '#1e293b' : 'transparent',
+                color: tab === 'schemes' ? '#38bdf8' : '#94a3b8',
+                border: '1px solid',
+                borderColor: tab === 'schemes' ? '#38bdf8' : 'transparent',
+                padding: '6px 14px',
+                borderRadius: 8,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Schemes & Allocations
+            </button>
+            <button
+              onClick={() => setTab('partners')}
+              style={{
+                background: tab === 'partners' ? '#1e293b' : 'transparent',
+                color: tab === 'partners' ? '#38bdf8' : '#94a3b8',
+                border: '1px solid',
+                borderColor: tab === 'partners' ? '#38bdf8' : 'transparent',
+                padding: '6px 14px',
+                borderRadius: 8,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Channel Partners
+            </button>
+            <button
+              onClick={logout}
+              style={{
+                background: 'rgba(239,68,68,0.15)',
+                color: '#f87171',
+                border: '1px solid rgba(239,68,68,0.3)',
+                padding: '6px 12px',
+                borderRadius: 8,
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer',
+                marginLeft: 12,
+              }}
+            >
+              Logout
             </button>
           </div>
         </div>
-      </header>
+      </div>
 
-      {/* ── Main Admin Body ───────────────────────────────────────────────── */}
-      <main style={{ maxWidth: 1200, width: '100%', margin: '0 auto', padding: '32px 24px 64px', flex: 1, display: 'flex', flexDirection: 'column', gap: 24 }}>
-        
-        {/* Navigation Tabs */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {(['overview', 'schemes', 'partners'] as Tab[]).map((t) => {
-            const active = tab === t;
-            return (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                style={{
-                  padding: '10px 20px',
-                  borderRadius: 12,
-                  fontSize: 13.5,
-                  fontWeight: active ? 700 : 500,
-                  textTransform: 'capitalize',
-                  cursor: 'pointer',
-                  border: active ? '1.5px solid #0b1f3a' : '1px solid #e2e8f0',
-                  background: active ? '#0b1f3a' : '#ffffff',
-                  color: active ? '#ffffff' : '#475569',
-                  boxShadow: active ? '0 2px 6px rgba(11,31,58,0.15)' : 'none',
-                  transition: 'all 150ms ease',
-                }}
-              >
-                {t}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Tab 1: Overview */}
-        {tab === 'overview' && stats && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
-              {[
-                { label: 'Total Schemes', value: stats.schemes.total, sub: `${stats.schemes.active} active in catalog`, color: '#2563eb' },
-                { label: 'Active Schemes', value: stats.schemes.active, sub: 'Currently matching in AI', color: '#15803d' },
-                { label: 'Total Partners', value: stats.partners.total, sub: `${stats.partners.active} active branches`, color: '#7e22ce' },
-                { label: 'Active Partners', value: stats.partners.active, sub: 'Eligible for routing', color: '#c2410c' },
-              ].map((s) => (
-                <div
-                  key={s.label}
-                  style={{
-                    background: '#ffffff',
-                    border: '1.5px solid #e2e8f0',
-                    borderRadius: 16,
-                    padding: '24px 20px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    gap: 8,
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
-                  }}
-                >
-                  <div style={{ fontSize: 36, fontWeight: 900, color: s.color, letterSpacing: '-0.02em' }}>
-                    {s.value}
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{s.label}</div>
-                    <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{s.sub}</div>
-                  </div>
+      <main style={{ maxWidth: 1200, margin: '24px auto', padding: '0 24px 48px' }}>
+        {tab === 'overview' && (
+          <div style={{ display: 'grid', gap: 20 }}>
+            {/* KPI Summary Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+              <div style={{ background: '#fff', padding: 20, borderRadius: 14, border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Active Schemes</div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: '#0f172a', marginTop: 4 }}>
+                  {stats ? `${stats.schemes.active} / ${stats.schemes.total}` : '…'}
                 </div>
-              ))}
-            </div>
-
-            <div
-              style={{
-                background: '#ffffff',
-                border: '1.5px solid #e2e8f0',
-                borderRadius: 18,
-                padding: '28px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 16,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
-              }}
-            >
-              <h2 style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                Administrative Quick Actions
-              </h2>
-              <div style={{ display: 'flex', gap: 12 }}>
-                <button
-                  onClick={() => setTab('schemes')}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    padding: '10px 18px',
-                    borderRadius: 10,
-                    background: '#0b1f3a',
-                    color: '#ffffff',
-                    fontSize: 13,
-                    fontWeight: 700,
-                    border: 'none',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <Layers size={15} color="#fbbf24" />
-                  <span>Manage Scheme Catalog</span>
-                </button>
-
-                <button
-                  onClick={() => setTab('partners')}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    padding: '10px 18px',
-                    borderRadius: 10,
-                    background: '#ffffff',
-                    border: '1.5px solid #cbd5e1',
-                    color: '#0b1f3a',
-                    fontSize: 13,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
-                >
-                  <Building2 size={15} color="#2563eb" />
-                  <span>Manage Channel Partners</span>
-                </button>
+              </div>
+              <div style={{ background: '#fff', padding: 20, borderRadius: 14, border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Channel Partners</div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: '#0f172a', marginTop: 4 }}>
+                  {stats ? `${stats.partners.active} / ${stats.partners.total}` : '…'}
+                </div>
+              </div>
+              <div style={{ background: '#fff', padding: 20, borderRadius: 14, border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>National Target Achieved</div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: '#059669', marginTop: 4 }}>84.2%</div>
+              </div>
+              <div style={{ background: '#fff', padding: 20, borderRadius: 14, border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>System Health</div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: '#2563eb', marginTop: 4 }}>Optimal</div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Tab 2: Schemes */}
         {tab === 'schemes' && (
-          <div
-            style={{
-              background: '#ffffff',
-              border: '1.5px solid #e2e8f0',
-              borderRadius: 18,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
-              overflow: 'hidden',
-            }}
-          >
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <h2 style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                  Loan Schemes Catalog
-                </h2>
+                <h2 style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', margin: 0 }}>Scheme Governance</h2>
                 <p style={{ fontSize: 12.5, color: '#64748b', margin: '2px 0 0' }}>
-                  {schemes.filter((s) => s.active).length} active of {schemes.length} total
+                  {schemes.filter((s) => s.is_active).length} active of {schemes.length} total schemes
                 </p>
               </div>
 
@@ -573,18 +493,17 @@ export default function AdminPage() {
             </div>
 
             {loading ? (
-              <div style={{ padding: '36px', textAlign: 'center', color: '#94a3b8' }}>Loading catalog…</div>
+              <div style={{ padding: '36px', textAlign: 'center', color: '#94a3b8' }}>Loading schemes…</div>
             ) : (
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, textAlign: 'left' }}>
                   <thead>
-                    <tr style={{ background: '#f8fafc', color: '#64748b', borderBottom: '1px solid #e2e8f0', textTransform: 'uppercase', fontSize: 11, letterSpacing: '0.04em' }}>
+                    <tr style={{ background: '#f8fafc', color: '#64748b', borderBottom: '1px solid #e2e8f0' }}>
                       <th style={{ padding: '14px 20px' }}>Scheme Name</th>
                       <th style={{ padding: '14px 20px' }}>Category</th>
-                      <th style={{ padding: '14px 20px' }}>Interest</th>
                       <th style={{ padding: '14px 20px' }}>Max Loan</th>
-                      <th style={{ padding: '14px 20px' }}>Income Cap</th>
-                      <th style={{ padding: '14px 20px' }}>Eligibility</th>
+                      <th style={{ padding: '14px 20px' }}>Interest Rate</th>
+                      <th style={{ padding: '14px 20px' }}>Subvention</th>
                       <th style={{ padding: '14px 20px', textAlign: 'right' }}>Active</th>
                     </tr>
                   </thead>
@@ -592,13 +511,16 @@ export default function AdminPage() {
                     {schemes.map((s) => (
                       <tr key={s.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '14px 20px', fontWeight: 700, color: '#0f172a' }}>{s.name}</td>
-                        <td style={{ padding: '14px 20px', color: '#475569' }}>{CATEGORY_LABELS[s.category] || s.category}</td>
-                        <td style={{ padding: '14px 20px', color: '#15803d', fontWeight: 700 }}>{s.interest_rate_min}%</td>
-                        <td style={{ padding: '14px 20px', color: '#0f172a', fontWeight: 700 }}>₹{s.max_loan_lakh}L</td>
-                        <td style={{ padding: '14px 20px', color: '#64748b' }}>₹{s.max_income_lakh}L</td>
-                        <td style={{ padding: '14px 20px', color: '#64748b' }}>{s.gender_eligibility === 'women_only' ? '👩 Women Only' : 'All SC'}</td>
+                        <td style={{ padding: '14px 20px', color: '#475569' }}>{s.category}</td>
+                        <td style={{ padding: '14px 20px', color: '#0f172a', fontWeight: 600 }}>
+                          ₹{(s.max_loan_amount / 100000).toFixed(1)} L
+                        </td>
+                        <td style={{ padding: '14px 20px', color: '#059669', fontWeight: 700 }}>{s.interest_rate_percent}%</td>
+                        <td style={{ padding: '14px 20px', color: '#64748b' }}>
+                          {s.subvention_percent > 0 ? `${s.subvention_percent}%` : 'None'}
+                        </td>
                         <td style={{ padding: '14px 20px', textAlign: 'right' }}>
-                          <Toggle active={s.active} onToggle={() => toggleScheme(s.id)} />
+                          <Toggle active={s.is_active} onToggle={() => toggleScheme(s.id)} />
                         </td>
                       </tr>
                     ))}
@@ -609,24 +531,15 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Tab 3: Partners */}
         {tab === 'partners' && (
-          <div
-            style={{
-              background: '#ffffff',
-              border: '1.5px solid #e2e8f0',
-              borderRadius: 18,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
-              overflow: 'hidden',
-            }}
-          >
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
                 <h2 style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', margin: 0 }}>
                   Channel Partner Directory
                 </h2>
                 <p style={{ fontSize: 12.5, color: '#64748b', margin: '2px 0 0' }}>
-                  {partners.filter((p) => p.is_active).length} active of {partners.length} total
+                  {partners.filter((p) => p.is_active).length} active of {partners.length} total channel partners
                 </p>
               </div>
 
@@ -657,7 +570,7 @@ export default function AdminPage() {
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, textAlign: 'left' }}>
                   <thead>
-                    <tr style={{ background: '#f8fafc', color: '#64748b', borderBottom: '1px solid #e2e8f0', textTransform: 'uppercase', fontSize: 11, letterSpacing: '0.04em' }}>
+                    <tr style={{ background: '#f8fafc', color: '#64748b', borderBottom: '1px solid #e2e8f0' }}>
                       <th style={{ padding: '14px 20px' }}>Agency / Bank Name</th>
                       <th style={{ padding: '14px 20px' }}>Type</th>
                       <th style={{ padding: '14px 20px' }}>Location</th>

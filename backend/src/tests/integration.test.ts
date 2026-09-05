@@ -146,7 +146,7 @@ async function runIntegrationTests() {
   // Journey 3: Authenticated User Chat State Persistence across Multiple Sessions
   console.log('\n🔐 Journey 3: Authenticated Beneficiary Chat History in Database');
   try {
-    const email = `journeystudent_${Date.now()}@example.com`;
+    const email = `journeystudent_${Date.now()}@gmail.com`;
     const pwd = 'SecuredPassword123!';
     const regRes = await request('POST', '/users/register', {
       email,

@@ -8,10 +8,15 @@ import { useLanguage } from '@/context/LanguageContext';
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
 const CATEGORIES = [
-  { value: '', label: 'All Scheme Categories' },
-  { value: 'micro_finance', label: 'Micro Finance' },
-  { value: 'term_loan', label: 'Term Loan' },
-  { value: 'education_loan', label: 'Education Loan' },
+  { value: '', label: 'All Partner Categories' },
+  { value: 'SCA', label: 'State Channelizing Agencies (SCA)' },
+  { value: 'PSB', label: 'Public Sector Banks (PSB)' },
+  { value: 'RRB', label: 'Regional Rural Banks (RRB)' },
+  { value: 'NBFC_MFI', label: 'NBFC-MFIs' },
+  { value: 'Cooperative_Bank', label: 'Co-operative Banks' },
+  { value: 'Other_Agency_SIDBI', label: 'Other Agencies & SIDBI' },
+  { value: 'Small_Finance_Bank', label: 'Small Finance Banks' },
+  { value: 'Cooperative_Society', label: 'Cooperative Societies' },
 ];
 
 interface Partner {

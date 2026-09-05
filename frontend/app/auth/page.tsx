@@ -1,30 +1,45 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
-import { userLogin, userRegister } from '@/lib/api';
+import { userLogin } from '@/lib/api';
 import {
   Landmark,
   Eye,
   EyeOff,
   CheckCircle2,
-  Mail,
-  Lock,
+Mail,
+  Phone,
+  ArrowRight,
   User,
-  Phone
+  Lock
 } from 'lucide-react';
 import Link from 'next/link';
 import { useLanguage } from '@/context/LanguageContext';
 
 export default function AuthPage() {
+  return (
+    <Suspense
+      fallback={
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
+          <div style={{ fontSize: 14, color: '#64748b', fontWeight: 600 }}>Loading…</div>
+        </div>
+      }
+    >
+      <AuthContent />
+    </Suspense>
+  );
+}
+
+function AuthContent() {
   const router = useRouter();
-  const { t } = useLanguage();
+const { t } = useLanguage();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
@@ -35,32 +50,18 @@ export default function AuthPage() {
     setError('');
 
     const cleanEmail = email.trim();
-    if (!cleanEmail || !/^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(cleanEmail)) {
-      setError('Only @gmail.com email addresses are allowed for signup');
+    if (!cleanEmail) {
+      setError('Email is required');
       return;
     }
-
-    if (!password || password.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (!password) {
+      setError('Password is required');
       return;
-    }
-
-    if (mode === 'register') {
-      const cleanPhone = phone.trim();
-      if (!cleanPhone || !/^\d{10}$/.test(cleanPhone)) {
-        setError('Please enter a valid 10-digit mobile number');
-        return;
-      }
     }
 
     setLoading(true);
     try {
-      let result: { token: string; user: { name: string | null; email: string } };
-      if (mode === 'login') {
-        result = await userLogin(cleanEmail, password);
-      } else {
-        result = await userRegister({ name: name || undefined, email: cleanEmail, phone: phone.trim(), password });
-      }
+      const result = await userLogin(cleanEmail, password);
       localStorage.setItem('auth_token', result.token);
       localStorage.setItem('auth_user', JSON.stringify(result.user));
       router.push('/');
@@ -184,8 +185,11 @@ export default function AuthPage() {
           >
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               <h2 style={{ fontSize: 24, fontWeight: 900, color: '#0b1f3a', margin: 0, letterSpacing: '-0.02em' }}>
-                {mode === 'login' ? t('auth.welcome_back', 'Welcome Back') : t('auth.create_account', 'Create Beneficiary Account')}
+{mode === 'login' ? t('auth.welcome_back', 'Welcome Back') : t('auth.create_account', 'Create Beneficiary Account')}
               </h2>
+              <p style={{ fontSize: 13.5, color: '#64748b', margin: 0 }}>
+                {t('auth.subtitle', 'Sign in to access your chat history and saved schemes.')}
+              </p>
             </div>
 
             {/* Mode Switch Tabs */}
@@ -236,8 +240,14 @@ export default function AuthPage() {
               </button>
             </div>
 
-            {/* Form Fields */}
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {error && (
+                <div style={{ padding: '12px 16px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12, color: '#b91c1c', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#ef4444' }} />
+                  {error}
+                </div>
+              )}
+
               {mode === 'register' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <label style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#475569' }}>
@@ -265,34 +275,36 @@ export default function AuthPage() {
                 </div>
               )}
 
-              {/* Email */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#475569' }}>
+<label style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#475569' }}>
                   {t('auth.email_label', 'Email Address')}
                 </label>
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                   <Mail size={16} color="#94a3b8" style={{ position: 'absolute', left: 14 }} />
                   <input
                     type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter your Gmail address"
                     required
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="Enter your email"
                     style={{
                       width: '100%',
-                      padding: '11px 14px 11px 40px',
+                      padding: '12px 16px 12px 42px',
                       borderRadius: 12,
-                      border: '1.5px solid #cbd5e1',
-                      background: '#f8fafc',
-                      fontSize: 13.5,
+                      border: '1.5px solid #e2e8f0',
+                      fontSize: 14.5,
                       color: '#0f172a',
+                      background: '#f8fafc',
                       outline: 'none',
+                      transition: 'all 0.2s'
                     }}
+                    onFocus={e => e.target.style.borderColor = '#fbbf24'}
+                    onBlur={e => e.target.style.borderColor = '#e2e8f0'}
                   />
                 </div>
               </div>
 
-              {/* Mobile Phone (for Register) */}
+{/* Mobile Phone (for Register) */}
               {mode === 'register' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <label style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#475569' }}>
@@ -330,32 +342,37 @@ export default function AuthPage() {
                   <Lock size={16} color="#94a3b8" style={{ position: 'absolute', left: 14 }} />
                   <input
                     type={showPw ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter password"
                     required
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="••••••••"
                     style={{
                       width: '100%',
-                      padding: '11px 40px 11px 40px',
+                      padding: '12px 42px',
                       borderRadius: 12,
-                      border: '1.5px solid #cbd5e1',
-                      background: '#f8fafc',
-                      fontSize: 13.5,
+                      border: '1.5px solid #e2e8f0',
+                      fontSize: 14.5,
                       color: '#0f172a',
+                      background: '#f8fafc',
                       outline: 'none',
+                      transition: 'all 0.2s'
                     }}
+                    onFocus={e => e.target.style.borderColor = '#fbbf24'}
+                    onBlur={e => e.target.style.borderColor = '#e2e8f0'}
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPw((v) => !v)}
+                    onClick={() => setShowPw(!showPw)}
                     style={{
                       position: 'absolute',
-                      right: 12,
-                      background: 'transparent',
+                      right: 14,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
                       border: 'none',
                       color: '#94a3b8',
                       cursor: 'pointer',
-                      padding: 4,
+                      padding: 4
                     }}
                   >
                     {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -363,31 +380,32 @@ export default function AuthPage() {
                 </div>
               </div>
 
-              {error && (
-                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 12.5, padding: '10px 14px', borderRadius: 10 }}>
-                  {error}
-                </div>
-              )}
-
               <button
                 type="submit"
                 disabled={loading}
                 style={{
-                  width: '100%',
-                  padding: '13px',
+                  padding: '14px',
                   borderRadius: 12,
                   background: '#0b1f3a',
                   color: '#ffffff',
-                  border: 'none',
-                  fontSize: 14,
+                  fontSize: 14.5,
                   fontWeight: 700,
+                  border: 'none',
                   cursor: loading ? 'not-allowed' : 'pointer',
-                  boxShadow: '0 2px 8px rgba(11,31,58,0.18)',
-                  marginTop: 4,
-                  transition: 'all 150ms ease',
+                  opacity: loading ? 0.7 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  marginTop: 8,
+                  boxShadow: '0 4px 12px rgba(11, 31, 58, 0.15)',
+                  transition: 'transform 0.1s'
                 }}
+                onMouseDown={e => e.currentTarget.style.transform = 'scale(0.98)'}
+                onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+                onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
               >
-                {loading ? 'Please wait…' : mode === 'login' ? t('auth.login_btn', 'Sign In to Portal') : t('auth.register_btn', 'Create My Account')}
+{loading ? 'Please wait…' : mode === 'login' ? t('auth.login_btn', 'Sign In to Portal') : t('auth.register_btn', 'Create My Account')}
               </button>
             </form>
 
@@ -399,6 +417,7 @@ export default function AuthPage() {
                 {t('auth.back_home', '← Back to homepage')}
               </Link>
             </div>
+
           </div>
         </div>
       </main>
