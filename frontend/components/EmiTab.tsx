@@ -82,6 +82,21 @@ export default function EmiTab({ onSchemeSelect }: { onSchemeSelect?: (schemeNam
   const [rate, setRate] = useState<number>(7);
   const [tenure, setTenure] = useState<number>(60);
   const [moratorium, setMoratorium] = useState<number>(6);
+  const [userSalary, setUserSalary] = useState<number | null>(null);
+
+  useMemo(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const u = localStorage.getItem('auth_user');
+        if (u) {
+          const parsed = JSON.parse(u);
+          if (parsed.salary != null && !isNaN(Number(parsed.salary))) {
+            setUserSalary(Number(parsed.salary));
+          }
+        }
+      } catch {}
+    }
+  }, []);
 
   function applyPreset(p: SchemePreset, idx: number) {
     setPresetIndex(idx);
@@ -516,6 +531,43 @@ export default function EmiTab({ onSchemeSelect }: { onSchemeSelect?: (schemeNam
               <div style={{ width: `${calculation.interestPct}%`, background: '#fb923c' }} />
             </div>
           </div>
+
+          {/* User Verified Income / Affordability Meter */}
+          {userSalary != null && (
+            <div
+              style={{
+                background: 'rgba(251, 191, 36, 0.1)',
+                border: '1px solid rgba(251, 191, 36, 0.3)',
+                borderRadius: 14,
+                padding: '12px 14px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 6,
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: '#fbbf24', letterSpacing: '0.04em' }}>
+                  Verified Income Affordability
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#ffffff' }}>
+                  {formatINR(userSalary)}/yr
+                </span>
+              </div>
+              {(() => {
+                const monthlyIncome = Math.round(userSalary / 12);
+                const burdenRatio = Math.round((calculation.monthlyEMI / (monthlyIncome || 1)) * 100);
+                const isAffordable = burdenRatio <= 50;
+                return (
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', lineHeight: 1.5 }}>
+                    Monthly Income: <strong>{formatINR(monthlyIncome)}</strong> • EMI is <strong>{burdenRatio}%</strong> of income.{' '}
+                    <span style={{ color: isAffordable ? '#86efac' : '#fca5a5', fontWeight: 700 }}>
+                      {isAffordable ? '✓ Comfortably within repayment norms (≤ 50%)' : '⚠ High debt-to-income ratio (> 50%)'}
+                    </span>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
 
           {/* Action Triggers */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 4 }}>

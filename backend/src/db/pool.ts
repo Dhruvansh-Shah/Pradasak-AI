@@ -1,7 +1,9 @@
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
+import path from 'path';
 
 dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, '../../../.env'), override: true });
 
 // Neon (and most hosted Postgres) requires SSL. The pg library reads
 // sslmode=require from the connection string automatically when using

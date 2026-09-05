@@ -104,7 +104,11 @@ function getCategoryInfo(category: string): { name: string; altName: string } | 
   return null;
 }
 
-export function buildSystemPrompt(langCode: string, category?: string): string {
+export function buildSystemPrompt(
+  langCode: string,
+  category?: string,
+  userContext?: { name?: string | null; salary?: number | null }
+): string {
   const cfg = getLanguageConfig(langCode);
   const langName = cfg ? cfg.name : 'English';
 
@@ -128,9 +132,19 @@ SELECTED CARD CATEGORY CONTEXT & MISMATCH ACKNOWLEDGMENT:
 `
     : '';
 
+  const salaryNum = userContext?.salary != null ? Number(userContext.salary) : null;
+  const userInfoPrompt = (salaryNum != null || userContext?.name)
+    ? `
+AUTHENTICATED BENEFICIARY PROFILE & VERIFIED FINANCIAL DATA:
+${userContext?.name ? `- Beneficiary Name: ${userContext.name}` : ''}
+${salaryNum != null ? `- Verified Annual Income / Salary: ₹${salaryNum.toLocaleString('en-IN')} (verified from government records / registration).
+- CRITICAL SALARY RULE: The beneficiary's annual salary/income is already on file and verified (₹${salaryNum.toLocaleString('en-IN')}). NEVER ask the user what their salary, earnings, or income is. Automatically use this figure when checking scheme eligibility (ceiling ≤ ₹5,00,000), assessing repayment affordability, or passing parameters to tools.` : ''}
+`
+    : '';
+
   return `
 You are the AI Financial Advisor for Pradarshak AI (National Scheduled Castes Finance and Development Corporation - NSFDC, Govt. of India). You help Scheduled Caste beneficiaries find subsidized loan schemes, understand repayment EMIs, find channel partners, and understand documentation and application steps.
-
+${userInfoPrompt}
 USER'S EFFECTIVE RESPONSE LANGUAGE:
 - Effective response language: ${langName} (${langCode}).
 - You MUST respond naturally in ${langName}.
@@ -232,9 +246,15 @@ export async function process(
   requestedLanguage?: string,
   detectedSpeechLanguage?: string,
   speechProbability?: number,
-  category?: string
+  category?: string,
+  userContext?: { name?: string | null; salary?: number | null }
 ): Promise<ChatApiResponse> {
   const session: Session = getOrCreate(sessionId);
+
+  if (userContext) {
+    session.userContext = { ...session.userContext, ...userContext };
+  }
+  const effectiveUserContext = session.userContext || userContext;
 
   const resolution = resolveEffectiveLanguage({
     selectedLanguage: requestedLanguage,
@@ -247,7 +267,7 @@ export async function process(
 
   session.conversationHistory.push({ role: 'user', content: message });
 
-  const messages: ChatMessage[] = [{ role: 'system', content: buildSystemPrompt(session.language, category) }];
+  const messages: ChatMessage[] = [{ role: 'system', content: buildSystemPrompt(session.language, category, effectiveUserContext) }];
 
   if (session.lastContext) {
     messages.push({
@@ -285,6 +305,12 @@ export async function process(
           } catch {
             args = {};
           }
+
+          // Pre-populate family_income_rs from verified user salary if not explicitly set
+          if (call.function.name === 'recommend_schemes' && args.family_income_rs == null && effectiveUserContext?.salary != null) {
+            args.family_income_rs = Number(effectiveUserContext.salary);
+          }
+
           const result = await executeTool(call.function.name, args);
           lastToolName = result.toolName;
           lastToolData = result.data;

@@ -67,6 +67,21 @@ router.post('/', async (req: UserAuthRequest, res: Response) => {
       );
     }
 
+    // Fetch user profile info (name and verified salary) if authenticated
+    let userContext: { name?: string | null; salary?: number | null } | undefined;
+    if (userId) {
+      const { rows: userRows } = await pool.query<{ name: string | null; salary: string | number | null }>(
+        'SELECT name, salary FROM users WHERE id = $1',
+        [userId]
+      );
+      if (userRows.length > 0) {
+        userContext = {
+          name: userRows[0].name,
+          salary: userRows[0].salary != null ? Number(userRows[0].salary) : null,
+        };
+      }
+    }
+
     // Use activeSessionId (chatId or incomingSessionId) for multi-turn session continuity
     const response = await orchestrate(
       message.trim(),
@@ -74,7 +89,8 @@ router.post('/', async (req: UserAuthRequest, res: Response) => {
       language,
       detectedLanguageCode,
       languageProbability,
-      category
+      category,
+      userContext
     );
 
     if (userId && chatId) {

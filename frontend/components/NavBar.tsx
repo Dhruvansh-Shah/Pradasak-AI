@@ -175,7 +175,7 @@ export default function NavBar() {
                     lineHeight: 1.2,
                   }}
                 >
-                  {t('brand.name', 'Pradarshak AI')}
+                  {t('brand.name', 'PradarshakAI')}
                 </span>
               </div>
               <span
@@ -258,7 +258,7 @@ export default function NavBar() {
                 }}
               >
                 <Globe size={14} color="#ffdcc2" />
-                <span>{isAuto ? `Auto (${currentLangObj.name})` : currentLangObj.name}</span>
+                <span>{isAuto ? `Auto (${currentLangObj.nativeName})` : currentLangObj.nativeName}</span>
                 <ChevronDown size={13} style={{ transform: langOpen ? 'rotate(180deg)' : 'none', transition: 'transform 150ms' }} />
               </button>
 
@@ -340,7 +340,7 @@ export default function NavBar() {
                           textAlign: 'left',
                         }}
                       >
-                        <span>{item.name}</span>
+                        <span>{item.nativeName}</span>
                         {isSelected && <span style={{ color: '#ffdcc2', fontSize: 12 }}>✓</span>}
                       </button>
                     );
@@ -389,19 +389,45 @@ export default function NavBar() {
                 </button>
               </div>
             ) : (
-              <Link
-                href="/auth"
-                className="btn btn-amber btn-bounce"
-                style={{
-                  fontSize: 13.5,
-                  padding: '7px 16px',
-                  borderRadius: 4,
-                  fontWeight: 700,
-                }}
-              >
-                <User size={14} />
-                <span>{t('nav.login', 'Citizen Login')}</span>
-              </Link>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Link
+                  href="/auth"
+                  className="btn-bounce"
+                  style={{
+                    fontSize: 13,
+                    padding: '7px 13px',
+                    borderRadius: 4,
+                    fontWeight: 600,
+                    color: '#e2e8f0',
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    textDecoration: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                  }}
+                >
+                  <User size={13} color="#ffdcc2" />
+                  <span>{t('nav.signin', 'Sign In')}</span>
+                </Link>
+                <Link
+                  href="/register"
+                  className="btn btn-amber btn-bounce"
+                  style={{
+                    fontSize: 13,
+                    padding: '7px 14px',
+                    borderRadius: 4,
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <ShieldCheck size={14} />
+                  <span>{t('nav.register', 'Register')}</span>
+                </Link>
+              </div>
             )}
 
             {/* Mobile Hamburger Menu */}
@@ -463,6 +489,46 @@ export default function NavBar() {
               </Link>
             );
           })}
+
+          {!user && (
+            <div style={{ display: 'flex', gap: 8, marginTop: 8, paddingTop: 10, borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+              <Link
+                href="/auth"
+                onClick={() => setMobileOpen(false)}
+                style={{
+                  flex: 1,
+                  padding: '9px 12px',
+                  borderRadius: 4,
+                  textAlign: 'center',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: '#ffffff',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  textDecoration: 'none',
+                }}
+              >
+                {t('nav.signin', 'Sign In')}
+              </Link>
+              <Link
+                href="/register"
+                onClick={() => setMobileOpen(false)}
+                style={{
+                  flex: 1,
+                  padding: '9px 12px',
+                  borderRadius: 4,
+                  textAlign: 'center',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: '#001e40',
+                  background: '#fe9832',
+                  textDecoration: 'none',
+                }}
+              >
+                {t('nav.register', 'Register')}
+              </Link>
+            </div>
+          )}
         </div>
       )}
     </header>

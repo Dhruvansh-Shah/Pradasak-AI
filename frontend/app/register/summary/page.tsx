@@ -3,6 +3,8 @@
 import { useRouter } from 'next/navigation';
 import { CheckCircle2, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import NavBar from '@/components/NavBar';
+import Footer from '@/components/Footer';
 
 export default function SummaryPage() {
   const router = useRouter();
@@ -23,7 +25,11 @@ export default function SummaryPage() {
   const isVerified = data.eligibility_status === 'verified';
   
   return (
-    <div style={{ maxWidth: 700, width: '100%', background: '#fff', padding: 48, borderRadius: 24, boxShadow: '0 12px 36px rgba(11, 31, 58, 0.08)' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f1f5f9' }}>
+      <NavBar />
+
+      <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 24px' }}>
+        <div style={{ maxWidth: 700, width: '100%', background: '#fff', padding: 48, borderRadius: 24, boxShadow: '0 12px 36px rgba(11, 31, 58, 0.08)', border: '1px solid #e2e8f0' }}>
       
       <div style={{ textAlign: 'center', marginBottom: 40 }}>
         {isVerified ? (
@@ -67,9 +73,9 @@ export default function SummaryPage() {
             </div>
           </div>
           <div>
-            <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Documents AI Score</div>
-            <div style={{ fontSize: 15, color: '#0f172a', fontWeight: 600 }}>
-              {data.overall_confidence !== undefined ? `${Math.round(data.overall_confidence * 100)}% Match` : 'N/A'}
+            <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Verified Annual Salary / Income</div>
+            <div style={{ fontSize: 15, color: '#0f172a', fontWeight: 700 }}>
+              {data.salary ? `₹${Number(data.salary).toLocaleString('en-IN')}` : '≤ ₹5,00,000'}
             </div>
           </div>
         </div>
@@ -90,7 +96,10 @@ export default function SummaryPage() {
           Go to Dashboard
         </button>
       </div>
+      </div>
+    </main>
 
+    <Footer />
     </div>
   );
 }

@@ -4,6 +4,7 @@ export interface RegistrationSession {
   email: string;
   casteStatus: VerificationStatus;
   incomeStatus: VerificationStatus;
+  extractedIncome?: number;
 }
 
 const sessions = new Map<string, RegistrationSession>();

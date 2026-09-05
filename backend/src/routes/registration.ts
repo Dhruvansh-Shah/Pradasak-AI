@@ -7,6 +7,7 @@ import bcrypt from 'bcryptjs';
 import { verifyCasteCertificate, verifyIncomeCertificate } from '../services/CertificateVerifier';
 import { getRegistrationSession, clearRegistrationSession } from '../services/RegistrationSessionService';
 import { sendOtp, verifyOtp, isEmailVerified, clearVerification } from '../services/OtpService';
+import { sendRegistrationSuccessEmail } from '../services/EmailService';
 import jwt from 'jsonwebtoken';
 
 const router = Router();
@@ -131,25 +132,28 @@ router.post('/complete', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    const resolvedSalary = req.body.salary ? Number(req.body.salary) : (session.extractedIncome || null);
+
     const { rows } = await pool.query(`
       INSERT INTO users (
         name, phone, email, password_hash, dob, gender,
         mobile_verified, email_verified,
         address_line1, address_line2, city, district, state, pincode,
         selfie_image, sc_certificate_file, income_certificate_file, aadhaar,
-        eligibility_status, registration_complete
+        eligibility_status, registration_complete, salary
       ) VALUES (
         $1, $2, $3, $4, $5, $6,
         true, false,
         $7, $8, $9, $10, $11, $12,
         $13, $14, $15, $16,
-        $17, true
-      ) RETURNING id, name, email, phone, eligibility_status
+        $17, true, $18
+      ) RETURNING id, name, email, phone, salary, eligibility_status
     `, [
       full_name, mobile, emailStr, passwordHash, dob || null, gender || null,
       address_line1 || null, address_line2 || null, city || null, district || null, state || null, pincode || null,
       selfie_image || null, sc_certificate_file || null, income_certificate_file || null, aadhaar || null,
-      eligibility_status || 'pending_manual_review'
+      eligibility_status || 'pending_manual_review',
+      resolvedSalary
     ]);
 
     const user = rows[0];
@@ -158,6 +162,29 @@ router.post('/complete', async (req: Request, res: Response): Promise<void> => {
     clearVerification(emailStr);
     clearRegistrationSession(emailStr);
     
+    // Asynchronously dispatch the registration completion email to the OTP-verified email address
+    // Failure handling: Account is already successfully created, so email delivery failures are logged safely
+    sendRegistrationSuccessEmail({
+      fullName: full_name,
+      email: emailStr,
+      mobile,
+      dob: dob || null,
+      gender: gender || null,
+      addressLine1: address_line1 || null,
+      addressLine2: address_line2 || null,
+      city: city || null,
+      district: district || null,
+      state: state || null,
+      pincode: pincode || null,
+      salary: resolvedSalary,
+      eligibilityStatus: eligibility_status || 'verified',
+      scCertificateFile: sc_certificate_file || null,
+      incomeCertificateFile: income_certificate_file || null,
+      selfieImage: selfie_image || null,
+    }).catch((emailErr) => {
+      console.error('[PradarshakAI EmailService] Background email sending error:', emailErr?.message || emailErr);
+    });
+
     res.status(201).json({ token, user });
   } catch (err: any) {
     if (err.message.includes('unique')) {

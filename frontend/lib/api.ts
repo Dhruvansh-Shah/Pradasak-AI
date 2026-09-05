@@ -20,6 +20,7 @@ export interface UserProfile {
   name: string | null;
   email: string;
   phone: string;
+  salary?: number | null;
   created_at: string;
 }
 
@@ -134,7 +135,7 @@ export async function transcribeAudio(
 // ── User auth ─────────────────────────────────────────────────────────────────
 
 export async function userRegister(data: {
-  name?: string; email: string; phone: string; password: string;
+  name?: string; email: string; phone: string; password: string; salary?: number;
 }): Promise<{ token: string; user: UserProfile }> {
   const res = await fetch(`${BASE}/users/register`, {
     method: 'POST',

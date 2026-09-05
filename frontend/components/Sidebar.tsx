@@ -6,7 +6,6 @@ import type { ChatSummary } from '@/lib/api';
 import {
   MessageSquare,
   Trash2,
-  Plus,
   LogIn,
   Sparkles,
   History,
@@ -132,49 +131,25 @@ export default function Sidebar({
           </span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        {onClose && (
           <button
-            onClick={onNewChat}
+            onClick={onClose}
             style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#64748b',
+              padding: '6px',
+              borderRadius: 8,
+              cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: 4,
-              background: '#0b1f3a',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: 8,
-              padding: '6px 10px',
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: 'pointer',
-              boxShadow: '0 1px 4px rgba(11,31,58,0.15)',
+              justifyContent: 'center',
             }}
-            title="Start new conversation"
+            title="Close sidebar"
           >
-            <Plus size={13} color="#fbbf24" />
-            <span>{t('chat.new_chat', 'New Chat')}</span>
+            <X size={16} />
           </button>
-
-          {onClose && (
-            <button
-              onClick={onClose}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#64748b',
-                padding: '6px',
-                borderRadius: 8,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-              title="Close sidebar"
-            >
-              <X size={16} />
-            </button>
-          )}
-        </div>
+        )}
       </div>
 
       {/* ── Chat List Stream ──────────────────────────────────────────────── */}

@@ -509,6 +509,7 @@ function MessageBubble({
 
 interface ChatInterfaceProps {
   chatId?: string | null;
+  resetKey?: number;
   token?: string | null;
   onChatCreated?: (chatId: string) => void;
   onStepComplete?: (stepKey: 'eligibility' | 'scheme' | 'emi' | 'partner') => void;
@@ -519,6 +520,7 @@ interface ChatInterfaceProps {
 
 export default function ChatInterface({
   chatId: propChatId,
+  resetKey,
   token,
   onChatCreated,
   onStepComplete,
@@ -740,7 +742,31 @@ export default function ChatInterface({
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
+  // Reset chat on explicit New Chat action
   useEffect(() => {
+    if (resetKey !== undefined && resetKey > 0) {
+      chatIdRef.current = null;
+      setSessionId('');
+      setMessages([]);
+      setShowWelcome(true);
+      setInput('');
+      setLoading(false);
+      setSpeechError(null);
+      lastProcessedQueryRef.current = null;
+      stopAudio();
+      stopListening();
+    }
+  }, [resetKey, stopAudio, stopListening]);
+
+  // Synchronize when switching to a different chat or loading initial messages
+  useEffect(() => {
+    if (propChatId && propChatId !== chatIdRef.current) {
+      chatIdRef.current = propChatId;
+      setSessionId(propChatId);
+      stopAudio();
+      stopListening();
+    }
+
     if (initialMessages && initialMessages.length > 0) {
       setMessages(
         initialMessages.map((m) => ({
@@ -770,7 +796,7 @@ export default function ChatInterface({
         onStepComplete?.('partner');
       }
     }
-  }, [initialMessages, onStepComplete]);
+  }, [propChatId, initialMessages, onStepComplete, stopAudio, stopListening]);
 
   const addMessage = useCallback((msg: Omit<Message, 'id'>) => {
     setMessages((prev) => [
@@ -981,6 +1007,30 @@ export default function ChatInterface({
                 <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.6, margin: 0, maxWidth: 640 }}>
                   {activeCategoryItem.desc}
                 </p>
+
+                <button
+                  onClick={() => send(activeCategoryItem.query)}
+                  style={{
+                    marginTop: 6,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '10px 18px',
+                    borderRadius: 12,
+                    background: '#0b1f3a',
+                    color: '#ffffff',
+                    fontSize: 13.5,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    width: 'fit-content',
+                    border: 'none',
+                    boxShadow: '0 2px 8px rgba(11,31,58,0.18)',
+                  }}
+                >
+                  <Sparkles size={16} color="#fbbf24" />
+                  <span>{t('chat.start_this_query', 'Start inquiry with this template')}</span>
+                  <ArrowRight size={14} />
+                </button>
               </div>
             </div>
           )}
@@ -1022,7 +1072,7 @@ export default function ChatInterface({
                 </div>
 
                 <h1 style={{ fontSize: 30, fontWeight: 800, color: '#0b1f3a', letterSpacing: '-0.02em', margin: '4px 0 0' }}>
-                  {t('chat.welcome_title', 'Pradarshak AI Scheme Assistant')}
+                  {t('chat.welcome_title', 'PradarshakAI Scheme Assistant')}
                 </h1>
 
                 <p style={{ fontSize: 15, color: '#64748b', maxWidth: 620, lineHeight: 1.6, margin: 0 }}>

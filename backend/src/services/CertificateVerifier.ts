@@ -644,7 +644,7 @@ async function fetchGovDocument(url: string): Promise<Buffer> {
     timeout: 15000,
     maxRedirects: 4,
     headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) PradarsakAI/1.0',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) PradarshakAI/1.0',
     },
   });
   return Buffer.from(response.data);
@@ -929,7 +929,10 @@ export async function verifyIncomeCertificate(filePath: string, _fullName: strin
       console.log(`[Decision] Extracted Income: ₹${result.income.toLocaleString('en-IN')}`);
     }
 
-    updateRegistrationSession(email, { incomeStatus: result.status });
+    updateRegistrationSession(email, { 
+      incomeStatus: result.status,
+      extractedIncome: result.income !== undefined ? result.income : undefined 
+    });
 
     return {
       success: result.success,

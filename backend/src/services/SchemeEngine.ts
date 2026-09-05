@@ -113,12 +113,15 @@ function purposeMatchScore(scheme: Scheme, purpose: string | undefined): number 
   // Check direct scheme match against acronym, short_name, base_name, full_name, or aliases
   const isAcronymMatch = normAcronym.length > 0 && (normP === normAcronym || pTokens.includes(normAcronym));
   const isShortMatch = normShortName.length > 0 && (normP === normShortName || pTokens.includes(normShortName));
-  const isBaseNameMatch = normBaseName.length >= 3 && (normP === normBaseName || normP.includes(normBaseName) || normBaseName.includes(normP));
   const isFullNameMatch = normFullName.length >= 3 && (normP === normFullName || normP.includes(normFullName) || normFullName.includes(normP));
+  const isBaseNameMatch = normBaseName.length >= 3 && (normP === normBaseName || normP.includes(normBaseName) || normBaseName.includes(normP));
   const isAliasMatch = normAliases.some((alias) => alias.length >= 2 && (normP === alias || normP.includes(alias) || alias.includes(normP)));
 
-  if (isAcronymMatch || isShortMatch || isBaseNameMatch || isFullNameMatch || isAliasMatch) {
-    return 100;
+  if (isAcronymMatch || isShortMatch || isFullNameMatch || isBaseNameMatch || isAliasMatch) {
+    const rawTypes = scheme.eligible_project_types || [];
+    const normalizedTypes = rawTypes.map((t) => t.toLowerCase().replace(/[-_]/g, ' '));
+    const tokenBonus = normalizedTypes.some((t) => normP.includes(t)) ? 20 : 0;
+    return 100 + tokenBonus;
   }
 
   const rawTypes = scheme.eligible_project_types || [];

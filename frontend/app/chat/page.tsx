@@ -40,7 +40,7 @@ function ChatPage() {
   const TABS: { id: TabId; label: string; Icon: React.ElementType }[] = [
     { id: 'chat',     label: t('chat.tab_ai', 'AI Scheme Assistant'), Icon: Bot },
     { id: 'emi',      label: t('chat.tab_emi', 'EMI Calculator'),      Icon: Calculator },
-    { id: 'partners', label: t('chat.tab_partners', 'Channel Partners'),    Icon: MapPin },
+    { id: 'partners', label: t('nav.partners', 'Partner Locator'),     Icon: MapPin },
   ];
 
   const [tab, setTab] = useState<TabId>('chat');
@@ -52,6 +52,7 @@ function ChatPage() {
   const [journeyDone, setJourneyDone] = useState<Record<string, boolean>>({});
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [journeyOpen, setJourneyOpen] = useState(false);
+  const [resetKey, setResetKey] = useState(0);
 
   const queryParam = searchParams.get('q');
 
@@ -69,13 +70,24 @@ function ChatPage() {
     if (tabParam === 'emi') {
       setTab('emi');
     } else if (tabParam === 'partners') {
-      setTab('partners');
+      router.replace('/partners');
+      return;
     } else {
       setTab('chat');
     }
 
     const cid = searchParams.get('chatId');
-    if (cid) loadChat(cid, t || null);
+    if (cid) {
+      if (cid !== chatId) {
+        loadChat(cid, t || null);
+      }
+    } else if (chatId !== null) {
+      // User navigated to /chat without chatId (e.g. clicked navigation link or back)
+      setChatId(null);
+      setInitialMessages([]);
+      setJourneyDone({});
+      setResetKey((k) => k + 1);
+    }
   }, [searchParams]);
 
   async function loadChat(id: string, t: string | null) {
@@ -85,7 +97,10 @@ function ChatPage() {
       setChatId(id);
       setInitialMessages(data.messages || []);
       setSidebarOpen(false);
-    } catch {}
+      router.replace(`/chat?chatId=${id}`);
+    } catch (err) {
+      console.error('Failed to load chat:', err);
+    }
   }
 
   function handleNewChat() {
@@ -93,6 +108,8 @@ function ChatPage() {
     setInitialMessages([]);
     setJourneyDone({});
     setRefreshSignal((n) => n + 1);
+    setSidebarOpen(false);
+    setResetKey((k) => k + 1);
     router.replace('/chat');
   }
 
@@ -104,6 +121,7 @@ function ChatPage() {
     setChatId(id);
     setRefreshSignal((n) => n + 1);
     handleStepComplete('eligibility');
+    router.replace(`/chat?chatId=${id}`);
   }
 
   function handleStepComplete(stepKey: 'eligibility' | 'scheme' | 'emi' | 'partner') {
@@ -195,7 +213,13 @@ function ChatPage() {
               return (
                 <button
                   key={id}
-                  onClick={() => setTab(id)}
+                  onClick={() => {
+                    if (id === 'partners') {
+                      router.push('/partners');
+                    } else {
+                      setTab(id);
+                    }
+                  }}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -300,6 +324,7 @@ function ChatPage() {
           {tab === 'chat' && (
             <ChatInterface
               chatId={chatId}
+              resetKey={resetKey}
               token={token}
               onChatCreated={handleChatCreated}
               onStepComplete={handleStepComplete}

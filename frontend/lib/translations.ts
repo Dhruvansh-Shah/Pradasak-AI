@@ -4,7 +4,7 @@ export type Language = LanguageCode;
 export const TRANSLATIONS: Record<string, Record<string, string>> = {
   en: {
     // Brand & Global
-    'brand.name': 'Pradarshak AI',
+    'brand.name': 'PradarshakAI',
     'brand.tag': 'SIH • NSFDC',
     'brand.subtitle': 'Channel Finance & Concessional Loans',
     'brand.org': 'National SC Finance & Development Corporation',
@@ -81,7 +81,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     // How it works
     'how.badge': 'Simple 4-Step Process',
     'how.title': 'From Inquiry to Disbursement',
-    'how.desc': 'How Pradarshak AI guides an applicant directly to the right channel partner with confidence.',
+    'how.desc': 'How PradarshakAI guides an applicant directly to the right channel partner with confidence.',
     'how.step1_title': 'Tell Us Your Needs',
     'how.step1_desc': 'Chat in your preferred language about your loan purpose and family income.',
     'how.step2_title': 'AI Matches Schemes',
@@ -138,7 +138,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'chat.past_chats': 'Past Chats',
     'chat.checklist': 'Checklist',
     'chat.new_chat': 'New Chat',
-    'chat.welcome_title': 'Pradarshak AI Scheme Assistant',
+    'chat.welcome_title': 'PradarshakAI Scheme Assistant',
     'chat.welcome_desc': 'Describe your business idea, annual income, or educational goal to find verified concessional loan schemes.',
     'chat.input_ph': 'Ask about loans, eligibility, interest rates, or channel partners...',
     'chat.send_btn': 'Send',
