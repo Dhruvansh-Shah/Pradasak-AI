@@ -15,7 +15,8 @@
     "test:performance": "tsx src/tests/performance.test.ts",
     "test:stress": "tsx src/tests/stress.test.ts",
     "db:migrate": "tsx src/db/migrate.ts",
-    "db:migrate-v2": "tsx src/db/migrate-v2.ts"
+    "db:migrate-v2": "tsx src/db/migrate-v2.ts",
+    "db:migrate-v4": "tsx src/db/migrate-v4.ts"
   },
   "keywords": [],
   "author": "",
@@ -23,18 +24,30 @@
   "dependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.10",
+    "axios": "^1.20.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "jimp": "^1.6.1",
     "jsonwebtoken": "^9.0.3",
-    "pg": "^8.23.0"
+    "jsqr": "^1.4.0",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^10.0.0",
+    "pdf-parse": "^2.4.5",
+    "pg": "^8.23.0",
+    "string-similarity": "^4.0.4",
+    "tesseract.js": "^5.1.1"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
+    "@types/multer": "^1.4.11",
     "@types/node": "^26.3.0",
+    "@types/nodemailer": "^8.0.1",
+    "@types/pdf-parse": "^1.1.5",
     "@types/pg": "^8.23.1",
+    "@types/string-similarity": "^4.0.2",
     "nodemon": "^3.1.14",
     "ts-node": "^10.9.2",
     "tsx": "^4.23.12",
