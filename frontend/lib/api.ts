@@ -69,6 +69,47 @@ export async function sendChat(
   return res.json() as Promise<ChatResponse>;
 }
 
+// ── Text-to-Speech (TTS) ──────────────────────────────────────────────────────
+
+export async function fetchTTS(text: string, language: string): Promise<Blob> {
+  const res = await fetch(`${BASE}/tts`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, language }),
+  });
+  if (!res.ok) {
+    const err = (await res.json().catch(() => ({ error: 'TTS request failed' }))) as { error?: string; detail?: string };
+    throw new Error(err.detail || err.error || 'TTS request failed');
+  }
+  return res.blob();
+}
+
+// ── Speech-to-Text (STT) ──────────────────────────────────────────────────────
+
+export async function transcribeAudio(
+  audioBlob: Blob,
+  language: string
+): Promise<{ transcript: string; languageCode: string }> {
+  const formData = new FormData();
+  formData.append('audio', audioBlob, 'recording.webm');
+  formData.append('language', language);
+
+  const res = await fetch(`${BASE}/stt`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const err = (await res.json().catch(() => ({ error: 'STT request failed' }))) as {
+      error?: string;
+      detail?: string;
+    };
+    throw new Error(err.detail || err.error || 'STT request failed');
+  }
+
+  return res.json() as Promise<{ transcript: string; languageCode: string }>;
+}
+
 // ── User auth ─────────────────────────────────────────────────────────────────
 
 export async function userRegister(data: {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { sendChat } from '@/lib/api';
+import { sendChat, fetchTTS, transcribeAudio } from '@/lib/api';
 import type { ChatResponse, ChatMessage } from '@/lib/api';
 import TypingIndicator from './TypingIndicator';
 import TypewriterText from './TypewriterText';
@@ -10,6 +10,7 @@ import EMIResultCard from './EMIResultCard';
 import PartnerResultCard from './PartnerResultCard';
 import ComparisonCard from './ComparisonCard';
 import DocumentCard from './DocumentCard';
+import VoiceVisualizer from './VoiceVisualizer';
 import {
   Send,
   Sparkles,
@@ -25,6 +26,9 @@ import {
   CornerDownLeft,
   Mic,
   MicOff,
+  Volume2,
+  Square,
+  Loader2,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { renderText } from '@/lib/textFormat';
@@ -50,45 +54,12 @@ const LANG_LABELS: Record<Language, string> = {
   mr: 'मराठी',
 };
 
-// ── Speech-to-text setup ────────────────────────────────────────────────────
+// ── Speech-to-text setup (Sarvam Saaras STT via backend) ────────────────────
 const SPEECH_LANG_MAP: Record<Language, string> = {
   en: 'en-IN',
   hi: 'hi-IN',
   mr: 'mr-IN',
 };
-
-interface SpeechRecognitionResultLike {
-  isFinal: boolean;
-  0: { transcript: string };
-}
-interface SpeechRecognitionEventLike extends Event {
-  resultIndex: number;
-  results: ArrayLike<SpeechRecognitionResultLike>;
-}
-interface SpeechRecognitionErrorEventLike extends Event {
-  error: string;
-}
-interface SpeechRecognitionLike extends EventTarget {
-  lang: string;
-  continuous: boolean;
-  interimResults: boolean;
-  maxAlternatives: number;
-  start: () => void;
-  stop: () => void;
-  abort: () => void;
-  onresult: ((ev: SpeechRecognitionEventLike) => void) | null;
-  onerror: ((ev: SpeechRecognitionErrorEventLike) => void) | null;
-  onend: (() => void) | null;
-}
-
-function getSpeechRecognitionCtor(): (new () => SpeechRecognitionLike) | null {
-  if (typeof window === 'undefined') return null;
-  const w = window as unknown as {
-    SpeechRecognition?: new () => SpeechRecognitionLike;
-    webkitSpeechRecognition?: new () => SpeechRecognitionLike;
-  };
-  return w.SpeechRecognition || w.webkitSpeechRecognition || null;
-}
 
 type SuggestionItem = {
   title: string;
@@ -221,14 +192,24 @@ function MessageBubble({
   msg,
   onAction,
   scrollRef,
+  playingMessageId,
+  loadingTTSMessageId,
+  onPlayTTS,
+  onStopTTS,
 }: {
   msg: Message;
   onAction: (text: string) => void;
   scrollRef?: React.RefObject<HTMLDivElement | null>;
+  playingMessageId?: string | null;
+  loadingTTSMessageId?: string | null;
+  onPlayTTS?: (msg: Message) => void;
+  onStopTTS?: () => void;
 }) {
   const isUser = msg.role === 'user';
   const [textDone, setTextDone] = useState(!msg.animate);
   const showExtras = !msg.animate || textDone;
+  const isPlaying = playingMessageId === msg.id;
+  const isThisLoading = loadingTTSMessageId === msg.id;
 
   const schemes = msg.type === 'schemes' ? (msg.data?.schemes as unknown[]) || [] : [];
   const emiData = msg.type === 'emi' ? msg.data : null;
@@ -305,6 +286,53 @@ function MessageBubble({
               />
             )}
           </div>
+
+          {!isUser && showExtras && onPlayTTS && onStopTTS && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, paddingTop: 8, borderTop: '1px solid #f1f5f9' }}>
+              <button
+                onClick={() => {
+                  if (isPlaying) {
+                    onStopTTS();
+                  } else {
+                    onPlayTTS(msg);
+                  }
+                }}
+                disabled={Boolean(loadingTTSMessageId) && !isThisLoading}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '5px 12px',
+                  borderRadius: 16,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  background: isPlaying ? '#fee2e2' : '#f1f5f9',
+                  color: isPlaying ? '#dc2626' : '#334155',
+                  border: isPlaying ? '1.5px solid #fca5a5' : '1px solid #cbd5e1',
+                  cursor: loadingTTSMessageId && !isThisLoading ? 'default' : 'pointer',
+                  opacity: loadingTTSMessageId && !isThisLoading ? 0.6 : 1,
+                  transition: 'all 150ms ease',
+                }}
+              >
+                {isThisLoading ? (
+                  <>
+                    <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} color="#64748b" />
+                    <span>Generating voice...</span>
+                  </>
+                ) : isPlaying ? (
+                  <>
+                    <Square size={12} fill="#dc2626" color="#dc2626" />
+                    <span>Stop</span>
+                  </>
+                ) : (
+                  <>
+                    <Volume2 size={13} color="#334155" />
+                    <span>Listen</span>
+                  </>
+                )}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Structured Data Result Cards — held back until the reply finishes typing */}
@@ -464,10 +492,71 @@ export default function ChatInterface({
   const [showWelcome, setShowWelcome] = useState(!initialMessages?.length);
 
   const [isListening, setIsListening] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(true);
   const [speechError, setSpeechError] = useState<string | null>(null);
-  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
-  const baseValueRef = useRef('');
+  const [activeStream, setActiveStream] = useState<MediaStream | null>(null);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+
+  const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
+  const [loadingTTSMessageId, setLoadingTTSMessageId] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioUrlRef = useRef<string | null>(null);
+
+  const stopAudio = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    if (audioUrlRef.current) {
+      URL.revokeObjectURL(audioUrlRef.current);
+      audioUrlRef.current = null;
+    }
+    setPlayingMessageId(null);
+    setLoadingTTSMessageId(null);
+  }, []);
+
+  const handlePlayTTS = useCallback(
+    async (msg: Message) => {
+      stopAudio();
+      setLoadingTTSMessageId(msg.id);
+      setSpeechError(null);
+
+      try {
+        const blob = await fetchTTS(msg.text, language);
+        const url = URL.createObjectURL(blob);
+        audioUrlRef.current = url;
+        const audio = new Audio(url);
+        audioRef.current = audio;
+
+        audio.onended = () => {
+          stopAudio();
+        };
+        audio.onerror = () => {
+          stopAudio();
+          setSpeechError('Voice output audio playback failed.');
+        };
+
+        setLoadingTTSMessageId(null);
+        setPlayingMessageId(msg.id);
+        await audio.play();
+      } catch (err) {
+        console.error('[tts-error]', err);
+        stopAudio();
+        setSpeechError('Voice output unavailable. Please verify network or backend config.');
+      }
+    },
+    [language, stopAudio]
+  );
+
+  useEffect(() => {
+    return () => {
+      stopAudio();
+    };
+  }, [stopAudio]);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -475,75 +564,102 @@ export default function ChatInterface({
   const initialSentRef = useRef(false);
 
   useEffect(() => {
-    setSpeechSupported(getSpeechRecognitionCtor() !== null);
+    setSpeechSupported(
+      typeof window !== 'undefined' &&
+        !!(navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function' && typeof MediaRecorder !== 'undefined')
+    );
   }, []);
 
   useEffect(() => {
     return () => {
-      recognitionRef.current?.abort();
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      }
     };
   }, []);
 
   const stopListening = useCallback(() => {
-    recognitionRef.current?.stop();
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current = null;
+    }
+    setActiveStream(null);
+    setIsListening(false);
   }, []);
 
-  const startListening = useCallback(() => {
-    const Ctor = getSpeechRecognitionCtor();
-    if (!Ctor) {
+  const startListening = useCallback(async () => {
+    setSpeechError(null);
+
+    if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function' || typeof MediaRecorder === 'undefined') {
       setSpeechSupported(false);
+      setSpeechError('Microphone recording is not supported by your browser.');
       return;
     }
 
-    setSpeechError(null);
-    baseValueRef.current = input ? input + ' ' : '';
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+      setActiveStream(stream);
+      audioChunksRef.current = [];
 
-    const recognition = new Ctor();
-    recognition.lang = SPEECH_LANG_MAP[language as Language] || 'en-IN';
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.maxAlternatives = 1;
+      let mimeType = 'audio/webm';
+      if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+        mimeType = 'audio/webm;codecs=opus';
+      } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+        mimeType = 'audio/mp4';
+      }
 
-    recognition.onresult = (event: SpeechRecognitionEventLike) => {
-      let finalTranscript = '';
-      let interimTranscript = '';
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      mediaRecorderRef.current = mediaRecorder;
 
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i];
-        const transcript = result[0].transcript;
-        if (result.isFinal) {
-          finalTranscript += transcript;
-        } else {
-          interimTranscript += transcript;
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
         }
-      }
+      };
 
-      if (finalTranscript) {
-        baseValueRef.current = baseValueRef.current + finalTranscript + ' ';
-      }
+      mediaRecorder.onstop = async () => {
+        setActiveStream(null);
+        if (audioChunksRef.current.length === 0) {
+          setIsListening(false);
+          return;
+        }
 
-      setInput((baseValueRef.current + interimTranscript).trimStart());
-    };
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        audioChunksRef.current = [];
 
-    recognition.onerror = (event: SpeechRecognitionErrorEventLike) => {
-      if (event.error === 'not-allowed' || event.error === 'permission-denied') {
+        setIsTranscribing(true);
+        try {
+          const res = await transcribeAudio(audioBlob, language);
+          if (res && res.transcript) {
+            setInput((prev) => (prev ? `${prev} ${res.transcript}` : res.transcript));
+          }
+        } catch (err) {
+          console.error('[stt-error]', err);
+          setSpeechError('Voice input failed. Please try again or type your message.');
+        } finally {
+          setIsTranscribing(false);
+          setIsListening(false);
+        }
+      };
+
+      mediaRecorder.start(100);
+      setIsListening(true);
+    } catch (err: unknown) {
+      console.error('[mic-permission-error]', err);
+      const eName = (err as { name?: string })?.name;
+      if (eName === 'NotAllowedError' || eName === 'PermissionDeniedError') {
         setSpeechError('Microphone access denied. Please allow microphone permissions and try again.');
-      } else if (event.error === 'no-speech') {
-        setSpeechError("Didn't catch that — try speaking again.");
-      } else if (event.error !== 'aborted') {
+      } else {
         setSpeechError('Voice input failed. Please try again or type your message.');
       }
+      setActiveStream(null);
       setIsListening(false);
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-
-    recognitionRef.current = recognition;
-    recognition.start();
-    setIsListening(true);
-  }, [language, input]);
+    }
+  }, [language]);
 
   const toggleListening = () => {
     if (isListening) {
@@ -874,7 +990,16 @@ export default function ChatInterface({
 
           <div style={{ width: '100%' }}>
             {messages.map((msg) => (
-              <MessageBubble key={msg.id} msg={msg} onAction={send} scrollRef={bottomRef} />
+              <MessageBubble
+                key={msg.id}
+                msg={msg}
+                onAction={send}
+                scrollRef={bottomRef}
+                playingMessageId={playingMessageId}
+                loadingTTSMessageId={loadingTTSMessageId}
+                onPlayTTS={handlePlayTTS}
+                onStopTTS={stopAudio}
+              />
             ))}
 
             {loading && (
@@ -984,32 +1109,43 @@ export default function ChatInterface({
             />
 
             {speechSupported && (
-              <button
-                onClick={toggleListening}
-                disabled={loading}
-                title={isListening ? 'Stop listening' : 'Speak your message'}
-                style={{
-                  width: 42,
-                  height: 42,
-                  borderRadius: 12,
-                  background: isListening ? '#dc2626' : '#e2e8f0',
-                  color: '#ffffff',
-                  border: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  cursor: loading ? 'default' : 'pointer',
-                  opacity: loading ? 0.5 : 1,
-                  transition: 'all 180ms ease',
-                }}
-              >
-                {isListening ? (
-                  <MicOff size={18} color="#ffffff" />
-                ) : (
-                  <Mic size={18} color="#0b1f3a" />
-                )}
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {isListening && <VoiceVisualizer stream={activeStream} isListening={isListening} />}
+                <button
+                  onClick={toggleListening}
+                  disabled={loading || isTranscribing}
+                  title={
+                    isTranscribing
+                      ? 'Processing voice input...'
+                      : isListening
+                      ? 'Stop listening'
+                      : 'Speak your message'
+                  }
+                  style={{
+                    width: 42,
+                    height: 42,
+                    borderRadius: 12,
+                    background: isListening ? '#dc2626' : '#e2e8f0',
+                    color: '#ffffff',
+                    border: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    cursor: loading || isTranscribing ? 'default' : 'pointer',
+                    opacity: loading || isTranscribing ? 0.6 : 1,
+                    transition: 'all 180ms ease',
+                  }}
+                >
+                  {isTranscribing ? (
+                    <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} color="#0b1f3a" />
+                  ) : isListening ? (
+                    <MicOff size={18} color="#ffffff" />
+                  ) : (
+                    <Mic size={18} color="#0b1f3a" />
+                  )}
+                </button>
+              </div>
             )}
 
             <button
@@ -1035,13 +1171,20 @@ export default function ChatInterface({
             </button>
           </div>
 
-          {isListening && (
+          {isTranscribing && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 4px', fontSize: 11.5, color: '#0b1f3a' }}>
+              <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} color="#0b1f3a" />
+              <span style={{ fontWeight: 600 }}>Processing voice input with Sarvam AI...</span>
+            </div>
+          )}
+
+          {isListening && !isTranscribing && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 4px', fontSize: 11.5, color: '#0b1f3a' }}>
               <span style={{ position: 'relative', display: 'inline-flex', width: 8, height: 8 }}>
                 <span style={{ position: 'absolute', width: '100%', height: '100%', borderRadius: '50%', background: '#dc2626', opacity: 0.6, animation: 'pulse 1.5s infinite' }} />
                 <span style={{ position: 'relative', width: 8, height: 8, borderRadius: '50%', background: '#dc2626' }} />
               </span>
-              <span style={{ fontWeight: 600 }}>Listening — speak now</span>
+              <span style={{ fontWeight: 600 }}>Listening — speak now, click mic again when done</span>
             </div>
           )}
 
