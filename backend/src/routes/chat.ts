@@ -16,6 +16,7 @@ router.post('/', async (req: UserAuthRequest, res: Response) => {
     language,
     detectedLanguageCode,
     languageProbability,
+    category,
   } = req.body as {
     message?: string;
     chatId?: string;
@@ -23,6 +24,7 @@ router.post('/', async (req: UserAuthRequest, res: Response) => {
     language?: string;
     detectedLanguageCode?: string;
     languageProbability?: number;
+    category?: string;
   };
 
   if (!message?.trim()) {
@@ -71,7 +73,8 @@ router.post('/', async (req: UserAuthRequest, res: Response) => {
       activeSessionId,
       language,
       detectedLanguageCode,
-      languageProbability
+      languageProbability,
+      category
     );
 
     if (userId && chatId) {

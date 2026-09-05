@@ -103,11 +103,42 @@ function ChatPage() {
   function handleChatCreated(id: string) {
     setChatId(id);
     setRefreshSignal((n) => n + 1);
-    setJourneyDone((prev) => ({ ...prev, eligibility: true }));
+    handleStepComplete('eligibility');
+  }
+
+  function handleStepComplete(stepKey: 'eligibility' | 'scheme' | 'emi' | 'partner') {
+    setJourneyDone((prev) => {
+      const next = { ...prev };
+      if (stepKey === 'eligibility') {
+        next.eligibility = true;
+      } else if (stepKey === 'scheme') {
+        next.eligibility = true;
+        next.scheme = true;
+      } else if (stepKey === 'emi') {
+        next.eligibility = true;
+        next.scheme = true;
+        next.emi = true;
+      } else if (stepKey === 'partner') {
+        next.eligibility = true;
+        next.scheme = true;
+        next.emi = true;
+        next.partner = true;
+      }
+      return next;
+    });
   }
 
   function markStep(key: string) {
-    setJourneyDone((prev) => ({ ...prev, [key]: !prev[key] }));
+    setJourneyDone((prev) => {
+      const isDone = !prev[key];
+      const next = { ...prev, [key]: isDone };
+      if (isDone) {
+        if (key === 'scheme' || key === 'emi' || key === 'partner') next.eligibility = true;
+        if (key === 'emi' || key === 'partner') next.scheme = true;
+        if (key === 'partner') next.emi = true;
+      }
+      return next;
+    });
   }
 
   const completedCount = JOURNEY_STEPS.filter((s) => journeyDone[s.key]).length;
@@ -271,8 +302,10 @@ function ChatPage() {
               chatId={chatId}
               token={token}
               onChatCreated={handleChatCreated}
+              onStepComplete={handleStepComplete}
               initialMessages={initialMessages}
               initialQuery={queryParam}
+              category={searchParams.get('category')}
             />
           )}
 

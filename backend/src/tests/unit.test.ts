@@ -457,5 +457,22 @@ assert(turn2Auto.effectiveLanguage === 'en', 'Auto mode Turn 2 (English) resolve
 const turn3Auto = resolveEffectiveLanguage({ selectedLanguage: 'auto', message: 'nanage shikshana sala beku' });
 assert(turn3Auto.effectiveLanguage === 'kn', 'Auto mode Turn 3 (Kannada) resolves to "kn"');
 
+// ── 10. Category Mismatch System Prompt Tests ──
+console.log('\n🎯 Testing Category Mismatch System Prompt Rules:');
+
+// Test 10.1: Education category system prompt includes Business Loan mismatch rule
+const eduPrompt = buildSystemPrompt('en', 'education');
+assert(eduPrompt.includes('User selected card category: "Education Loan"'), 'System prompt contains Education Loan category context');
+assert(eduPrompt.includes('Business Loan'), 'System prompt contains Business Loan mismatch guidance');
+
+// Test 10.2: Small Business category system prompt includes Education Loan mismatch rule
+const bizPrompt = buildSystemPrompt('hi', 'small-business');
+assert(bizPrompt.includes('User selected card category: "Business / Entrepreneurship Loan"'), 'System prompt contains Business Loan category context');
+assert(bizPrompt.includes('Education Loan'), 'System prompt contains Education Loan mismatch guidance');
+
+// Test 10.3: Women Exclusive category system prompt includes category context
+const womenPrompt = buildSystemPrompt('kn', 'women-exclusive');
+assert(womenPrompt.includes('User selected card category: "Mahila Samriddhi Yojana (Women Exclusive)"'), 'System prompt contains Women Exclusive category context');
+
 console.log(`\n================== TEST SUMMARY: ${passed} PASSED, ${failed} FAILED ==================\n`);
 process.exit(failed > 0 ? 1 : 0);

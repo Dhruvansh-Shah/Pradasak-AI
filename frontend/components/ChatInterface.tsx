@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { sendChat, fetchTTS, transcribeAudio } from '@/lib/api';
 import type { ChatResponse, ChatMessage } from '@/lib/api';
 import TypingIndicator from './TypingIndicator';
@@ -22,6 +23,7 @@ import {
   Calculator,
   HeartHandshake,
   ArrowRight,
+  ArrowLeft,
   Mic,
   MicOff,
   Volume2,
@@ -45,6 +47,7 @@ interface Message {
 }
 
 type SuggestionItem = {
+  id: string;
   title: string;
   desc: string;
   query: string;
@@ -57,6 +60,7 @@ type SuggestionItem = {
 const SUGGESTIONS: Record<string, SuggestionItem[]> = {
   en: [
     {
+      id: 'small-business',
       title: 'Small Business & Trade Loan',
       desc: 'Concessional loans up to ₹50 Lakh for tailoring units, kirana shops, or service ventures with family income ≤ ₹5L.',
       query: 'I want to start a small tailoring shop. Family income is about ₹2.5 Lakh a year. What scheme can I get?',
@@ -66,6 +70,7 @@ const SUGGESTIONS: Record<string, SuggestionItem[]> = {
       bg: '#eff6ff',
     },
     {
+      id: 'education',
       title: 'Higher & Technical Education Loan',
       desc: 'Subsidized 4%–6% interest loans covering tuition, hostel, and equipment for engineering, medical, or professional degrees.',
       query: 'I need an education loan for an engineering degree. How much loan can I get and at what interest rate?',
@@ -75,6 +80,7 @@ const SUGGESTIONS: Record<string, SuggestionItem[]> = {
       bg: '#fdf4ff',
     },
     {
+      id: 'women-exclusive',
       title: 'Mahila Samriddhi Yojana',
       desc: 'Exclusive micro-credit up to ₹1.40 Lakh at concessional 4% interest designed specifically for SC women entrepreneurs.',
       query: 'Tell me about Mahila Samriddhi Yojana and schemes exclusively for SC women.',
@@ -84,6 +90,7 @@ const SUGGESTIONS: Record<string, SuggestionItem[]> = {
       bg: '#fff7ed',
     },
     {
+      id: 'emi-calculation',
       title: 'Calculate Monthly EMI & Moratorium',
       desc: 'Deterministic monthly repayment projections accounting for scheme-specific interest rates and 3–12 month grace periods.',
       query: 'Calculate monthly EMI for ₹5 Lakh loan at 7% interest for 5 years with a 6-month moratorium.',
@@ -95,6 +102,7 @@ const SUGGESTIONS: Record<string, SuggestionItem[]> = {
   ],
   hi: [
     {
+      id: 'small-business',
       title: 'छोटा व्यवसाय एवं दुकान ऋण',
       desc: 'सिलाई, किराना दुकान या सेवा व्यवसाय के लिए ₹1.40L से ₹50L तक रियायती सरकारी ऋण (पारिवारिक आय ≤ ₹5 लाख)।',
       query: 'मुझे सिलाई और कपड़ों की दुकान खोलनी है। परिवार की सालाना आय ₹2.5 लाख है। मुझे कौन सी योजना मिलेगी?',
@@ -104,6 +112,7 @@ const SUGGESTIONS: Record<string, SuggestionItem[]> = {
       bg: '#eff6ff',
     },
     {
+      id: 'education',
       title: 'उच्च एवं तकनीकी शिक्षा ऋण',
       desc: 'इंजीनियरिंग, मेडिकल और वोकेशनल पढ़ाई के लिए 4%–6% की कम ब्याज दर पर शिक्षा ऋण सहायता।',
       query: 'मुझे बी.टेक/इंजीनियरिंग के लिए एजुकेशन लोन चाहिए। ब्याज दर और अधिकतम सीमा क्या है?',
@@ -113,6 +122,7 @@ const SUGGESTIONS: Record<string, SuggestionItem[]> = {
       bg: '#fdf4ff',
     },
     {
+      id: 'women-exclusive',
       title: 'महिला समृद्धि योजना',
       desc: 'अनुसूचित जाति की महिला उद्यमियों के लिए 4% ब्याज पर ₹1.40 लाख तक विशेष सहायता।',
       query: 'अनुसूचित जाति की महिलाओं के लिए महिला समृद्धि योजना के बारे में विस्तार से बताएं।',
@@ -122,6 +132,7 @@ const SUGGESTIONS: Record<string, SuggestionItem[]> = {
       bg: '#fff7ed',
     },
     {
+      id: 'emi-calculation',
       title: 'मासिक ईएमआई (EMI) एवं मोरेटोरियम गणना',
       desc: 'ब्याज दर और 3 से 12 महीने की छूट अवधि (मोरेटोरियम) के साथ सटीक मासिक किस्त की गणना करें।',
       query: '₹5 लाख के कर्ज पर 7% ब्याज और 5 साल की अवधि के लिए मासिक EMI क्या बनेगी?',
@@ -133,6 +144,7 @@ const SUGGESTIONS: Record<string, SuggestionItem[]> = {
   ],
   pa: [
     {
+      id: 'small-business',
       title: 'ਛੋਟਾ ਵਿਵਸਾਇ / ਦੁਕਾਨ ਰਿਣ',
       desc: 'ਸਿਲਾਈ, ਕਿਰਾਣਾ ਯਾ ਵ੍ਯਾਪਾਰ ਲਈ ₹1.40L ਤੋਂ ₹50L ਤੱਕ ਰਿਆਇਤੀ ਸਰਕਾਰੀ ਰਿਣ (ਪਰਿਵਾਰਿਕ ਆਮਦਨ ≤ ₹5 ਲੱਖ)।',
       query: 'ਮੈਨੂੰ ਸਿਲਾਈ ਅਤੇ ਕਪੜਿਆਂ ਦੀ ਦੁਕਾਨ ਖੋਲ੍ਹਣੀ ਹੈ। ਪਰਿਵਾਰ ਦੀ ਸਾਲਾਨਾ ਆਮਦਨ ₹2.5 ਲੱਖ ਹੈ। ਮੈਨੂੰ ਕਿਹੜੀ ਯੋਜਨਾ ਮਿਲੇਗੀ?',
@@ -142,6 +154,7 @@ const SUGGESTIONS: Record<string, SuggestionItem[]> = {
       bg: '#eff6ff',
     },
     {
+      id: 'education',
       title: 'ਉੱਚ ਅਤੇ ਤਕਨੀਕੀ ਸਿੱਖਿਆ ਰਿਣ',
       desc: 'ਇੰਜੀਨੀਅਰਿੰਗ, ਮੈਡੀਕਲ ਅਤੇ ਵੋਕੇਸ਼ਨਲ ਪੜ੍ਹਾਈ ਲਈ 4%–6% ਦੀ ਘੱਟ ਵਿਆਜ ਦਰ ਤੇ ਸਿੱਖਿਆ ਰਿਣ ਸਹਾਇਤਾ।',
       query: 'ਮੈਨੂੰ ਬੀ.ਟੈਕ/ਇੰਜੀਨੀਅਰਿੰਗ ਲਈ ਐਜੂਕੇਸ਼ਨ ਲੋਨ ਚਾਹੀਦਾ ਹੈ। ਵਿਆਜ ਦਰ ਅਤੇ ਅਧਿਕਤਮ ਸੀਮਾ ਕੀ ਹੈ?',
@@ -151,6 +164,7 @@ const SUGGESTIONS: Record<string, SuggestionItem[]> = {
       bg: '#fdf4ff',
     },
     {
+      id: 'women-exclusive',
       title: 'ਮਹਿਲਾ ਸਮ੍ਰਿਧੀ ਯੋਜਨਾ',
       desc: 'ਅਨੁਸੂਚਿਤ ਜਾਤੀ ਦੀਆਂ ਮਹਿਲਾ ਉੱਦਮੀਆਂ ਲਈ 4% ਵਿਆਜ ਤੇ ₹1.40 ਲੱਖ ਤੱਕ ਵਿਸ਼ੇਸ਼ ਸਹਾਇਤਾ।',
       query: 'ਅਨੁਸੂਚਿਤ ਜਾਤੀ ਦੀਆਂ ਮਹਿਲਾਵਾਂ ਲਈ ਮਹਿਲਾ ਸਮ੍ਰਿਧੀ ਯੋਜਨਾ ਬਾਰੇ ਵਿਸਥਾਰ ਨਾਲ ਦੱਸੋ।',
@@ -160,6 +174,7 @@ const SUGGESTIONS: Record<string, SuggestionItem[]> = {
       bg: '#fff7ed',
     },
     {
+      id: 'emi-calculation',
       title: 'ਮਹੀਨਾਵਾਰ EMI ਅਤੇ ਮੋਰਟੋਰੀਅਮ ਗਣਨਾ',
       desc: 'ਵਿਆਜ ਦਰ ਅਤੇ 3 ਤੋਂ 12 ਮਹੀਨੇ ਦੀ ਗ੍ਰੇਸ ਮਿਆਦ (ਮੋਰਟੋਰੀਅਮ) ਨਾਲ ਸਟੀਕ ਮਹੀਨਾਵਾਰ ਕਿਸ਼ਤ ਦੀ ਗਣਨਾ ਕਰੋ।',
       query: '₹5 ਲੱਖ ਦੇ ਕਰਜ਼ੇ ਤੇ 7% ਵਿਆਜ ਅਤੇ 5 ਸਾਲ ਦੀ ਮਿਆਦ ਲਈ ਮਹੀਨਾਵਾਰ EMI ਕੀ ਬਣੇਗੀ?',
@@ -171,6 +186,7 @@ const SUGGESTIONS: Record<string, SuggestionItem[]> = {
   ],
   mr: [
     {
+      id: 'small-business',
       title: 'लहान व्यवसाय व दुकान कर्ज',
       desc: 'शिवणकाम, किराणा दुकान किंवा व्यवसायासाठी सवलतीच्या दरात ₹५० लाखांपर्यंत कर्ज सहाय्य.',
       query: 'मला शिवणकाम व कपड्यांचे दुकान सुरू करायचे आहे. कौटुंबिक उत्पन्न ₹२.५ लाख आहे. कोणती योजना मिळेल?',
@@ -180,6 +196,7 @@ const SUGGESTIONS: Record<string, SuggestionItem[]> = {
       bg: '#eff6ff',
     },
     {
+      id: 'education',
       title: 'उच्च शिक्षण कर्ज योजना',
       desc: 'अभियांत्रिकी व वैद्यकीय शिक्षणासाठी ४%–६% सवलतीच्या व्याजदरात शैक्षणिक कर्ज.',
       query: 'अभियांत्रिकी शिक्षणासाठी मला कर्ज हवे आहे. कमाल मर्यादा आणि व्याज दर काय आहे?',
@@ -189,6 +206,7 @@ const SUGGESTIONS: Record<string, SuggestionItem[]> = {
       bg: '#fdf4ff',
     },
     {
+      id: 'women-exclusive',
       title: 'महिला समृद्धी योजना',
       desc: 'अनुसूचित जातीच्या महिला उद्योजकांसाठी ४% व्याजदरावर ₹१.४० लाखांपर्यंत विशेष कर्ज.',
       query: 'अनुसूचित जातीच्या महिलांसाठी उपलब्ध असलेल्या विशेष योजनांची माहिती द्या.',
@@ -198,6 +216,7 @@ const SUGGESTIONS: Record<string, SuggestionItem[]> = {
       bg: '#fff7ed',
     },
     {
+      id: 'emi-calculation',
       title: 'मासिक हप्ता (EMI) गणना',
       desc: 'सवलत कालावधीसह अचूक मासिक हप्त्याची आणि व्याजाची गणितीय गणना करा.',
       query: '५ लाख रुपयांवर ७% दराने ५ वर्षांसाठी मासिक हप्ता किती येईल?',
@@ -212,6 +231,7 @@ const SUGGESTIONS: Record<string, SuggestionItem[]> = {
 function MessageBubble({
   msg,
   onAction,
+  onStepComplete,
   scrollRef,
   playingMessageId,
   loadingTTSMessageId,
@@ -221,6 +241,7 @@ function MessageBubble({
 }: {
   msg: Message;
   onAction: (text: string) => void;
+  onStepComplete?: (stepKey: 'eligibility' | 'scheme' | 'emi' | 'partner') => void;
   scrollRef?: React.RefObject<HTMLDivElement | null>;
   playingMessageId?: string | null;
   loadingTTSMessageId?: string | null;
@@ -366,10 +387,16 @@ function MessageBubble({
                 key={i}
                 scheme={s as Parameters<typeof SchemeResultCard>[0]['scheme']}
                 rank={i + 1}
-                onCalculateEMI={() =>
-                  onAction(`Calculate EMI for the ${(s as { name: string }).name} scheme`)
-                }
-                onFindPartners={() => onAction('Find nearest partner for applying')}
+                onCalculateEMI={() => {
+                  onStepComplete?.('scheme');
+                  onStepComplete?.('emi');
+                  onAction(`Calculate EMI for the ${(s as { name: string }).name} scheme`);
+                }}
+                onFindPartners={() => {
+                  onStepComplete?.('scheme');
+                  onStepComplete?.('partner');
+                  onAction('Find nearest partner for applying');
+                }}
               />
             ))}
           </div>
@@ -484,17 +511,22 @@ interface ChatInterfaceProps {
   chatId?: string | null;
   token?: string | null;
   onChatCreated?: (chatId: string) => void;
+  onStepComplete?: (stepKey: 'eligibility' | 'scheme' | 'emi' | 'partner') => void;
   initialMessages?: ChatMessage[];
   initialQuery?: string | null;
+  category?: string | null;
 }
 
 export default function ChatInterface({
   chatId: propChatId,
   token,
   onChatCreated,
+  onStepComplete,
   initialMessages,
   initialQuery,
+  category,
 }: ChatInterfaceProps) {
+  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>(() => {
     if (!initialMessages || initialMessages.length === 0) return [];
     return initialMessages.map((m) => ({
@@ -722,8 +754,23 @@ export default function ChatInterface({
         }))
       );
       setShowWelcome(false);
+
+      const hasAssistant = initialMessages.some((m) => m.role === 'assistant');
+      if (hasAssistant) onStepComplete?.('eligibility');
+
+      const hasEmi = initialMessages.some((m) => m.type === 'emi');
+      if (hasEmi) {
+        onStepComplete?.('scheme');
+        onStepComplete?.('emi');
+      }
+
+      const hasPartner = initialMessages.some((m) => m.type === 'partners');
+      if (hasPartner) {
+        onStepComplete?.('scheme');
+        onStepComplete?.('partner');
+      }
     }
-  }, [initialMessages]);
+  }, [initialMessages, onStepComplete]);
 
   const addMessage = useCallback((msg: Omit<Message, 'id'>) => {
     setMessages((prev) => [
@@ -752,7 +799,8 @@ export default function ChatInterface({
           token,
           reqLang,
           sttDetectedLang.code,
-          sttDetectedLang.probability
+          sttDetectedLang.probability,
+          category || undefined
         );
         setSttDetectedLang({ code: null, probability: null });
 
@@ -765,6 +813,16 @@ export default function ChatInterface({
         if (!chatIdRef.current && res.chatId) {
           chatIdRef.current = res.chatId;
           onChatCreated?.(res.chatId);
+        }
+
+        onStepComplete?.('eligibility');
+
+        if (res.type === 'emi' || res.data?.emi) {
+          onStepComplete?.('scheme');
+          onStepComplete?.('emi');
+        } else if (res.type === 'partners' || res.data?.partners) {
+          onStepComplete?.('scheme');
+          onStepComplete?.('partner');
         }
 
         addMessage({
@@ -788,7 +846,7 @@ export default function ChatInterface({
         setTimeout(() => inputRef.current?.focus(), 100);
       }
     },
-    [loading, sessionId, token, onChatCreated, addMessage, isListening, stopListening, language, isAuto, updateDetectedLang]
+    [loading, sessionId, token, onChatCreated, onStepComplete, addMessage, isListening, stopListening, language, isAuto, updateDetectedLang, category]
   );
 
   const lastProcessedQueryRef = useRef<string | null>(null);
@@ -808,6 +866,9 @@ export default function ChatInterface({
   }
 
   const suggestionList = SUGGESTIONS[language] || SUGGESTIONS.en;
+  const activeCategoryItem = category
+    ? suggestionList.find((s) => s.id === category) || suggestionList[0]
+    : null;
 
   return (
     <div
@@ -834,7 +895,98 @@ export default function ChatInterface({
       >
         <div style={{ maxWidth: 880, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
 
-          {showWelcome && messages.length === 0 && (
+          {/* ── Category-Specific Page View Header ─────────────────────────────────── */}
+          {showWelcome && messages.length === 0 && activeCategoryItem && (
+            <div
+              style={{
+                width: '100%',
+                padding: '12px 0 28px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 20,
+              }}
+            >
+              <button
+                onClick={() => router.push('/chat')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '8px 16px',
+                  borderRadius: 10,
+                  background: '#ffffff',
+                  border: '1.5px solid #cbd5e1',
+                  color: '#0b1f3a',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  width: 'fit-content',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                  transition: 'all 150ms ease',
+                }}
+              >
+                <ArrowLeft size={16} color="#e87722" />
+                <span>{t('chat.back_to_landing', '← Back to AI Assistant')}</span>
+              </button>
+
+              <div
+                style={{
+                  background: '#ffffff',
+                  border: '1.5px solid #e2e8f0',
+                  borderRadius: 20,
+                  padding: '24px 28px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 12,
+                  boxShadow: '0 4px 16px rgba(11,31,58,0.04)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div
+                    style={{
+                      width: 42,
+                      height: 42,
+                      borderRadius: 12,
+                      background: activeCategoryItem.bg,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {(() => {
+                      const ActiveIcon = activeCategoryItem.icon;
+                      return <ActiveIcon size={20} color={activeCategoryItem.color} />;
+                    })()}
+                  </div>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      padding: '4px 12px',
+                      borderRadius: 20,
+                      background: '#f1f5f9',
+                      color: '#475569',
+                    }}
+                  >
+                    {activeCategoryItem.tag}
+                  </span>
+                </div>
+
+                <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0b1f3a', margin: 0, letterSpacing: '-0.01em' }}>
+                  {activeCategoryItem.title}
+                </h1>
+
+                <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.6, margin: 0, maxWidth: 640 }}>
+                  {activeCategoryItem.desc}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* ── AI Assistant Landing Page View ───────────────────────────────────────── */}
+          {showWelcome && messages.length === 0 && !activeCategoryItem && (
             <div
               style={{
                 width: '100%',
@@ -892,7 +1044,7 @@ export default function ChatInterface({
                   return (
                     <button
                       key={i}
-                      onClick={() => send(item.query)}
+                      onClick={() => router.push(`/chat?category=${item.id}`)}
                       style={{
                         background: '#ffffff',
                         border: '1.5px solid #e2e8f0',
@@ -989,6 +1141,7 @@ export default function ChatInterface({
                 key={msg.id}
                 msg={msg}
                 onAction={send}
+                onStepComplete={onStepComplete}
                 scrollRef={bottomRef}
                 playingMessageId={playingMessageId}
                 loadingTTSMessageId={loadingTTSMessageId}
@@ -1071,6 +1224,8 @@ export default function ChatInterface({
               placeholder={
                 isListening
                   ? t('chat.listening', 'Listening...')
+                  : activeCategoryItem
+                  ? `${t('chat.ask_about', 'Ask a question about')} ${activeCategoryItem.title}...`
                   : t('chat.input_ph', 'Ask about loans, eligibility, interest rates, or channel partners...')
               }
               rows={1}

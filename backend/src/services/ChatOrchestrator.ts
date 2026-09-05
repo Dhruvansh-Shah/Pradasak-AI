@@ -88,7 +88,23 @@ const QUICK_ACTIONS: Record<ChatApiResponse['type'], QuickAction[]> = {
 
 // ── System prompt ──────────────────────────────────────────────────────────────
 
-export function buildSystemPrompt(langCode: string): string {
+function getCategoryInfo(category: string): { name: string; altName: string } | null {
+  if (category === 'education') {
+    return { name: 'Education Loan', altName: 'Business Loan' };
+  }
+  if (category === 'small-business') {
+    return { name: 'Business / Entrepreneurship Loan', altName: 'Education Loan' };
+  }
+  if (category === 'women-exclusive') {
+    return { name: 'Mahila Samriddhi Yojana (Women Exclusive)', altName: 'General Business or Education Loan' };
+  }
+  if (category === 'emi-calculation') {
+    return { name: 'EMI Repayment Calculation', altName: 'General Scheme Search' };
+  }
+  return null;
+}
+
+export function buildSystemPrompt(langCode: string, category?: string): string {
   const cfg = getLanguageConfig(langCode);
   const langName = cfg ? cfg.name : 'English';
 
@@ -97,6 +113,21 @@ export function buildSystemPrompt(langCode: string): string {
       ? '- Do NOT randomly switch the entire response to English simply because English words or technical terms appear in the user\'s prompt.'
       : '- Respond strictly in English. Do NOT switch to any other language unless explicitly requested.';
 
+  const catInfo = category ? getCategoryInfo(category) : null;
+  const categoryMismatchRule = catInfo
+    ? `
+SELECTED CARD CATEGORY CONTEXT & MISMATCH ACKNOWLEDGMENT:
+- User selected card category: "${catInfo.name}".
+- CATEGORY MISMATCH RULE:
+  * If the user's current query CLEARLY and OBVIOUSLY belongs to a different category (for example: user selected "${catInfo.name}", but explicitly asks for a ${catInfo.altName} or another unrelated category):
+    - Do NOT call any tools or search schemes for the mismatched category.
+    - Do NOT automatically switch categories.
+    - Do NOT execute the new category query.
+    - Respond ONLY with a short, polite clarification in ${langName} (${langCode}) acknowledging the mismatch (e.g. "It looks like you're looking for a ${catInfo.altName} rather than a ${catInfo.name}. Would you like me to help you with ${catInfo.altName} schemes?").
+  * If the query MATCHES "${catInfo.name}" OR is ambiguous/general, proceed normally.
+`
+    : '';
+
   return `
 You are the AI Financial Advisor for Pradarshak AI (National Scheduled Castes Finance and Development Corporation - NSFDC, Govt. of India). You help Scheduled Caste beneficiaries find subsidized loan schemes, understand repayment EMIs, find channel partners, and understand documentation and application steps.
 
@@ -104,7 +135,7 @@ USER'S EFFECTIVE RESPONSE LANGUAGE:
 - Effective response language: ${langName} (${langCode}).
 - You MUST respond naturally in ${langName}.
 ${antiEnglishRule}
-
+${categoryMismatchRule}
 NATURAL INDIAN CODE-MIXING & TONE:
 - If the user writes in code-mixed language (e.g. Hinglish or mixed English with Indian terms like 'engineering', 'education loan', 'Aadhaar', 'NSFDC', 'EMI', 'college', 'PMFME'), maintain a natural conversational style.
 - Keep common technical, educational, financial terms, scheme names, and acronyms in English/standard form when natural.
@@ -200,7 +231,8 @@ export async function process(
   sessionId?: string,
   requestedLanguage?: string,
   detectedSpeechLanguage?: string,
-  speechProbability?: number
+  speechProbability?: number,
+  category?: string
 ): Promise<ChatApiResponse> {
   const session: Session = getOrCreate(sessionId);
 
@@ -215,7 +247,7 @@ export async function process(
 
   session.conversationHistory.push({ role: 'user', content: message });
 
-  const messages: ChatMessage[] = [{ role: 'system', content: buildSystemPrompt(session.language) }];
+  const messages: ChatMessage[] = [{ role: 'system', content: buildSystemPrompt(session.language, category) }];
 
   if (session.lastContext) {
     messages.push({

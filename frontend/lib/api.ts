@@ -58,7 +58,8 @@ export async function sendChat(
   token?: string | null,
   language?: string,
   detectedLanguageCode?: string | null,
-  languageProbability?: number | null
+  languageProbability?: number | null,
+  category?: string | null
 ): Promise<ChatResponse> {
   const res = await fetch(`${BASE}/chat`, {
     method: 'POST',
@@ -70,6 +71,7 @@ export async function sendChat(
       language,
       detectedLanguageCode,
       languageProbability,
+      category,
     }),
   });
   if (!res.ok) {
