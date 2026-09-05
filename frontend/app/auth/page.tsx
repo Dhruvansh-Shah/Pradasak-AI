@@ -4,27 +4,21 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
-import { userLogin, userRegister } from '@/lib/api';
+import { userLogin } from '@/lib/api';
 import {
   Landmark,
   Eye,
   EyeOff,
   CheckCircle2,
   ArrowRight,
-  ShieldCheck,
-  Mail,
-  Lock,
   User,
-  Phone
+  Lock
 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function AuthPage() {
   const router = useRouter();
-  const [mode, setMode] = useState<'login' | 'register'>('login');
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
@@ -35,32 +29,18 @@ export default function AuthPage() {
     setError('');
 
     const cleanEmail = email.trim();
-    if (!cleanEmail || !/^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(cleanEmail)) {
-      setError('Only @gmail.com email addresses are allowed for signup');
+    if (!cleanEmail) {
+      setError('Email is required');
       return;
     }
-
-    if (!password || password.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (!password) {
+      setError('Password is required');
       return;
-    }
-
-    if (mode === 'register') {
-      const cleanPhone = phone.trim();
-      if (!cleanPhone || !/^\d{10}$/.test(cleanPhone)) {
-        setError('Please enter a valid 10-digit mobile number');
-        return;
-      }
     }
 
     setLoading(true);
     try {
-      let result: { token: string; user: { name: string | null; email: string } };
-      if (mode === 'login') {
-        result = await userLogin(cleanEmail, password);
-      } else {
-        result = await userRegister({ name: name || undefined, email: cleanEmail, phone: phone.trim(), password });
-      }
+      const result = await userLogin(cleanEmail, password);
       localStorage.setItem('auth_token', result.token);
       localStorage.setItem('auth_user', JSON.stringify(result.user));
       router.push('/');
@@ -184,183 +164,89 @@ export default function AuthPage() {
           >
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               <h2 style={{ fontSize: 24, fontWeight: 900, color: '#0b1f3a', margin: 0, letterSpacing: '-0.02em' }}>
-                {mode === 'login' ? 'Welcome Back' : 'Create Beneficiary Account'}
+                Welcome Back
               </h2>
               <p style={{ fontSize: 13.5, color: '#64748b', margin: 0 }}>
-                {mode === 'login'
-                  ? 'Sign in to access your chat history and saved schemes.'
-                  : 'Register to save your conversations and track applications.'}
+                Sign in to access your chat history and saved schemes.
               </p>
             </div>
 
-            {/* Mode Switch Tabs */}
-            <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: 12 }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setMode('login');
-                  setError('');
-                }}
-                style={{
-                  flex: 1,
-                  padding: '9px',
-                  borderRadius: 9,
-                  fontSize: 13,
-                  fontWeight: mode === 'login' ? 700 : 500,
-                  border: 'none',
-                  background: mode === 'login' ? '#ffffff' : 'transparent',
-                  color: mode === 'login' ? '#0b1f3a' : '#64748b',
-                  boxShadow: mode === 'login' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
-                  cursor: 'pointer',
-                  transition: 'all 150ms ease',
-                }}
-              >
-                Sign In
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setMode('register');
-                  setError('');
-                }}
-                style={{
-                  flex: 1,
-                  padding: '9px',
-                  borderRadius: 9,
-                  fontSize: 13,
-                  fontWeight: mode === 'register' ? 700 : 500,
-                  border: 'none',
-                  background: mode === 'register' ? '#ffffff' : 'transparent',
-                  color: mode === 'register' ? '#0b1f3a' : '#64748b',
-                  boxShadow: mode === 'register' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
-                  cursor: 'pointer',
-                  transition: 'all 150ms ease',
-                }}
-              >
-                Register
-              </button>
-            </div>
-
-            {/* Form Fields */}
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {mode === 'register' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <label style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#475569' }}>
-                    Full Name
-                  </label>
-                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    <User size={16} color="#94a3b8" style={{ position: 'absolute', left: 14 }} />
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g. Ramesh Kumar"
-                      style={{
-                        width: '100%',
-                        padding: '11px 14px 11px 40px',
-                        borderRadius: 12,
-                        border: '1.5px solid #cbd5e1',
-                        background: '#f8fafc',
-                        fontSize: 13.5,
-                        color: '#0f172a',
-                        outline: 'none',
-                      }}
-                    />
-                  </div>
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              {error && (
+                <div style={{ padding: '12px 16px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12, color: '#b91c1c', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#ef4444' }} />
+                  {error}
                 </div>
               )}
 
-              {/* Email */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#475569' }}>
-                  Email Address
-                </label>
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <Mail size={16} color="#94a3b8" style={{ position: 'absolute', left: 14 }} />
+                <label style={{ fontSize: 12.5, fontWeight: 700, color: '#334155' }}>Email Address</label>
+                <div style={{ position: 'relative' }}>
+                  <div style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }}>
+                    <User size={18} />
+                  </div>
                   <input
                     type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter your Gmail address"
                     required
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="Enter your email"
                     style={{
                       width: '100%',
-                      padding: '11px 14px 11px 40px',
+                      padding: '12px 16px 12px 42px',
                       borderRadius: 12,
-                      border: '1.5px solid #cbd5e1',
-                      background: '#f8fafc',
-                      fontSize: 13.5,
+                      border: '1.5px solid #e2e8f0',
+                      fontSize: 14.5,
                       color: '#0f172a',
+                      background: '#f8fafc',
                       outline: 'none',
+                      transition: 'all 0.2s'
                     }}
+                    onFocus={e => e.target.style.borderColor = '#fbbf24'}
+                    onBlur={e => e.target.style.borderColor = '#e2e8f0'}
                   />
                 </div>
               </div>
 
-              {/* Mobile Phone (for Register) */}
-              {mode === 'register' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <label style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#475569' }}>
-                    Mobile Number
-                  </label>
-                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    <Phone size={16} color="#94a3b8" style={{ position: 'absolute', left: 14 }} />
-                    <input
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="10-digit mobile number"
-                      required
-                      style={{
-                        width: '100%',
-                        padding: '11px 14px 11px 40px',
-                        borderRadius: 12,
-                        border: '1.5px solid #cbd5e1',
-                        background: '#f8fafc',
-                        fontSize: 13.5,
-                        color: '#0f172a',
-                        outline: 'none',
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Password */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#475569' }}>
-                  Password
-                </label>
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <Lock size={16} color="#94a3b8" style={{ position: 'absolute', left: 14 }} />
+                <label style={{ fontSize: 12.5, fontWeight: 700, color: '#334155' }}>Password</label>
+                <div style={{ position: 'relative' }}>
+                  <div style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }}>
+                    <Lock size={18} />
+                  </div>
                   <input
                     type={showPw ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter password"
                     required
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="••••••••"
                     style={{
                       width: '100%',
-                      padding: '11px 40px 11px 40px',
+                      padding: '12px 42px',
                       borderRadius: 12,
-                      border: '1.5px solid #cbd5e1',
-                      background: '#f8fafc',
-                      fontSize: 13.5,
+                      border: '1.5px solid #e2e8f0',
+                      fontSize: 14.5,
                       color: '#0f172a',
+                      background: '#f8fafc',
                       outline: 'none',
+                      transition: 'all 0.2s'
                     }}
+                    onFocus={e => e.target.style.borderColor = '#fbbf24'}
+                    onBlur={e => e.target.style.borderColor = '#e2e8f0'}
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPw((v) => !v)}
+                    onClick={() => setShowPw(!showPw)}
                     style={{
                       position: 'absolute',
-                      right: 12,
-                      background: 'transparent',
+                      right: 14,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
                       border: 'none',
                       color: '#94a3b8',
                       cursor: 'pointer',
-                      padding: 4,
+                      padding: 4
                     }}
                   >
                     {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -368,42 +254,45 @@ export default function AuthPage() {
                 </div>
               </div>
 
-              {error && (
-                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 12.5, padding: '10px 14px', borderRadius: 10 }}>
-                  {error}
-                </div>
-              )}
-
               <button
                 type="submit"
                 disabled={loading}
                 style={{
-                  width: '100%',
-                  padding: '13px',
+                  padding: '14px',
                   borderRadius: 12,
                   background: '#0b1f3a',
                   color: '#ffffff',
-                  border: 'none',
-                  fontSize: 14,
+                  fontSize: 14.5,
                   fontWeight: 700,
+                  border: 'none',
                   cursor: loading ? 'not-allowed' : 'pointer',
-                  boxShadow: '0 2px 8px rgba(11,31,58,0.18)',
-                  marginTop: 4,
-                  transition: 'all 150ms ease',
+                  opacity: loading ? 0.7 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  marginTop: 8,
+                  boxShadow: '0 4px 12px rgba(11, 31, 58, 0.15)',
+                  transition: 'transform 0.1s'
                 }}
+                onMouseDown={e => e.currentTarget.style.transform = 'scale(0.98)'}
+                onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+                onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
               >
-                {loading ? 'Please wait…' : mode === 'login' ? 'Sign In to Portal' : 'Create My Account'}
+                {loading ? 'Signing in...' : 'Sign In'}
+                {!loading && <ArrowRight size={16} />}
               </button>
             </form>
-
-            <div style={{ textAlign: 'center', paddingTop: 4 }}>
-              <Link
-                href="/"
-                style={{ fontSize: 12.5, color: '#64748b', textDecoration: 'none', fontWeight: 600 }}
-              >
-                ← Back to homepage
-              </Link>
+            
+            <div style={{ marginTop: '24px', textAlign: 'center' }}>
+              <p style={{ fontSize: 13.5, color: '#64748b' }}>
+                Don't have an account?{' '}
+                <Link href="/register" style={{ color: '#0b1f3a', fontWeight: 700, textDecoration: 'none' }}>
+                  Register here
+                </Link>
+              </p>
             </div>
+
           </div>
         </div>
       </main>
