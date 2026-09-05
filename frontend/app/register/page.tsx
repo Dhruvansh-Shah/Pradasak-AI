@@ -245,13 +245,23 @@ function RegisterContent() {
       });
       const verifyData = await verifyRes.json();
       
+      const inc = verifyData.income ?? null;
+      if (inc !== null) {
+        setExtractedIncome(inc);
+      }
+
+      if (inc !== null && inc > 500000) {
+        setIncomeStatus('FAILED');
+        setIncomeMessage(`Extracted Annual Family Income from your certificate photo is ₹${Number(inc).toLocaleString('en-IN')}, which exceeds the maximum limit of ₹5,00,000 (₹5 Lakh). Under NSFDC scheme guidelines, applicants with annual income exceeding ₹5 Lakh are not eligible.`);
+        return;
+      }
+
       if (verifyData.success && verifyData.status === 'VERIFIED') {
         setIncomeStatus('VERIFIED');
-        setIncomeMessage(verifyData.reason || 'Your income certificate has been successfully verified.');
-        if (verifyData.income) setExtractedIncome(verifyData.income);
+        setIncomeMessage(verifyData.reason || `Income Certificate Verified successfully. Extracted Annual Family Income: ₹${inc ? Number(inc).toLocaleString('en-IN') : 'Verified'} (Eligible: ≤ ₹5,00,000).`);
       } else {
         setIncomeStatus(verifyData.status || 'FAILED');
-        setIncomeMessage(verifyData.reason || 'We could not verify this income certificate. Please upload a valid income certificate with annual family income below ₹5,00,000.');
+        setIncomeMessage(verifyData.reason || 'We could not verify this income certificate. Please upload a valid official Income Certificate with annual family income ≤ ₹5,00,000.');
       }
     } catch (err: any) {
       setIncomeStatus('FAILED');
@@ -334,6 +344,7 @@ function RegisterContent() {
           sc_certificate_file: scServerFileName,
           income_certificate_file: incomeServerFileName,
           eligibility_status: 'verified',
+          salary: extractedIncome || null,
         }),
       });
 
@@ -345,6 +356,7 @@ function RegisterContent() {
       localStorage.setItem('registration_summary', JSON.stringify({
         full_name: fullName,
         mobile,
+        salary: completeData.user?.salary || extractedIncome,
         eligibility_status: 'verified',
         overall_confidence: 1, // Deterministic verification
       }));
@@ -397,6 +409,45 @@ function RegisterContent() {
               </p>
             )}
 
+            {title === 'Family Income Certificate' && extractedIncome !== null && (
+              <div
+                style={{
+                  marginTop: 14,
+                  padding: '14px 18px',
+                  borderRadius: 12,
+                  background: extractedIncome <= 500000 ? '#ffffff' : '#fff5f5',
+                  border: `1.5px solid ${extractedIncome <= 500000 ? '#10b981' : '#ef4444'}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#64748b' }}>
+                    Extracted Annual Family Income
+                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 900, color: extractedIncome <= 500000 ? '#065f46' : '#991b1b', marginTop: 2 }}>
+                    ₹{Number(extractedIncome).toLocaleString('en-IN')} <span style={{ fontSize: 13, fontWeight: 600, color: '#64748b' }}>/ year</span>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: 20,
+                    fontSize: 12.5,
+                    fontWeight: 800,
+                    background: extractedIncome <= 500000 ? '#ecfdf5' : '#fee2e2',
+                    color: extractedIncome <= 500000 ? '#059669' : '#dc2626',
+                    border: `1px solid ${extractedIncome <= 500000 ? '#a7f3d0' : '#fecaca'}`,
+                  }}
+                >
+                  {extractedIncome <= 500000 ? '✓ Eligible (≤ ₹5,00,000)' : '✕ Not Eligible (> ₹5,00,000)'}
+                </div>
+              </div>
+            )}
+
             {(status === 'FAILED' || status === 'MANUAL_REVIEW') && (
               <div style={{ marginTop: 14 }}>
                 <button
@@ -424,7 +475,8 @@ function RegisterContent() {
     );
   };
 
-  const isCertVerified = scStatus === 'VERIFIED' && incomeStatus === 'VERIFIED';
+  const isIdentityVerified = !!selfiePhoto;
+  const isCertVerified = isIdentityVerified && scStatus === 'VERIFIED' && incomeStatus === 'VERIFIED';
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f1f5f9' }}>
@@ -433,12 +485,35 @@ function RegisterContent() {
       <main style={{ flex: 1, padding: '48px 24px' }}>
         <div style={{ maxWidth: 760, margin: '0 auto' }}>
 
-          <div style={{ textAlign: 'center', marginBottom: 40 }}>
-            <h1 style={{ fontSize: 30, fontWeight: 900, color: '#0b1f3a', marginBottom: 10, letterSpacing: '-0.02em' }}>
-              Create Your Account
+          <div style={{ textAlign: 'center', marginBottom: 36 }}>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              background: '#ecfdf5',
+              border: '1px solid #a7f3d0',
+              padding: '5px 14px',
+              borderRadius: 20,
+              fontSize: 12.5,
+              fontWeight: 700,
+              color: '#065f46',
+              marginBottom: 12,
+            }}>
+              <span>🛡️ Official Beneficiary Portal</span>
+              <span>•</span>
+              <span>Certificate OCR & Live Face Verification</span>
+            </div>
+            <h1 style={{ fontSize: 30, fontWeight: 900, color: '#0b1f3a', marginBottom: 8, letterSpacing: '-0.02em' }}>
+              Create Your Beneficiary Account
             </h1>
-            <p style={{ fontSize: 15.5, color: '#64748b', margin: 0 }}>
-              Complete the form below to register and verify your eligibility for NSFDC schemes.
+            <p style={{ fontSize: 15, color: '#64748b', margin: '0 0 10px' }}>
+              Complete the verified application below to establish your profile and access NSFDC concessional loans.
+            </p>
+            <p style={{ fontSize: 13.5, color: '#475569', margin: 0 }}>
+              Already have an account?{' '}
+              <a href="/auth" style={{ color: '#0369a1', fontWeight: 700, textDecoration: 'underline' }}>
+                Sign In to Citizen Portal →
+              </a>
             </p>
           </div>
 
@@ -613,7 +688,16 @@ function RegisterContent() {
 
                   {/* ── SECTION 3: Identity Verification ── */}
                   <section style={sectionStyle}>
-                    <h2 style={sectionHeadingStyle}>3. Live Identity Check</h2>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '2px solid #f1f5f9', paddingBottom: 14, marginBottom: 24 }}>
+                      <h2 style={{ ...sectionHeadingStyle, borderBottom: 'none', paddingBottom: 0, marginBottom: 0 }}>
+                        3. Live Identity Check
+                      </h2>
+                      {isIdentityVerified && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '4px 12px', borderRadius: 20, border: '1px solid #a7f3d0' }}>
+                          <CheckCircle2 size={16} /> Live Face Verified
+                        </span>
+                      )}
+                    </div>
                     <CameraCapture
                       title="Live Selfie (for identity verification)"
                       description="Face the camera directly in good lighting. Remove cap, mask, or sunglasses."
@@ -623,53 +707,72 @@ function RegisterContent() {
                   </section>
 
                   {/* ── SECTION 4: Certificate Verification ── */}
-                  <section style={sectionStyle}>
-                    <h2 style={sectionHeadingStyle}>4. Document Verification</h2>
-                    <p style={{ fontSize: 14, color: '#475569', marginBottom: 24 }}>
-                      Please upload images (JPG/PNG) of your certificates containing a government QR code. 
-                      Our system will fetch the official digital record to verify eligibility.
-                    </p>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
-                      
-                      {/* Caste Certificate */}
-                      <div>
-                        {scStatus === 'IDLE' ? (
-                          <CameraCapture
-                            title="SC Caste Certificate"
-                            description="Upload or capture a clear photo of your Scheduled Caste certificate. JPG/PNG accepted."
-                            onPhotoSet={handleVerifyCaste}
-                            isDocument={true}
-                          />
-                        ) : (
-                          renderCertStatus(scStatus, scMessage, 'SC Caste Certificate', () => { setScStatus('IDLE'); setScMessage(''); })
-                        )}
-                      </div>
-
-                      {/* Income Certificate */}
-                      <div>
-                        {incomeStatus === 'IDLE' ? (
-                          <CameraCapture
-                            title="Family Income Certificate"
-                            description="Upload or capture a clear photo of your Family Income certificate. JPG/PNG accepted."
-                            onPhotoSet={handleVerifyIncome}
-                            isDocument={true}
-                          />
-                        ) : (
-                          renderCertStatus(incomeStatus, incomeMessage, 'Family Income Certificate', () => { setIncomeStatus('IDLE'); setIncomeMessage(''); })
-                        )}
-                      </div>
-
-                      <div style={{ padding: '16px 20px', borderRadius: 14, border: '1.5px solid #e2e8f0', background: '#f8fafc', marginTop: 12 }}>
-                        <label style={labelStyle}>
-                          Aadhaar Number <span style={{ color: '#94a3b8', fontWeight: 400 }}>(optional — aids faster verification)</span>
-                        </label>
-                        <input style={inputStyle} type="text" placeholder="XXXX XXXX XXXX" maxLength={14} value={aadhaar} onChange={e => {
-                          const digits = e.target.value.replace(/\D/g, '').slice(0, 12);
-                          setAadhaar(digits.replace(/(.{4})/g, '$1 ').trim());
-                        }} />
-                      </div>
+                  <section style={{ ...sectionStyle, opacity: isIdentityVerified ? 1 : 0.6, pointerEvents: isIdentityVerified ? 'auto' : 'none' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '2px solid #f1f5f9', paddingBottom: 14, marginBottom: 24 }}>
+                      <h2 style={{ ...sectionHeadingStyle, borderBottom: 'none', paddingBottom: 0, marginBottom: 0 }}>
+                        4. Document Verification
+                      </h2>
+                      {isCertVerified && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '4px 12px', borderRadius: 20, border: '1px solid #a7f3d0' }}>
+                          <CheckCircle2 size={16} /> Certificates Verified
+                        </span>
+                      )}
                     </div>
+
+                    {!isIdentityVerified ? (
+                      <div style={{ padding: 24, background: '#f1f5f9', borderRadius: 12, textAlign: 'center', color: '#64748b' }}>
+                        <p style={{ margin: 0, fontWeight: 600, fontSize: 15, color: '#334155' }}>🔒 Locked until live identity check is completed.</p>
+                        <p style={{ margin: '8px 0 0', fontSize: 14 }}>Please capture your live selfie in Step 3 above to unlock document verification.</p>
+                      </div>
+                    ) : (
+                      <>
+                        <p style={{ fontSize: 14, color: '#475569', marginBottom: 24 }}>
+                          Please upload images (JPG/PNG) of your certificates containing a government QR code. 
+                          Our system will fetch the official digital record to verify eligibility.
+                        </p>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+                          
+                          {/* Caste Certificate */}
+                          <div>
+                            {scStatus === 'IDLE' ? (
+                              <CameraCapture
+                                title="SC Caste Certificate"
+                                description="Upload or capture a clear photo of your Scheduled Caste certificate. JPG/PNG accepted."
+                                onPhotoSet={handleVerifyCaste}
+                                isDocument={true}
+                              />
+                            ) : (
+                              renderCertStatus(scStatus, scMessage, 'SC Caste Certificate', () => { setScStatus('IDLE'); setScMessage(''); })
+                            )}
+                          </div>
+
+                          {/* Income Certificate */}
+                          <div>
+                            {incomeStatus === 'IDLE' ? (
+                              <CameraCapture
+                                title="Family Income Certificate"
+                                description="Upload or capture a clear photo of your Family Income certificate. JPG/PNG accepted."
+                                onPhotoSet={handleVerifyIncome}
+                                isDocument={true}
+                              />
+                            ) : (
+                              renderCertStatus(incomeStatus, incomeMessage, 'Family Income Certificate', () => { setIncomeStatus('IDLE'); setIncomeMessage(''); })
+                            )}
+                          </div>
+
+                          <div style={{ padding: '16px 20px', borderRadius: 14, border: '1.5px solid #e2e8f0', background: '#f8fafc', marginTop: 12 }}>
+                            <label style={labelStyle}>
+                              Aadhaar Number <span style={{ color: '#94a3b8', fontWeight: 400 }}>(optional — aids faster verification)</span>
+                            </label>
+                            <input style={inputStyle} type="text" placeholder="XXXX XXXX XXXX" maxLength={14} value={aadhaar} onChange={e => {
+                              const digits = e.target.value.replace(/\D/g, '').slice(0, 12);
+                              setAadhaar(digits.replace(/(.{4})/g, '$1 ').trim());
+                            }} />
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </section>
 
                   {/* ── SECTION 5: Security ── */}
@@ -710,7 +813,7 @@ function RegisterContent() {
                         <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginTop: 8, cursor: 'pointer', background: '#f8fafc', padding: 16, borderRadius: 12, border: '1px solid #e2e8f0' }}>
                           <input type="checkbox" required checked={acceptedTerms} onChange={e => setAcceptedTerms(e.target.checked)} style={{ width: 18, height: 18, marginTop: 2, accentColor: '#0b1f3a', flexShrink: 0 }} />
                           <span style={{ fontSize: 13, color: '#334155', lineHeight: 1.6 }}>
-                            I declare that all information and documents are true and correct. I consent to Pradarshak AI processing this data to determine my eligibility for NSFDC concessional finance schemes.
+                            I declare that all information and documents are true and correct. I consent to PradarshakAI processing this data to determine my eligibility for NSFDC concessional finance schemes.
                           </span>
                         </label>
 

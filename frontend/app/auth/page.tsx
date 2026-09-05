@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, Suspense } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
 import { userLogin } from '@/lib/api';
@@ -10,11 +10,11 @@ import {
   Eye,
   EyeOff,
   CheckCircle2,
-Mail,
-  Phone,
+  Mail,
   ArrowRight,
   User,
-  Lock
+  Lock,
+  ShieldCheck,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useLanguage } from '@/context/LanguageContext';
@@ -35,15 +35,19 @@ export default function AuthPage() {
 
 function AuthContent() {
   const router = useRouter();
-const { t } = useLanguage();
-  const [mode, setMode] = useState<'login' | 'register'>('login');
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
+  const searchParams = useSearchParams();
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('mode') === 'register') {
+      router.replace('/register');
+    }
+  }, [searchParams, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -121,7 +125,7 @@ const { t } = useLanguage();
                   <Landmark size={20} />
                 </div>
                 <div>
-                  <div style={{ fontSize: 17, fontWeight: 900, color: '#ffffff' }}>{t('brand.name', 'Pradarshak AI')}</div>
+                  <div style={{ fontSize: 17, fontWeight: 900, color: '#ffffff' }}>{t('brand.name', 'PradarshakAI')}</div>
                   <div style={{ fontSize: 11, color: '#94a3b8' }}>{t('brand.org', 'National SC Finance & Dev. Corp.')}</div>
                 </div>
               </div>
@@ -173,70 +177,64 @@ const { t } = useLanguage();
             </div>
           </div>
 
-          {/* ── Right Form Column ───────────────────────────────────────────── */}
+            {/* ── Right Form Column ───────────────────────────────────────────── */}
           <div
             style={{
               padding: '48px 40px',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'center',
-              gap: 24,
+              gap: 22,
             }}
           >
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               <h2 style={{ fontSize: 24, fontWeight: 900, color: '#0b1f3a', margin: 0, letterSpacing: '-0.02em' }}>
-{mode === 'login' ? t('auth.welcome_back', 'Welcome Back') : t('auth.create_account', 'Create Beneficiary Account')}
+                {t('auth.welcome_back', 'Citizen Portal Sign In')}
               </h2>
               <p style={{ fontSize: 13.5, color: '#64748b', margin: 0 }}>
                 {t('auth.subtitle', 'Sign in to access your chat history and saved schemes.')}
               </p>
             </div>
 
-            {/* Mode Switch Tabs */}
+            {/* Mode Switch / Action Tabs */}
             <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: 12 }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setMode('login');
-                  setError('');
-                }}
+              <div
                 style={{
                   flex: 1,
                   padding: '9px',
                   borderRadius: 9,
                   fontSize: 13,
-                  fontWeight: mode === 'login' ? 700 : 500,
-                  border: 'none',
-                  background: mode === 'login' ? '#ffffff' : 'transparent',
-                  color: mode === 'login' ? '#0b1f3a' : '#64748b',
-                  boxShadow: mode === 'login' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
-                  cursor: 'pointer',
-                  transition: 'all 150ms ease',
+                  fontWeight: 700,
+                  textAlign: 'center',
+                  background: '#ffffff',
+                  color: '#0b1f3a',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
                 }}
               >
                 {t('nav.signin', 'Sign In')}
-              </button>
+              </div>
               <button
                 type="button"
-                onClick={() => {
-                  setMode('register');
-                  setError('');
-                }}
+                onClick={() => router.push('/register')}
                 style={{
                   flex: 1,
                   padding: '9px',
                   borderRadius: 9,
                   fontSize: 13,
-                  fontWeight: mode === 'register' ? 700 : 500,
+                  fontWeight: 600,
                   border: 'none',
-                  background: mode === 'register' ? '#ffffff' : 'transparent',
-                  color: mode === 'register' ? '#0b1f3a' : '#64748b',
-                  boxShadow: mode === 'register' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+                  background: 'transparent',
+                  color: '#fe9832',
                   cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
                   transition: 'all 150ms ease',
                 }}
               >
-                Register
+                <ShieldCheck size={14} color="#fe9832" />
+                <span>Register (Verified)</span>
               </button>
             </div>
 
@@ -248,35 +246,8 @@ const { t } = useLanguage();
                 </div>
               )}
 
-              {mode === 'register' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <label style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#475569' }}>
-                    {t('auth.full_name', 'Full Name')}
-                  </label>
-                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    <User size={16} color="#94a3b8" style={{ position: 'absolute', left: 14 }} />
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g. Ramesh Kumar"
-                      style={{
-                        width: '100%',
-                        padding: '11px 14px 11px 40px',
-                        borderRadius: 12,
-                        border: '1.5px solid #cbd5e1',
-                        background: '#f8fafc',
-                        fontSize: 13.5,
-                        color: '#0f172a',
-                        outline: 'none',
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
-
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-<label style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#475569' }}>
+                <label style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#475569' }}>
                   {t('auth.email_label', 'Email Address')}
                 </label>
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -303,35 +274,6 @@ const { t } = useLanguage();
                   />
                 </div>
               </div>
-
-{/* Mobile Phone (for Register) */}
-              {mode === 'register' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <label style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#475569' }}>
-                    {t('auth.mobile_label', 'Mobile Number')}
-                  </label>
-                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    <Phone size={16} color="#94a3b8" style={{ position: 'absolute', left: 14 }} />
-                    <input
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder={t('auth.mobile_ph', '10-digit mobile number')}
-                      required
-                      style={{
-                        width: '100%',
-                        padding: '11px 14px 11px 40px',
-                        borderRadius: 12,
-                        border: '1.5px solid #cbd5e1',
-                        background: '#f8fafc',
-                        fontSize: 13.5,
-                        color: '#0f172a',
-                        outline: 'none',
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
 
               {/* Password */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -397,7 +339,7 @@ const { t } = useLanguage();
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: 8,
-                  marginTop: 8,
+                  marginTop: 4,
                   boxShadow: '0 4px 12px rgba(11, 31, 58, 0.15)',
                   transition: 'transform 0.1s'
                 }}
@@ -405,11 +347,52 @@ const { t } = useLanguage();
                 onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
                 onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
               >
-{loading ? 'Please wait…' : mode === 'login' ? t('auth.login_btn', 'Sign In to Portal') : t('auth.register_btn', 'Create My Account')}
+                {loading ? 'Signing in…' : t('auth.login_btn', 'Sign In to Portal')}
               </button>
             </form>
 
-            <div style={{ textAlign: 'center', paddingTop: 4 }}>
+            {/* Official Registration CTA Box */}
+            <div
+              style={{
+                background: '#f8fafc',
+                border: '1.5px solid #e2e8f0',
+                borderRadius: 16,
+                padding: '18px 20px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <ShieldCheck size={18} color="#059669" />
+                <span style={{ fontSize: 13.5, fontWeight: 800, color: '#0b1f3a' }}>
+                  New Beneficiary? Start Verified Registration
+                </span>
+              </div>
+              <p style={{ fontSize: 12.5, color: '#64748b', margin: 0, lineHeight: 1.5 }}>
+                Official verification with <strong>Caste Certificate OCR</strong>, <strong>Income Verification</strong>, and <strong>Live Camera Face Matching</strong> to confirm eligibility for NSFDC concessional loans.
+              </p>
+              <Link
+                href="/register"
+                className="btn btn-amber btn-bounce"
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: 10,
+                  fontWeight: 700,
+                  fontSize: 13,
+                  textDecoration: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                }}
+              >
+                <span>Proceed to Verified Registration</span>
+                <ArrowRight size={14} />
+              </Link>
+            </div>
+
+            <div style={{ textAlign: 'center', paddingTop: 2 }}>
               <Link
                 href="/"
                 style={{ fontSize: 12.5, color: '#64748b', textDecoration: 'none', fontWeight: 600 }}

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import PartnerResultCard from './PartnerResultCard';
 import { Search, Compass, Navigation } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
@@ -36,7 +37,12 @@ interface Partner {
 }
 
 export default function PartnersTab() {
+  const router = useRouter();
   const { t } = useLanguage();
+
+  useEffect(() => {
+    router.replace('/partners');
+  }, [router]);
   const [city, setCity] = useState('');
   const [category, setCategory] = useState('');
   const [radius, setRadius] = useState('100');

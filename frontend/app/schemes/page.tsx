@@ -269,43 +269,6 @@ const { t } = useLanguage();
             )}
           </div>
         )}
-          </div>
-        ) : null}
-
-{/* Parameter Details */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, fontSize: 11.5, color: '#64748b', paddingTop: 2 }}>
-          <span style={{ background: '#f1f5f9', padding: '3px 8px', borderRadius: 6 }}>
-            {t('schemes.income_limit', 'Income limit:')} ≤ ₹{scheme.max_income_lakh}L/yr
-          </span>
-          <span style={{ background: '#f1f5f9', padding: '3px 8px', borderRadius: 6 }}>
-            {t('schemes.tenure', 'Tenure: up to')} {scheme.max_tenure_months} mo
-          </span>
-          {scheme.moratorium_months_max > 0 && (
-            <span style={{ background: '#f1f5f9', padding: '3px 8px', borderRadius: 6 }}>
-              {t('schemes.moratorium', 'Moratorium:')} {scheme.moratorium_months_min}–{scheme.moratorium_months_max} mo
-            </span>
-          )}
-        </div>
-
-        {/* ── Official Source Citation ────────────────────────────────────── */}
-        {scheme.official_source && (
-          <div style={{ fontSize: 11, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginTop: 8 }}>
-            <span>Source:</span>
-            {scheme.official_source_url ? (
-              <a
-                href={scheme.official_source_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                style={{ color: '#0284c7', textDecoration: 'none', fontWeight: 600 }}
-              >
-                {scheme.official_source} ↗
-              </a>
-            ) : (
-              <span style={{ fontWeight: 600, color: '#64748b' }}>{scheme.official_source}</span>
-            )}
-          </div>
-        )}
       </div>
 
       {/* ── Action Buttons ──────────────────────────────────────────────── */}

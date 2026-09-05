@@ -234,6 +234,26 @@ export default function HomePage() {
                 <Layers size={18} color="#ffdcc2" />
                 <span>Browse All Schemes</span>
               </Link>
+
+              <Link
+                href="/register"
+                className="btn btn-bounce"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.12)',
+                  border: '1.5px solid rgba(255, 255, 255, 0.35)',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  fontSize: 14.5,
+                  padding: '12px 22px',
+                  borderRadius: 6,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                <ShieldCheck size={18} color="#8dfc75" />
+                <span>Verify & Register</span>
+              </Link>
             </div>
 
             {/* Official Trust Row */}

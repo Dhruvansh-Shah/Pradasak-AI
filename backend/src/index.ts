@@ -17,6 +17,7 @@ import { pool } from './db/pool';
 import fs from 'fs';
 
 dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, '../../.env'), override: true });
 
 process.on('uncaughtException', (err) => console.error('Uncaught exception:', err));
 process.on('unhandledRejection', (reason) => console.error('Unhandled rejection:', reason));

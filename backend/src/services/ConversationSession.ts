@@ -32,6 +32,7 @@ export interface Session {
    *  previously recommended scheme) without needing the full tool-call trace. */
   lastContext?: Record<string, unknown>;
   lastIntent?: string;
+  userContext?: { name?: string | null; salary?: number | null };
   createdAt: Date;
   updatedAt: Date;
 }
