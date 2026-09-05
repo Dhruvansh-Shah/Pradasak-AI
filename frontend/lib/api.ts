@@ -55,12 +55,22 @@ export async function sendChat(
   message: string,
   sessionId?: string,
   chatId?: string,
-  token?: string | null
+  token?: string | null,
+  language?: string,
+  detectedLanguageCode?: string | null,
+  languageProbability?: number | null
 ): Promise<ChatResponse> {
   const res = await fetch(`${BASE}/chat`, {
     method: 'POST',
     headers: userHeaders(token),
-    body: JSON.stringify({ message, sessionId, chatId }),
+    body: JSON.stringify({
+      message,
+      sessionId,
+      chatId,
+      language,
+      detectedLanguageCode,
+      languageProbability,
+    }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Network error' })) as { error?: string; detail?: string };
@@ -88,8 +98,12 @@ export async function fetchTTS(text: string, language: string): Promise<Blob> {
 
 export async function transcribeAudio(
   audioBlob: Blob,
-  language: string
-): Promise<{ transcript: string; languageCode: string }> {
+  language: string = 'unknown'
+): Promise<{
+  transcript: string;
+  detectedLanguageCode: string | null;
+  languageProbability: number | null;
+}> {
   const formData = new FormData();
   formData.append('audio', audioBlob, 'recording.webm');
   formData.append('language', language);
@@ -107,7 +121,11 @@ export async function transcribeAudio(
     throw new Error(err.detail || err.error || 'STT request failed');
   }
 
-  return res.json() as Promise<{ transcript: string; languageCode: string }>;
+  return res.json() as Promise<{
+    transcript: string;
+    detectedLanguageCode: string | null;
+    languageProbability: number | null;
+  }>;
 }
 
 // ── User auth ─────────────────────────────────────────────────────────────────

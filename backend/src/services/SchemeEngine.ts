@@ -90,10 +90,8 @@ function purposeMatchScore(scheme: Scheme, purpose: string | undefined): number 
   if (!p) return 15;
 
   const normP = normalizeSchemeText(p);
-  const cleanP = normP;
   const pTokens = normP.split(/\s+/).filter(Boolean);
 
-  // Extract acronym and base name from scheme.name (e.g. "Mahila Samriddhi Yojana (MSY)")
   const parensMatch = scheme.name.match(/\(([^)]+)\)/);
   const acronym = parensMatch ? parensMatch[1].trim() : '';
   const baseName = scheme.name.replace(/\([^)]+\)/, '').trim();
@@ -103,7 +101,6 @@ function purposeMatchScore(scheme: Scheme, purpose: string | undefined): number 
   const normFullName = normalizeSchemeText(scheme.name);
   const normShortName = scheme.short_name ? normalizeSchemeText(scheme.short_name) : '';
 
-  // Check direct scheme match against acronym, short_name, base_name, or full_name
   const isAcronymMatch = normAcronym.length > 0 && (normP === normAcronym || pTokens.includes(normAcronym));
   const isShortMatch = normShortName.length > 0 && (normP === normShortName || pTokens.includes(normShortName));
   const isBaseNameMatch = normBaseName.length >= 3 && (normP === normBaseName || normP.includes(normBaseName) || normBaseName.includes(normP));
@@ -116,20 +113,31 @@ function purposeMatchScore(scheme: Scheme, purpose: string | undefined): number 
   const rawTypes = scheme.eligible_project_types || [];
   const normalizedTypes = rawTypes.map((t) => t.toLowerCase().replace(/[-_]/g, ' '));
 
-  // Semantic groups (Multilingual support for English, Hindi, and Marathi terms)
   const sanitationWords = ['waste', 'recycling', 'sanitation', 'garbage', 'sewage', 'toilet', 'scavenger', 'cleaning', 'safai', 'सफाई', 'कचरा', 'शौचालय', 'स्वच्छता'];
   const greenWords = ['green', 'electric', 'rickshaw', 'solar', 'biogas', 'polyhouse', 'organic', 'eco', 'renewable', 'ev', 'ई-रिक्शा', 'सौर', 'पर्यावरण'];
   const artisanWords = ['artisan', 'handicraft', 'weaving', 'craft', 'pottery', 'woodwork', 'sculpture', 'textile', 'carpet', 'embroidery', 'शिल्पकार', 'बुनकर', 'हस्तकला', 'हस्तशिल्प'];
   const businessWords = ['tailoring', 'shop', 'grocery', 'kirana', 'trade', 'enterprise', 'business', 'store', 'restaurant', 'hotel', 'manufacturing', 'repair', 'सिलाई', 'दुकान', 'व्यापार', 'व्यवसाय', 'शिलाई', 'उद्योग'];
   const agriWords = ['agriculture', 'farming', 'poultry', 'animal', 'cattle', 'horticulture', 'dairy', 'crop', 'fisheries', 'खेती', 'कृषि', 'डेयरी', 'पशुपालन', 'शेतकरी'];
   const techWords = ['saas', 'software', 'tech', 'it', 'b2b', 'supplier', 'suppliers', 'supply', 'logistics', 'services', 'agency', 'wholesale', 'सॉफ्टवेयर', 'तकनीक', 'सप्लायर'];
+  const educationWords = [
+    'education', 'study', 'college', 'school', 'engineering', 'medical', 'degree', 'student',
+    'scholarship', 'university', 'course', 'vocational', 'tuition', 'btech', 'mtech', 'mba', 'mbbs',
+    'शिक्षा', 'पढ़ाई', 'सिक्षा', 'शिक्षण', 'इंजीनियरिंग', 'कोर्स',
+    'ಶಿಕ್ಷಣ', 'ಸಾಹಿತ್ಯ', 'ಅಧ್ಯಯನ', 'ಕಾಲೇಜು', 'ವಿದ್ಯಾಭ್ಯಾಸ', 'ಎಂಜಿನಿಯರಿಂಗ್',
+    'શિક્ષણ', 'கல்வி', 'విద్య', 'വിദ്യാഭ്യാസം', 'ଶିକ୍ଷା', 'ਸਿੱਖਿਆ'
+  ];
 
   const isSanitationScheme = scheme.name.includes('Swachhta') || scheme.name.includes('SUY');
   const isGreenScheme = scheme.name.includes('Green') || scheme.name.includes('GBS');
   const isArtisanScheme = scheme.name.includes('Shilpi') || scheme.name.includes('SSY');
   const isAgriScheme = scheme.name.includes('Kisan') || scheme.name.includes('MKY');
+  const isEducationScheme = scheme.category === 'education_loan' || scheme.education_required;
 
-  if (cleanP) {
+  if (normP) {
+    if (educationWords.some((w) => normP.includes(w))) {
+      if (isEducationScheme) return 50;
+      return -15;
+    }
     if (sanitationWords.some((w) => normP.includes(w))) {
       if (isSanitationScheme) return 50;
       return 5;
@@ -154,7 +162,7 @@ function purposeMatchScore(scheme: Scheme, purpose: string | undefined): number 
       return 5;
     }
     if (businessWords.some((w) => normP.includes(w))) {
-      if (isAgriScheme) return -30; // Kisan schemes are strictly for agriculture/farming
+      if (isAgriScheme) return -30;
       if (isSanitationScheme || isArtisanScheme) return -15;
       if (normP.includes('सिलाई') || normP.includes('tailoring') || normP.includes('शिलाई')) {
         if (scheme.name.includes('Mahila Samriddhi')) return 50;
@@ -167,13 +175,11 @@ function purposeMatchScore(scheme: Scheme, purpose: string | undefined): number 
       return 15;
     }
 
-    // Direct token overlap
     const pWords = normP.split(/\s+/).filter((w) => w.length > 2);
     const typeWords = normalizedTypes.flatMap((t) => t.split(/\s+/));
     if (pWords.some((w) => typeWords.includes(w))) return 35;
   }
 
-  // If user didn't specify purpose, don't randomly prioritize niche schemes
   if (isSanitationScheme || isArtisanScheme || isAgriScheme) return -30;
   if (isGreenScheme) return -15;
 
@@ -181,7 +187,7 @@ function purposeMatchScore(scheme: Scheme, purpose: string | undefined): number 
 }
 
 function incomeScore(scheme: Scheme, incomeRs: number | undefined): { score: number; warning?: string } {
-  if (!incomeRs) return { score: 10 }; // no info — give benefit of doubt
+  if (!incomeRs) return { score: 10 };
   const incomeLakh = incomeRs / 100000;
 
   if (incomeLakh > scheme.max_income_lakh) {
@@ -228,15 +234,26 @@ function genderScore(scheme: Scheme, gender: string | undefined): { score: numbe
     if (gender === 'female') {
       return { score: 25 };
     }
-    // Strictly penalize for male or unspecified applicants so Mahila schemes are only offered to women
     return { score: -300, warning: 'This scheme is exclusively for women applicants' };
   }
   return { score: 0 };
 }
 
-export function scoreSchemes(schemes: Scheme[], entities: UserEntities): ScoredScheme[] {
+const MULTILINGUAL_EDUCATION_WORDS = [
+  'education', 'study', 'college', 'school', 'engineering', 'medical', 'degree', 'student',
+  'scholarship', 'university', 'course', 'vocational', 'tuition', 'btech', 'mtech', 'mba', 'mbbs',
+  'शिक्षा', 'पढ़ाई', 'सिक्षा', 'शिक्षण', 'इंजीनियरिंग', 'कोर्स',
+  'ಶಿಕ್ಷಣ', 'ಸಾಹಿತ್ಯ', 'ಅಧ್ಯಯನ', 'ಕಾಲೇಜು', 'ವಿದ್ಯಾಭ್ಯಾಸ', 'ಎಂಜಿನಿಯರಿಂಗ್',
+  'શિક્ષણ', 'கல்வி', 'విద్య', 'വിദ്യാഭ്യാസം', 'ଶିକ୍ଷା', 'ਸਿੱਖਿਆ'
+];
+
+export function scoreSchemes(schemes: Scheme[], entities: UserEntities, categoryHint?: string): ScoredScheme[] {
+  const pNorm = (entities.purpose || '').toLowerCase();
+  const isEduCategory = categoryHint === 'education_loan' || (schemes.length > 0 && schemes.every((s) => s.category === 'education_loan'));
+  const isEduPurpose = MULTILINGUAL_EDUCATION_WORDS.some((w) => pNorm.includes(w.toLowerCase()));
   const isEducation = !!(
-    entities.purpose?.toLowerCase().includes('education') ||
+    isEduCategory ||
+    isEduPurpose ||
     entities.education_level ||
     entities.course
   );
@@ -272,13 +289,12 @@ export function scoreSchemes(schemes: Scheme[], entities: UserEntities): ScoredS
 
       let { score: gScore, warning: gWarn } = genderScore(scheme, entities.gender);
       if (isDirectMatch && gScore < 0) {
-        gScore = 0; // Neutralize -300 score penalty for direct scheme name/acronym lookups
+        gScore = 0;
       }
       score += gScore;
       if (gWarn) warnings.push(gWarn);
       else if (entities.gender === 'female' && gScore > 0) matchReasons.push('Exclusive concessional scheme for women entrepreneurs');
 
-      // Prefer lower interest rates slightly
       score += Math.max(0, (10 - Number(scheme.interest_rate_min || 6)) * 2);
 
       return { ...scheme, score, matchReasons, warnings };
@@ -291,7 +307,7 @@ export function scoreSchemes(schemes: Scheme[], entities: UserEntities): ScoredS
 
 export async function recommendSchemes(entities: UserEntities, categoryHint?: string): Promise<ScoredScheme[]> {
   const all = await fetchActiveSchemes(categoryHint);
-  const scored = scoreSchemes(all, entities);
+  const scored = scoreSchemes(all, entities, categoryHint);
   if (scored.length === 0) {
     return all.slice(0, 3).map((s) => ({ ...s, score: 50, matchReasons: ['Official NSFDC Concessional Scheme'], warnings: [] }));
   }

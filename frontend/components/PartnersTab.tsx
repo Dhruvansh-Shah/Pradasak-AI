@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import PartnerResultCard from './PartnerResultCard';
-import { Search, MapPin, Compass, Navigation, SlidersHorizontal } from 'lucide-react';
+import { Search, Compass, Navigation } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
@@ -30,6 +31,7 @@ interface Partner {
 }
 
 export default function PartnersTab() {
+  const { t } = useLanguage();
   const [city, setCity] = useState('');
   const [category, setCategory] = useState('');
   const [radius, setRadius] = useState('100');
@@ -102,15 +104,15 @@ export default function PartnersTab() {
               letterSpacing: '0.05em',
             }}
           >
-            Spatial Discovery
+            {t('partners.badge', 'Geo-Spatial Locator')}
           </span>
         </div>
 
         <h1 style={{ fontSize: 26, fontWeight: 800, color: '#0b1f3a', margin: 0, letterSpacing: '-0.02em' }}>
-          Locate Active Channel Partners
+          {t('partners.title', 'Find Channel Partners Near You')}
         </h1>
         <p style={{ fontSize: 14, color: '#64748b', margin: 0, lineHeight: 1.5 }}>
-          Find authorized State Channelizing Agencies (SCAs), Regional Rural Banks, and MFIs with accurate radial distance.
+          {t('partners.desc', 'Locate State Channelizing Agencies (SCAs), Regional Rural Banks (RRBs), and NBFC-MFIs authorized to disburse concessional loans in your district.')}
         </p>
       </div>
 
@@ -131,7 +133,7 @@ export default function PartnersTab() {
           {/* City / District Input */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <label style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#334155' }}>
-              City, District, or Location
+              Location
             </label>
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
               <Search size={18} color="#94a3b8" style={{ position: 'absolute', left: 16 }} />
@@ -139,7 +141,7 @@ export default function PartnersTab() {
                 type="text"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                placeholder="Enter city or district name (e.g. Lucknow, Delhi, Jaipur)..."
+                placeholder={t('partners.search_ph', 'Enter city or district name (e.g. Lucknow, Delhi, Jaipur, Pune)...')}
                 required
                 style={{
                   width: '100%',
@@ -157,7 +159,9 @@ export default function PartnersTab() {
 
             {/* Popular City Chips */}
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, paddingTop: 4 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Popular:</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>
+                {t('partners.popular', 'Popular Cities:')}
+              </span>
               {POPULAR_CITIES.map((c) => (
                 <button
                   key={c}
@@ -185,7 +189,7 @@ export default function PartnersTab() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <label style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#334155' }}>
-                Loan Scheme Type
+                {t('schemes.cat_label', 'Category:')}
               </label>
               <select
                 value={category}
@@ -264,7 +268,7 @@ export default function PartnersTab() {
             }}
           >
             <Navigation size={16} color="#fbbf24" />
-            <span>{loading ? 'Searching Active Partners…' : 'Find Authorized Partners'}</span>
+            <span>{loading ? t('partners.btn_searching', 'Searching…') : t('partners.btn_locate', 'Locate Partners')}</span>
           </button>
         </div>
       </form>

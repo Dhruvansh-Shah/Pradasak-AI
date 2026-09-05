@@ -1,24 +1,46 @@
-const SARVAM_STT_URL = 'https://api.sarvam.ai/speech-to-text';
+import { getLanguageConfig } from '../config/languages';
 
-const LANG_MAP: Record<string, string> = {
-  en: 'en-IN',
-  hi: 'hi-IN',
-  mr: 'mr-IN',
-  'en-in': 'en-IN',
-  'hi-in': 'hi-IN',
-  'mr-in': 'mr-IN',
-};
+const SARVAM_STT_URL = 'https://api.sarvam.ai/speech-to-text';
 
 export interface STTResponse {
   transcript: string;
-  languageCode: string;
+  languageCode: string | null;
+  languageProbability: number | null;
+}
+
+export interface SarvamRawSTTResponse {
+  transcript?: string;
+  language_code?: string;
+  language_probability?: number;
+}
+
+export function mapSarvamSTTResponse(data: SarvamRawSTTResponse): STTResponse {
+  if (!data || typeof data.transcript !== 'string') {
+    throw new Error('Sarvam STT API returned invalid or empty transcript response');
+  }
+
+  const rawLangCode =
+    typeof data.language_code === 'string' && data.language_code.trim()
+      ? data.language_code.trim()
+      : null;
+
+  const rawProbability =
+    typeof data.language_probability === 'number' && !isNaN(data.language_probability)
+      ? data.language_probability
+      : null;
+
+  return {
+    transcript: data.transcript.trim(),
+    languageCode: rawLangCode,
+    languageProbability: rawProbability,
+  };
 }
 
 export async function transcribeSpeech(
   audioBuffer: Buffer,
   fileName: string = 'recording.webm',
   mimeType: string = 'audio/webm',
-  language: string = 'en'
+  language: string = 'unknown'
 ): Promise<STTResponse> {
   const apiKey = process.env.SARVAM_API_KEY;
   if (!apiKey) {
@@ -29,8 +51,15 @@ export async function transcribeSpeech(
     throw new Error('Audio file buffer is empty');
   }
 
-  const normalizedLang = language ? language.toLowerCase() : 'en';
-  const targetLanguageCode = LANG_MAP[normalizedLang] || LANG_MAP.en;
+  let targetLanguageCode = 'unknown';
+  if (language && language !== 'unknown' && language !== 'auto') {
+    const langConfig = getLanguageConfig(language);
+    if (langConfig) {
+      targetLanguageCode = langConfig.sarvamSttCode;
+    } else {
+      targetLanguageCode = language;
+    }
+  }
 
   const audioFile = new File([new Uint8Array(audioBuffer)], fileName, { type: mimeType });
 
@@ -53,14 +82,7 @@ export async function transcribeSpeech(
     throw new Error(`Sarvam STT API request failed (${response.status}): ${errorText || response.statusText}`);
   }
 
-  const data = (await response.json()) as { transcript?: string; language_code?: string };
+  const data = (await response.json()) as SarvamRawSTTResponse;
 
-  if (!data || typeof data.transcript !== 'string') {
-    throw new Error('Sarvam STT API returned invalid or empty transcript response');
-  }
-
-  return {
-    transcript: data.transcript.trim(),
-    languageCode: data.language_code || targetLanguageCode,
-  };
+  return mapSarvamSTTResponse(data);
 }

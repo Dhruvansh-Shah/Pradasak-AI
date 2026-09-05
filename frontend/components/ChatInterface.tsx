@@ -22,8 +22,6 @@ import {
   Calculator,
   HeartHandshake,
   ArrowRight,
-  Globe,
-  CornerDownLeft,
   Mic,
   MicOff,
   Volume2,
@@ -46,21 +44,6 @@ interface Message {
   animate?: boolean;
 }
 
-type Language = 'en' | 'hi' | 'mr';
-
-const LANG_LABELS: Record<Language, string> = {
-  en: 'English',
-  hi: 'हिंदी',
-  mr: 'मराठी',
-};
-
-// ── Speech-to-text setup (Sarvam Saaras STT via backend) ────────────────────
-const SPEECH_LANG_MAP: Record<Language, string> = {
-  en: 'en-IN',
-  hi: 'hi-IN',
-  mr: 'mr-IN',
-};
-
 type SuggestionItem = {
   title: string;
   desc: string;
@@ -71,7 +54,7 @@ type SuggestionItem = {
   bg: string;
 };
 
-const SUGGESTIONS: Record<Language, SuggestionItem[]> = {
+const SUGGESTIONS: Record<string, SuggestionItem[]> = {
   en: [
     {
       title: 'Small Business & Trade Loan',
@@ -112,8 +95,8 @@ const SUGGESTIONS: Record<Language, SuggestionItem[]> = {
   ],
   hi: [
     {
-      title: 'छोटा व्यवसाय / दुकान ऋण',
-      desc: 'सिलाई, किराना या व्यापार इकाई के लिए ₹1.40L से ₹50L तक रियायती सरकारी ऋण (पारिवारिक आय ≤ ₹5 लाख)।',
+      title: 'छोटा व्यवसाय एवं दुकान ऋण',
+      desc: 'सिलाई, किराना दुकान या सेवा व्यवसाय के लिए ₹1.40L से ₹50L तक रियायती सरकारी ऋण (पारिवारिक आय ≤ ₹5 लाख)।',
       query: 'मुझे सिलाई और कपड़ों की दुकान खोलनी है। परिवार की सालाना आय ₹2.5 लाख है। मुझे कौन सी योजना मिलेगी?',
       icon: Briefcase,
       tag: 'व्यवसाय ऋण',
@@ -122,8 +105,8 @@ const SUGGESTIONS: Record<Language, SuggestionItem[]> = {
     },
     {
       title: 'उच्च एवं तकनीकी शिक्षा ऋण',
-      desc: 'इंजीनियरिंग, मेडिकल व वोकेशनल पढ़ाई के लिए 4%–6% की बेहद कम ब्याज दर पर शिक्षा ऋण सहायता।',
-      query: 'मुझे बीटेक/इंजीनियरिंग के लिए एजुकेशन लोन चाहिए। ब्याज दर और अधिकतम सीमा क्या है?',
+      desc: 'इंजीनियरिंग, मेडिकल और वोकेशनल पढ़ाई के लिए 4%–6% की कम ब्याज दर पर शिक्षा ऋण सहायता।',
+      query: 'मुझे बी.टेक/इंजीनियरिंग के लिए एजुकेशन लोन चाहिए। ब्याज दर और अधिकतम सीमा क्या है?',
       icon: GraduationCap,
       tag: 'शिक्षा ऋण',
       color: '#7e22ce',
@@ -131,7 +114,7 @@ const SUGGESTIONS: Record<Language, SuggestionItem[]> = {
     },
     {
       title: 'महिला समृद्धि योजना',
-      desc: 'अनुसूचित जाति की महिला उद्यमियों व स्वयं सहायता समूहों के लिए 4% ब्याज पर ₹1.40 लाख तक विशेष सहायता।',
+      desc: 'अनुसूचित जाति की महिला उद्यमियों के लिए 4% ब्याज पर ₹1.40 लाख तक विशेष सहायता।',
       query: 'अनुसूचित जाति की महिलाओं के लिए महिला समृद्धि योजना के बारे में विस्तार से बताएं।',
       icon: HeartHandshake,
       tag: 'महिला विशेष',
@@ -139,11 +122,49 @@ const SUGGESTIONS: Record<Language, SuggestionItem[]> = {
       bg: '#fff7ed',
     },
     {
-      title: 'मासिक EMI एवं मोरेटोरियम गणना',
-      desc: 'ब्याज दर और 3 से 12 महीने की ग्रेस अवधि (मोरेटोरियम) के साथ सटीक मासिक किस्त की गणना करें।',
+      title: 'मासिक ईएमआई (EMI) एवं मोरेटोरियम गणना',
+      desc: 'ब्याज दर और 3 से 12 महीने की छूट अवधि (मोरेटोरियम) के साथ सटीक मासिक किस्त की गणना करें।',
       query: '₹5 लाख के कर्ज पर 7% ब्याज और 5 साल की अवधि के लिए मासिक EMI क्या बनेगी?',
       icon: Calculator,
       tag: 'EMI कैलकुलेटर',
+      color: '#15803d',
+      bg: '#f0fdf4',
+    },
+  ],
+  pa: [
+    {
+      title: 'ਛੋਟਾ ਵਿਵਸਾਇ / ਦੁਕਾਨ ਰਿਣ',
+      desc: 'ਸਿਲਾਈ, ਕਿਰਾਣਾ ਯਾ ਵ੍ਯਾਪਾਰ ਲਈ ₹1.40L ਤੋਂ ₹50L ਤੱਕ ਰਿਆਇਤੀ ਸਰਕਾਰੀ ਰਿਣ (ਪਰਿਵਾਰਿਕ ਆਮਦਨ ≤ ₹5 ਲੱਖ)।',
+      query: 'ਮੈਨੂੰ ਸਿਲਾਈ ਅਤੇ ਕਪੜਿਆਂ ਦੀ ਦੁਕਾਨ ਖੋਲ੍ਹਣੀ ਹੈ। ਪਰਿਵਾਰ ਦੀ ਸਾਲਾਨਾ ਆਮਦਨ ₹2.5 ਲੱਖ ਹੈ। ਮੈਨੂੰ ਕਿਹੜੀ ਯੋਜਨਾ ਮਿਲੇਗੀ?',
+      icon: Briefcase,
+      tag: 'ਵ੍ਯਵਸਾਇ ਰਿਣ',
+      color: '#0b1f3a',
+      bg: '#eff6ff',
+    },
+    {
+      title: 'ਉੱਚ ਅਤੇ ਤਕਨੀਕੀ ਸਿੱਖਿਆ ਰਿਣ',
+      desc: 'ਇੰਜੀਨੀਅਰਿੰਗ, ਮੈਡੀਕਲ ਅਤੇ ਵੋਕੇਸ਼ਨਲ ਪੜ੍ਹਾਈ ਲਈ 4%–6% ਦੀ ਘੱਟ ਵਿਆਜ ਦਰ ਤੇ ਸਿੱਖਿਆ ਰਿਣ ਸਹਾਇਤਾ।',
+      query: 'ਮੈਨੂੰ ਬੀ.ਟੈਕ/ਇੰਜੀਨੀਅਰਿੰਗ ਲਈ ਐਜੂਕੇਸ਼ਨ ਲੋਨ ਚਾਹੀਦਾ ਹੈ। ਵਿਆਜ ਦਰ ਅਤੇ ਅਧਿਕਤਮ ਸੀਮਾ ਕੀ ਹੈ?',
+      icon: GraduationCap,
+      tag: 'ਸਿੱਖਿਆ ਰਿਣ',
+      color: '#7e22ce',
+      bg: '#fdf4ff',
+    },
+    {
+      title: 'ਮਹਿਲਾ ਸਮ੍ਰਿਧੀ ਯੋਜਨਾ',
+      desc: 'ਅਨੁਸੂਚਿਤ ਜਾਤੀ ਦੀਆਂ ਮਹਿਲਾ ਉੱਦਮੀਆਂ ਲਈ 4% ਵਿਆਜ ਤੇ ₹1.40 ਲੱਖ ਤੱਕ ਵਿਸ਼ੇਸ਼ ਸਹਾਇਤਾ।',
+      query: 'ਅਨੁਸੂਚਿਤ ਜਾਤੀ ਦੀਆਂ ਮਹਿਲਾਵਾਂ ਲਈ ਮਹਿਲਾ ਸਮ੍ਰਿਧੀ ਯੋਜਨਾ ਬਾਰੇ ਵਿਸਥਾਰ ਨਾਲ ਦੱਸੋ।',
+      icon: HeartHandshake,
+      tag: 'ਮਹਿਲਾ ਵਿਸ਼ੇਸ਼',
+      color: '#c2410c',
+      bg: '#fff7ed',
+    },
+    {
+      title: 'ਮਹੀਨਾਵਾਰ EMI ਅਤੇ ਮੋਰਟੋਰੀਅਮ ਗਣਨਾ',
+      desc: 'ਵਿਆਜ ਦਰ ਅਤੇ 3 ਤੋਂ 12 ਮਹੀਨੇ ਦੀ ਗ੍ਰੇਸ ਮਿਆਦ (ਮੋਰਟੋਰੀਅਮ) ਨਾਲ ਸਟੀਕ ਮਹੀਨਾਵਾਰ ਕਿਸ਼ਤ ਦੀ ਗਣਨਾ ਕਰੋ।',
+      query: '₹5 ਲੱਖ ਦੇ ਕਰਜ਼ੇ ਤੇ 7% ਵਿਆਜ ਅਤੇ 5 ਸਾਲ ਦੀ ਮਿਆਦ ਲਈ ਮਹੀਨਾਵਾਰ EMI ਕੀ ਬਣੇਗੀ?',
+      icon: Calculator,
+      tag: 'EMI ਕੈਲਕੁਲੇਟਰ',
       color: '#15803d',
       bg: '#f0fdf4',
     },
@@ -196,6 +217,7 @@ function MessageBubble({
   loadingTTSMessageId,
   onPlayTTS,
   onStopTTS,
+  t,
 }: {
   msg: Message;
   onAction: (text: string) => void;
@@ -204,6 +226,7 @@ function MessageBubble({
   loadingTTSMessageId?: string | null;
   onPlayTTS?: (msg: Message) => void;
   onStopTTS?: () => void;
+  t: (key: string, fallback?: string) => string;
 }) {
   const isUser = msg.role === 'user';
   const [textDone, setTextDone] = useState(!msg.animate);
@@ -317,17 +340,17 @@ function MessageBubble({
                 {isThisLoading ? (
                   <>
                     <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} color="#64748b" />
-                    <span>Generating voice...</span>
+                    <span>{t('chat.generating_voice', 'Generating voice...')}</span>
                   </>
                 ) : isPlaying ? (
                   <>
                     <Square size={12} fill="#dc2626" color="#dc2626" />
-                    <span>Stop</span>
+                    <span>{t('chat.stop_btn', 'Stop')}</span>
                   </>
                 ) : (
                   <>
                     <Volume2 size={13} color="#334155" />
-                    <span>Listen</span>
+                    <span>{t('chat.listen_btn', 'Listen')}</span>
                   </>
                 )}
               </button>
@@ -485,7 +508,7 @@ export default function ChatInterface({
     }));
   });
 
-  const { lang: language, setLang: setLanguage, t } = useLanguage();
+  const { lang: language, isAuto, updateDetectedLang, setLang: setLanguage, t } = useLanguage();
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string>(propChatId || '');
@@ -496,6 +519,10 @@ export default function ChatInterface({
   const [speechSupported, setSpeechSupported] = useState(true);
   const [speechError, setSpeechError] = useState<string | null>(null);
   const [activeStream, setActiveStream] = useState<MediaStream | null>(null);
+  const [sttDetectedLang, setSttDetectedLang] = useState<{
+    code: string | null;
+    probability: number | null;
+  }>({ code: null, probability: null });
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -561,7 +588,6 @@ export default function ChatInterface({
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const chatIdRef = useRef<string | null>(propChatId || null);
-  const initialSentRef = useRef(false);
 
   useEffect(() => {
     setSpeechSupported(
@@ -633,13 +659,22 @@ export default function ChatInterface({
 
         setIsTranscribing(true);
         try {
-          const res = await transcribeAudio(audioBlob, language);
-          if (res && res.transcript) {
+          const res = await transcribeAudio(audioBlob, 'unknown');
+          if (res && res.transcript && res.transcript.trim()) {
+            setSttDetectedLang({
+              code: res.detectedLanguageCode ?? null,
+              probability: res.languageProbability ?? null,
+            });
+            if (res.detectedLanguageCode) {
+              updateDetectedLang(res.detectedLanguageCode, res.languageProbability);
+            }
             setInput((prev) => (prev ? `${prev} ${res.transcript}` : res.transcript));
+          } else {
+            setSpeechError(t('stt.error_unclear', "Sorry, I couldn't understand that. Please try again."));
           }
         } catch (err) {
           console.error('[stt-error]', err);
-          setSpeechError('Voice input failed. Please try again or type your message.');
+          setSpeechError(t('stt.error_unclear', "Sorry, I couldn't understand that. Please try again."));
         } finally {
           setIsTranscribing(false);
           setIsListening(false);
@@ -654,12 +689,12 @@ export default function ChatInterface({
       if (eName === 'NotAllowedError' || eName === 'PermissionDeniedError') {
         setSpeechError('Microphone access denied. Please allow microphone permissions and try again.');
       } else {
-        setSpeechError('Voice input failed. Please try again or type your message.');
+        setSpeechError(t('stt.error_unclear', "Sorry, I couldn't understand that. Please try again."));
       }
       setActiveStream(null);
       setIsListening(false);
     }
-  }, [language]);
+  }, [language, t]);
 
   const toggleListening = () => {
     if (isListening) {
@@ -709,12 +744,22 @@ export default function ChatInterface({
       setLoading(true);
 
       try {
+        const reqLang = isAuto ? 'auto' : language;
         const res = await sendChat(
           text,
           sessionId || undefined,
           chatIdRef.current || undefined,
-          token
+          token,
+          reqLang,
+          sttDetectedLang.code,
+          sttDetectedLang.probability
         );
+        setSttDetectedLang({ code: null, probability: null });
+
+        if (res.detectedLanguage) {
+          updateDetectedLang(res.detectedLanguage);
+        }
+
         const newChatId = res.chatId || res.sessionId;
         setSessionId(newChatId);
         if (!chatIdRef.current && res.chatId) {
@@ -731,18 +776,10 @@ export default function ChatInterface({
           disclaimer: res.disclaimer,
           animate: true,
         });
-
-        if (
-          res.detectedLanguage === 'hi' ||
-          res.detectedLanguage === 'mr' ||
-          res.detectedLanguage === 'en'
-        ) {
-          setLanguage(res.detectedLanguage);
-        }
       } catch (err) {
         addMessage({
           role: 'assistant',
-          text: 'Unable to process your request at the moment. Please verify your network and try again.',
+          text: t('chat.error_fallback', 'Unable to process your request right now. Please try again in a moment.'),
           animate: true,
         });
         console.error(err);
@@ -751,7 +788,7 @@ export default function ChatInterface({
         setTimeout(() => inputRef.current?.focus(), 100);
       }
     },
-    [loading, sessionId, token, onChatCreated, addMessage, isListening, stopListening]
+    [loading, sessionId, token, onChatCreated, addMessage, isListening, stopListening, language, isAuto, updateDetectedLang]
   );
 
   const lastProcessedQueryRef = useRef<string | null>(null);
@@ -833,54 +870,12 @@ export default function ChatInterface({
                 </div>
 
                 <h1 style={{ fontSize: 30, fontWeight: 800, color: '#0b1f3a', letterSpacing: '-0.02em', margin: '4px 0 0' }}>
-                  {language === 'hi'
-                    ? 'NSFDC प्रदर्शक AI सहायक'
-                    : language === 'mr'
-                    ? 'NSFDC प्रदर्शक AI सहाय्यक'
-                    : 'Pradarshak AI Scheme Assistant'}
+                  {t('chat.welcome_title', 'Pradarshak AI Scheme Assistant')}
                 </h1>
 
                 <p style={{ fontSize: 15, color: '#64748b', maxWidth: 620, lineHeight: 1.6, margin: 0 }}>
-                  {language === 'hi'
-                    ? 'अपनी जरूरत या व्यवसाय बताएं — हम सीधे आधिकारिक योजनाओं, EMI और निकटतम चैनल पार्टनर से जोड़ेंगे।'
-                    : language === 'mr'
-                    ? 'तुमची गरज किंवा व्यवसाय सांगा — आम्ही योग्य कर्ज योजना, EMI आणि जवळचे पार्टनर शोधू.'
-                    : 'Describe your business idea, annual income, or educational goal to find verified concessional loan schemes.'}
+                  {t('chat.welcome_desc', 'Describe your business idea, annual income, or educational goal to find verified concessional loan schemes.')}
                 </p>
-
-                <div
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    background: '#e2e8f0',
-                    padding: '4px',
-                    borderRadius: 12,
-                    marginTop: 8,
-                  }}
-                >
-                  <Globe size={14} color="#64748b" style={{ marginLeft: 6, marginRight: 2 }} />
-                  {(['en', 'hi', 'mr'] as Language[]).map((l) => (
-                    <button
-                      key={l}
-                      onClick={() => setLanguage(l)}
-                      style={{
-                        padding: '6px 14px',
-                        borderRadius: 9,
-                        fontSize: 12.5,
-                        fontWeight: language === l ? 700 : 500,
-                        border: 'none',
-                        background: language === l ? '#ffffff' : 'transparent',
-                        color: language === l ? '#0b1f3a' : '#475569',
-                        boxShadow: language === l ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
-                        cursor: 'pointer',
-                        transition: 'all 150ms ease',
-                      }}
-                    >
-                      {LANG_LABELS[l]}
-                    </button>
-                  ))}
-                </div>
               </div>
 
               <div
@@ -999,6 +994,7 @@ export default function ChatInterface({
                 loadingTTSMessageId={loadingTTSMessageId}
                 onPlayTTS={handlePlayTTS}
                 onStopTTS={stopAudio}
+                t={t}
               />
             ))}
 
@@ -1074,16 +1070,8 @@ export default function ChatInterface({
               onKeyDown={handleKeyDown}
               placeholder={
                 isListening
-                  ? language === 'hi'
-                    ? 'सुन रहा हूँ...'
-                    : language === 'mr'
-                    ? 'ऐकत आहे...'
-                    : 'Listening...'
-                  : language === 'hi'
-                  ? 'अपनी स्थिति या प्रश्न लिखें... (उदा. सिलाई दुकान के लिए कौन सा लोन मिलेगा?)'
-                  : language === 'mr'
-                  ? 'तुमची गरज किंवा प्रश्न विचारा... (उदा. व्यवसायासाठी कोणते कर्ज मिळेल?)'
-                  : 'Ask anything about schemes, eligibility rules, monthly EMI, or channel partners...'
+                  ? t('chat.listening', 'Listening...')
+                  : t('chat.input_ph', 'Ask about loans, eligibility, interest rates, or channel partners...')
               }
               rows={1}
               style={{
@@ -1174,7 +1162,7 @@ export default function ChatInterface({
           {isTranscribing && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 4px', fontSize: 11.5, color: '#0b1f3a' }}>
               <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} color="#0b1f3a" />
-              <span style={{ fontWeight: 600 }}>Processing voice input with Sarvam AI...</span>
+              <span style={{ fontWeight: 600 }}>{t('chat.transcribing', 'Processing voice input with Sarvam AI...')}</span>
             </div>
           )}
 
@@ -1184,7 +1172,7 @@ export default function ChatInterface({
                 <span style={{ position: 'absolute', width: '100%', height: '100%', borderRadius: '50%', background: '#dc2626', opacity: 0.6, animation: 'pulse 1.5s infinite' }} />
                 <span style={{ position: 'relative', width: 8, height: 8, borderRadius: '50%', background: '#dc2626' }} />
               </span>
-              <span style={{ fontWeight: 600 }}>Listening — speak now, click mic again when done</span>
+              <span style={{ fontWeight: 600 }}>{t('chat.listening_instructions', 'Listening — speak now, click mic again when done')}</span>
             </div>
           )}
 
@@ -1195,8 +1183,8 @@ export default function ChatInterface({
           )}
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px', fontSize: 11.5, color: '#94a3b8' }}>
-            <span>Press <kbd style={{ background: '#e2e8f0', color: '#475569', padding: '1px 5px', borderRadius: 4, fontWeight: 700 }}>Enter ↵</kbd> to send</span>
-            <span>Verified against official NSFDC scheme catalog data</span>
+            <span>{t('chat.press_enter', 'Press Enter ↵ to send')}</span>
+            <span>{t('chat.verified_data', 'Verified against official NSFDC scheme catalog data')}</span>
           </div>
         </div>
       </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
 import { useRouter } from 'next/navigation';
@@ -8,13 +8,8 @@ import {
   Search,
   X,
   Layers,
-  Sparkles,
   ArrowRight,
   MessageCircle,
-  IndianRupee,
-  Percent,
-  Calendar,
-  ShieldCheck,
   RotateCcw
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
@@ -56,6 +51,7 @@ function SchemeCard({
   scheme: Scheme;
   onChat: (name: string) => void;
 }) {
+  const { t } = useLanguage();
   const meta =
     CATEGORY_META[scheme.category] || {
       label: scheme.category.replace('_', ' '),
@@ -123,7 +119,7 @@ function SchemeCard({
                 textTransform: 'uppercase',
               }}
             >
-              Women Only
+              {t('schemes.women_only', 'Women Only')}
             </span>
           )}
         </div>
@@ -142,7 +138,7 @@ function SchemeCard({
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, paddingTop: 4 }}>
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '10px 12px' }}>
             <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', display: 'block', marginBottom: 2 }}>
-              Max Loan
+              {t('schemes.max_loan', 'Max Loan')}
             </span>
             <strong style={{ fontSize: 15, fontWeight: 800, color: '#0b1f3a' }}>
               ₹{scheme.max_loan_lakh} Lakh
@@ -151,7 +147,7 @@ function SchemeCard({
 
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '10px 12px' }}>
             <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', display: 'block', marginBottom: 2 }}>
-              Interest Rate
+              {t('schemes.interest_rate', 'Interest Rate')}
             </span>
             <strong style={{ fontSize: 15, fontWeight: 800, color: '#15803d' }}>
               {scheme.interest_rate_min === scheme.interest_rate_max
@@ -164,14 +160,14 @@ function SchemeCard({
         {/* Parameter Details */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, fontSize: 11.5, color: '#64748b', paddingTop: 2 }}>
           <span style={{ background: '#f1f5f9', padding: '3px 8px', borderRadius: 6 }}>
-            Income limit: ≤ ₹{scheme.max_income_lakh}L/yr
+            {t('schemes.income_limit', 'Income limit:')} ≤ ₹{scheme.max_income_lakh}L/yr
           </span>
           <span style={{ background: '#f1f5f9', padding: '3px 8px', borderRadius: 6 }}>
-            Tenure: up to {scheme.max_tenure_months} mo
+            {t('schemes.tenure', 'Tenure: up to')} {scheme.max_tenure_months} mo
           </span>
           {scheme.moratorium_months_max > 0 && (
             <span style={{ background: '#f1f5f9', padding: '3px 8px', borderRadius: 6 }}>
-              Moratorium: {scheme.moratorium_months_min}–{scheme.moratorium_months_max} mo
+              {t('schemes.moratorium', 'Moratorium:')} {scheme.moratorium_months_min}–{scheme.moratorium_months_max} mo
             </span>
           )}
         </div>
@@ -206,7 +202,7 @@ function SchemeCard({
           }}
         >
           <MessageCircle size={15} color="#fbbf24" />
-          <span>Inquire with AI Assistant</span>
+          <span>{t('schemes.inquire_btn', 'Inquire with AI Assistant')}</span>
           <ArrowRight size={14} />
         </button>
       </div>
@@ -464,10 +460,10 @@ export default function SchemesPage() {
           >
             <Layers size={40} color="#cbd5e1" />
             <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: 0 }}>
-              No matching schemes found
+              {t('schemes.empty_title', 'No matching schemes found')}
             </h3>
             <p style={{ fontSize: 14, color: '#64748b', maxWidth: 400, margin: 0 }}>
-              Try searching with a broader keyword or clear your active category filters.
+              {t('schemes.empty_desc', 'Try searching with a broader keyword or clear your active category filters.')}
             </p>
             <button
               onClick={resetFilters}
@@ -483,7 +479,7 @@ export default function SchemesPage() {
                 marginTop: 8,
               }}
             >
-              Show All Schemes
+              {t('schemes.empty_btn', 'Show All Schemes')}
             </button>
           </div>
         ) : (

@@ -1,10 +1,6 @@
-const SARVAM_TTS_URL = 'https://api.sarvam.ai/text-to-speech';
+import { getLanguageConfig } from '../config/languages';
 
-const LANG_MAP: Record<string, string> = {
-  en: 'en-IN',
-  hi: 'hi-IN',
-  mr: 'mr-IN',
-};
+const SARVAM_TTS_URL = 'https://api.sarvam.ai/text-to-speech';
 
 function sanitizeTextForSpeech(text: string): string {
   let cleaned = text
@@ -33,7 +29,12 @@ export async function generateSpeech(text: string, language: string): Promise<Bu
     throw new Error('Text parameter cannot be empty after sanitization');
   }
 
-  const targetLanguageCode = LANG_MAP[language.toLowerCase()] || LANG_MAP.en;
+  const langConfig = getLanguageConfig(language);
+  if (!langConfig) {
+    throw new Error(`Unsupported language code: "${language}"`);
+  }
+
+  const targetLanguageCode = langConfig.sarvamTtsCode;
 
   const payload = {
     text: cleanText,

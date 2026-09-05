@@ -10,17 +10,17 @@ import {
   Eye,
   EyeOff,
   CheckCircle2,
-  ArrowRight,
-  ShieldCheck,
   Mail,
   Lock,
   User,
   Phone
 } from 'lucide-react';
 import Link from 'next/link';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function AuthPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -120,8 +120,8 @@ export default function AuthPage() {
                   <Landmark size={20} />
                 </div>
                 <div>
-                  <div style={{ fontSize: 17, fontWeight: 900, color: '#ffffff' }}>Pradarshak AI</div>
-                  <div style={{ fontSize: 11, color: '#94a3b8' }}>National SC Finance &amp; Dev. Corp.</div>
+                  <div style={{ fontSize: 17, fontWeight: 900, color: '#ffffff' }}>{t('brand.name', 'Pradarshak AI')}</div>
+                  <div style={{ fontSize: 11, color: '#94a3b8' }}>{t('brand.org', 'National SC Finance & Dev. Corp.')}</div>
                 </div>
               </div>
 
@@ -144,11 +144,11 @@ export default function AuthPage() {
                 </span>
 
                 <h1 style={{ fontSize: 28, fontWeight: 900, color: '#ffffff', lineHeight: 1.25, margin: 0 }}>
-                  Access Concessional Finance with Complete Clarity
+                  {t('auth.title', 'Citizen Portal Sign In')}
                 </h1>
 
                 <p style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 1.6, margin: 0 }}>
-                  Sign in to save your recommended schemes, view real-time eligibility status, and keep your inquiry history across sessions.
+                  {t('auth.desc', 'Access your saved loan inquiries, scheme recommendations, and partner applications.')}
                 </p>
               </div>
 
@@ -157,7 +157,7 @@ export default function AuthPage() {
                   'Instant scheme matching for family income ≤ ₹5L',
                   'Deterministic moratorium & repayment schedules',
                   'Direct channel partner branch routing & contacts',
-                  'Full multilingual assistance in Hindi & Marathi',
+                  'Full 11-language assistance',
                 ].map((text, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: '#e2e8f0' }}>
                     <CheckCircle2 size={16} color="#34d399" style={{ flexShrink: 0 }} />
@@ -184,13 +184,8 @@ export default function AuthPage() {
           >
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               <h2 style={{ fontSize: 24, fontWeight: 900, color: '#0b1f3a', margin: 0, letterSpacing: '-0.02em' }}>
-                {mode === 'login' ? 'Welcome Back' : 'Create Beneficiary Account'}
+                {mode === 'login' ? t('auth.welcome_back', 'Welcome Back') : t('auth.create_account', 'Create Beneficiary Account')}
               </h2>
-              <p style={{ fontSize: 13.5, color: '#64748b', margin: 0 }}>
-                {mode === 'login'
-                  ? 'Sign in to access your chat history and saved schemes.'
-                  : 'Register to save your conversations and track applications.'}
-              </p>
             </div>
 
             {/* Mode Switch Tabs */}
@@ -215,7 +210,7 @@ export default function AuthPage() {
                   transition: 'all 150ms ease',
                 }}
               >
-                Sign In
+                {t('nav.signin', 'Sign In')}
               </button>
               <button
                 type="button"
@@ -246,7 +241,7 @@ export default function AuthPage() {
               {mode === 'register' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <label style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#475569' }}>
-                    Full Name
+                    {t('auth.full_name', 'Full Name')}
                   </label>
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                     <User size={16} color="#94a3b8" style={{ position: 'absolute', left: 14 }} />
@@ -273,7 +268,7 @@ export default function AuthPage() {
               {/* Email */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <label style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#475569' }}>
-                  Email Address
+                  {t('auth.email_label', 'Email Address')}
                 </label>
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                   <Mail size={16} color="#94a3b8" style={{ position: 'absolute', left: 14 }} />
@@ -301,7 +296,7 @@ export default function AuthPage() {
               {mode === 'register' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <label style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#475569' }}>
-                    Mobile Number
+                    {t('auth.mobile_label', 'Mobile Number')}
                   </label>
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                     <Phone size={16} color="#94a3b8" style={{ position: 'absolute', left: 14 }} />
@@ -309,7 +304,7 @@ export default function AuthPage() {
                       type="tel"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      placeholder="10-digit mobile number"
+                      placeholder={t('auth.mobile_ph', '10-digit mobile number')}
                       required
                       style={{
                         width: '100%',
@@ -329,7 +324,7 @@ export default function AuthPage() {
               {/* Password */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <label style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#475569' }}>
-                  Password
+                  {t('auth.password_label', 'Password')}
                 </label>
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                   <Lock size={16} color="#94a3b8" style={{ position: 'absolute', left: 14 }} />
@@ -392,7 +387,7 @@ export default function AuthPage() {
                   transition: 'all 150ms ease',
                 }}
               >
-                {loading ? 'Please wait…' : mode === 'login' ? 'Sign In to Portal' : 'Create My Account'}
+                {loading ? 'Please wait…' : mode === 'login' ? t('auth.login_btn', 'Sign In to Portal') : t('auth.register_btn', 'Create My Account')}
               </button>
             </form>
 
@@ -401,7 +396,7 @@ export default function AuthPage() {
                 href="/"
                 style={{ fontSize: 12.5, color: '#64748b', textDecoration: 'none', fontWeight: 600 }}
               >
-                ← Back to homepage
+                {t('auth.back_home', '← Back to homepage')}
               </Link>
             </div>
           </div>

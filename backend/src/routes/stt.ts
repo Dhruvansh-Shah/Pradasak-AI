@@ -17,7 +17,7 @@ router.post('/', upload.single('audio'), async (req: Request, res: Response) => 
     return;
   }
 
-  const languageParam = (req.body?.language || req.body?.languageCode || 'en') as string;
+  const languageParam = (req.body?.language || req.body?.languageCode || 'unknown') as string;
 
   try {
     const result = await transcribeSpeech(
@@ -29,7 +29,8 @@ router.post('/', upload.single('audio'), async (req: Request, res: Response) => 
 
     res.json({
       transcript: result.transcript,
-      languageCode: result.languageCode,
+      detectedLanguageCode: result.languageCode,
+      languageProbability: result.languageProbability,
     });
   } catch (err) {
     const msg = (err as Error)?.message || String(err);

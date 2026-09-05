@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { generateSpeech } from '../services/TTSService';
+import { getLanguageConfig } from '../config/languages';
 
 const router = Router();
 
@@ -13,13 +14,14 @@ router.post('/', async (req: Request, res: Response) => {
   }
 
   const lang = (language && typeof language === 'string' ? language : 'en').toLowerCase();
-  if (lang !== 'en' && lang !== 'hi' && lang !== 'mr') {
-    res.status(400).json({ error: 'language parameter must be one of "en", "hi", or "mr"' });
+  const langConfig = getLanguageConfig(lang);
+  if (!langConfig) {
+    res.status(400).json({ error: `Unsupported language: "${language}"` });
     return;
   }
 
   try {
-    const audioBuffer = await generateSpeech(text, lang);
+    const audioBuffer = await generateSpeech(text, langConfig.id);
     res.setHeader('Content-Type', 'audio/wav');
     res.setHeader('Content-Length', audioBuffer.length);
     res.send(audioBuffer);
