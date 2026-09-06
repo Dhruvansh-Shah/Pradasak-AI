@@ -60,7 +60,7 @@ function PartnersContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [typeFilter, setTypeFilter] = useState('All');
-  const [radius, setRadius] = useState(150);
+  const [radius, setRadius] = useState(25);
   const [selectedPartner, setSelectedPartner] = useState<PartnerCardData | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [degradedState, setDegradedState] = useState(false);
@@ -162,11 +162,32 @@ function PartnersContent() {
       const queryCity = initCity.trim();
       setInputCity(queryCity);
       fetchPartners(queryCity);
-    } else {
-      // Default initial view with Mumbai search
-      setInputCity('Mumbai');
-      fetchPartners('Mumbai');
+      return;
     }
+
+    // Attempt to read user location from profile storage
+    let profileLocation = '';
+    if (typeof window !== 'undefined') {
+      try {
+        const uStr = localStorage.getItem('auth_user');
+        if (uStr) {
+          const u = JSON.parse(uStr);
+          if (u.city && u.city.trim()) {
+            profileLocation = u.state ? `${u.city.trim()}, ${u.state.trim()}` : u.city.trim();
+          } else if (u.district && u.district.trim()) {
+            profileLocation = u.state ? `${u.district.trim()}, ${u.state.trim()}` : u.district.trim();
+          } else if (u.state && u.state.trim()) {
+            profileLocation = u.state.trim();
+          }
+        }
+      } catch (e) {
+        console.warn('Could not parse auth_user location:', e);
+      }
+    }
+
+    const defaultLocation = profileLocation || 'Pune, Maharashtra';
+    setInputCity(defaultLocation);
+    fetchPartners(defaultLocation);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 

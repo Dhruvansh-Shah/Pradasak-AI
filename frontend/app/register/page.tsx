@@ -161,6 +161,7 @@ function RegisterContent() {
   const [loading, setLoading] = useState(false);
   const [statusText, setStatusText] = useState('');
   const [error, setError] = useState('');
+  const [emailError, setEmailError] = useState('');
 
   useEffect(() => {
     if (resendCooldown > 0) {
@@ -170,28 +171,38 @@ function RegisterContent() {
   }, [resendCooldown]);
 
   const handleSendOtp = async () => {
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      setEmailError('Please enter a valid email address.');
       setError('Please enter a valid email address.');
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
     setError('');
+    setEmailError('');
     setOtpError('');
     setEmailStep('sending');
     try {
       const res = await fetch(`${BACKEND}/api/registration/send-email-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ email: cleanEmail })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
+      if (!res.ok) {
+        const errorMsg = data.error || data.message || 'Failed to send OTP';
+        setEmailError(errorMsg);
+        throw new Error(errorMsg);
+      }
       
       setEmailStep('sent');
       setResendCooldown(30);
     } catch (err: any) {
       setEmailStep('idle');
       setError(err.message);
+      if (!emailError) {
+        setEmailError(err.message);
+      }
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
@@ -645,10 +656,16 @@ function RegisterContent() {
                     <div>
                       <label style={labelStyle}>Email ID <span style={{ color: '#ef4444' }}>*</span></label>
                       <input
-                        style={{...inputStyle, background: emailStep !== 'idle' ? '#f1f5f9' : '#f8fafc' }}
+                        style={{
+                          ...inputStyle,
+                          borderColor: emailError ? '#ef4444' : undefined,
+                          background: emailStep !== 'idle' ? '#f1f5f9' : '#f8fafc',
+                        }}
                         type="email" required placeholder="name@example.com" value={email}
                         onChange={e => {
                           setEmail(e.target.value);
+                          if (emailError) setEmailError('');
+                          if (error && (error.includes('email') || error.includes('already exists'))) setError('');
                           if (emailStep !== 'idle') {
                             setEmailStep('idle');
                             setOtp('');
@@ -657,6 +674,30 @@ function RegisterContent() {
                         }}
                         disabled={emailStep === 'sent' || emailStep === 'verifying' || emailStep === 'verified' || scStatus === 'VERIFIED' || incomeStatus === 'VERIFIED'}
                       />
+
+                      {emailError && (
+                        <div style={{ marginTop: 8, padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, color: '#b91c1c', fontSize: 13, fontWeight: 600, lineHeight: 1.45 }}>
+                          <div>⚠ {emailError}</div>
+                          {emailError.includes('already exists') && (
+                            <div style={{ marginTop: 6 }}>
+                              <a
+                                href="/auth"
+                                style={{
+                                  color: '#0369a1',
+                                  textDecoration: 'underline',
+                                  fontWeight: 700,
+                                  fontSize: 12.5,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                }}
+                              >
+                                Sign In to your existing account →
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      )}
                       
                       {emailStep === 'idle' && (
                         <button type="button" onClick={handleSendOtp} style={{ marginTop: 8, padding: '8px 16px', background: '#0b1f3a', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>

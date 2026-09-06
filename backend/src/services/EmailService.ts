@@ -329,6 +329,149 @@ This is a system-generated email from ${BRAND_NAME}. Please do not reply to this
 
 /**
  * ─────────────────────────────────────────────────────────────────────────────
+ * PASSWORD RESET OTP EMAIL
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+export async function sendPasswordResetOtpEmail(to: string, otp: string, expiryMinutes: number = 5): Promise<void> {
+  const subject = `${BRAND_NAME} – Password Reset Verification Code`;
+
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject}</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f1f5f9; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing:antialiased;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f1f5f9; padding:40px 16px;">
+    <tr>
+      <td align="center">
+        <!-- Main Card Container -->
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:580px; background-color:#ffffff; border-radius:14px; overflow:hidden; box-shadow:0 6px 24px rgba(11,31,58,0.08); border:1px solid #e2e8f0;">
+          
+          <!-- Government / Institutional Header -->
+          <tr>
+            <td style="background-color:#001e40; padding:28px 32px 24px; text-align:center; border-bottom:4px solid #fe9832;">
+              <div style="color:#ffffff; font-size:24px; font-weight:800; letter-spacing:-0.02em; margin-bottom:4px;">
+                ${BRAND_NAME}
+              </div>
+              <div style="color:#cbd5e1; font-size:12px; font-weight:500; text-transform:uppercase; letter-spacing:0.04em;">
+                National SC Finance & Development Corporation • Government of India
+              </div>
+            </td>
+          </tr>
+
+          <!-- Body Content -->
+          <tr>
+            <td style="padding:36px 36px 28px;">
+              <h1 style="margin:0 0 16px; color:#0b1f3a; font-size:20px; font-weight:800; letter-spacing:-0.01em;">
+                Password Reset Verification Code
+              </h1>
+
+              <p style="margin:0 0 16px; color:#334155; font-size:14.5px; line-height:1.6;">
+                Dear User,
+              </p>
+
+              <p style="margin:0 0 20px; color:#334155; font-size:14.5px; line-height:1.6;">
+                We received a request to reset your password for your <strong>${BRAND_NAME}</strong> account.
+              </p>
+
+              <p style="margin:0 0 24px; color:#334155; font-size:14.5px; line-height:1.6;">
+                To verify your identity and create a new password, please use the One-Time Password (OTP) below:
+              </p>
+
+              <!-- Prominent OTP Code Box -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:24px 0;">
+                <tr>
+                  <td align="center">
+                    <div style="display:inline-block; background-color:#f8fafc; border:2px dashed #003366; border-radius:12px; padding:18px 36px; text-align:center;">
+                      <div style="color:#64748b; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px;">
+                        Password Reset Code (OTP)
+                      </div>
+                      <div style="color:#001e40; font-family:'Courier New', Courier, monospace; font-size:36px; font-weight:900; letter-spacing:8px; line-height:1;">
+                        ${otp}
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Expiry & Security Notice -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:14px 16px; margin:24px 0 20px;">
+                <tr>
+                  <td>
+                    <p style="margin:0; color:#92400e; font-size:13px; line-height:1.5;">
+                      ⏱ <strong>Validity:</strong> This OTP is valid for <strong>${expiryMinutes} minutes</strong>. Please do not share this OTP with anyone.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:0 0 16px; color:#64748b; font-size:13px; line-height:1.6;">
+                If you did not request a password reset, you may safely ignore this email. Your current password will remain unchanged.
+              </p>
+
+              <div style="border-top:1px solid #e2e8f0; margin-top:28px; padding-top:20px;">
+                <p style="margin:0; color:#0b1f3a; font-size:13.5px; font-weight:700;">
+                  Warm regards,<br>
+                  <span style="color:#475569; font-weight:500;">${BRAND_NAME} Support Team</span>
+                </p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- System Generated Footer -->
+          <tr>
+            <td style="background-color:#f8fafc; padding:20px 32px; border-top:1px solid #e2e8f0; text-align:center;">
+              <p style="margin:0 0 8px; color:#64748b; font-size:12px; font-weight:600; line-height:1.4;">
+                This is a system-generated email from ${BRAND_NAME}. Please do not reply to this email.
+              </p>
+              <p style="margin:0; color:#94a3b8; font-size:11px; line-height:1.4;">
+                © ${new Date().getFullYear()} ${BRAND_NAME} • Ministry of Social Justice & Empowerment, Government of India
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim();
+
+  const text = `
+${BRAND_NAME} – Password Reset Verification Code
+
+Dear User,
+
+We received a request to reset your password for your ${BRAND_NAME} account.
+
+To verify your identity and choose a new password, please use the One-Time Password (OTP) below:
+
+OTP: ${otp}
+
+This OTP is valid for ${expiryMinutes} minutes. Please do not share this OTP with anyone.
+
+If you did not request a password reset, you may safely ignore this email.
+
+--------------------------------------------------
+This is a system-generated email from ${BRAND_NAME}. Please do not reply to this email.
+© ${new Date().getFullYear()} ${BRAND_NAME} • Ministry of Social Justice & Empowerment, Government of India
+  `.trim();
+
+  await transporter.sendMail({
+    from: `"${BRAND_NAME}" <${SMTP_FROM}>`,
+    to,
+    subject,
+    text,
+    html,
+  });
+}
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
  * 2. REGISTRATION COMPLETION EMAIL
  * ─────────────────────────────────────────────────────────────────────────────
  */

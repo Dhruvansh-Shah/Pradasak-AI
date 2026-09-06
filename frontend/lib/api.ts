@@ -48,6 +48,14 @@ export interface ChatMessage {
   speech_text?: string;
 }
 
+// ── Auth helpers ──────────────────────────────────────────────────────────────
+
+function userHeaders(token?: string | null): Record<string, string> {
+  const h: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) h['Authorization'] = `Bearer ${token}`;
+  return h;
+}
+
 export interface Scheme {
   id: number;
   name: string;
@@ -69,16 +77,6 @@ export interface SchemeActionPayload {
   schemeIds?: number[];
   schemeNames?: string[];
 }
-
-// ── Auth helpers ──────────────────────────────────────────────────────────────
-
-function userHeaders(token?: string | null): Record<string, string> {
-  const h: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (token) h['Authorization'] = `Bearer ${token}`;
-  return h;
-}
-
-// ── Chat ──────────────────────────────────────────────────────────────────────
 
 export async function sendChat(
   message: string,
@@ -110,6 +108,24 @@ export async function sendChat(
     throw new Error(err.detail || err.error || 'Chat request failed');
   }
   return res.json() as Promise<ChatResponse>;
+}
+
+export async function fetchSchemes(): Promise<any[]> {
+  const res = await fetch(`${BASE}/schemes`);
+  if (!res.ok) throw new Error('Failed to fetch schemes');
+  return res.json();
+}
+
+export async function fetchSchemeById(id: number): Promise<any> {
+  const res = await fetch(`${BASE}/schemes/${id}`);
+  if (!res.ok) throw new Error('Failed to fetch scheme');
+  return res.json();
+}
+
+export async function compareSchemesApi(ids: number[]): Promise<any[]> {
+  const res = await fetch(`${BASE}/schemes/compare?ids=${ids.join(',')}`);
+  if (!res.ok) throw new Error('Failed to compare schemes');
+  return res.json();
 }
 
 // ── Text-to-Speech (TTS) ──────────────────────────────────────────────────────
@@ -235,23 +251,6 @@ export async function resetPassword(
   return data;
 }
 
-export async function fetchSchemes(): Promise<any[]> {
-  const res = await fetch(`${BASE}/schemes`);
-  if (!res.ok) throw new Error('Failed to fetch schemes');
-  return res.json();
-}
-
-export async function fetchSchemeById(id: number): Promise<any> {
-  const res = await fetch(`${BASE}/schemes/${id}`);
-  if (!res.ok) throw new Error('Failed to fetch scheme');
-  return res.json();
-}
-
-export async function compareSchemesApi(ids: number[]): Promise<any[]> {
-  const res = await fetch(`${BASE}/schemes/compare?ids=${ids.join(',')}`);
-  if (!res.ok) throw new Error('Failed to compare schemes');
-  return res.json();
-}
 
 export async function getUserProfile(token: string): Promise<UserProfile> {
   const res = await fetch(`${BASE}/users/me`, { headers: userHeaders(token) });

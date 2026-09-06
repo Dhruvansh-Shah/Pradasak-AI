@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
-import { process as orchestrate, SchemeActionPayload } from '../services/ChatOrchestrator';
+import { process as orchestrate } from '../services/ChatOrchestrator';
+import type { SchemeActionPayload } from '../services/ChatOrchestrator';
 import { pool } from '../db/pool';
 import { optionalUser, UserAuthRequest } from '../middleware/userAuthMiddleware';
 import { generateChatId, autoTitle } from './chats';

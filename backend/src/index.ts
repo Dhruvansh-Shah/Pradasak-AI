@@ -81,6 +81,46 @@ app.get('/api/schemes', async (_req, res) => {
   }
 });
 
+// Compare schemes endpoint
+app.get('/api/schemes/compare', async (req, res) => {
+  try {
+    const idsParam = req.query.ids as string;
+    if (!idsParam) {
+      res.status(400).json({ error: 'ids query parameter is required (e.g. ?ids=1,2,3)' });
+      return;
+    }
+    const ids = idsParam.split(',').map((id) => parseInt(id.trim(), 10)).filter((n) => !isNaN(n));
+    if (ids.length === 0) {
+      res.status(400).json({ error: 'No valid numeric IDs provided' });
+      return;
+    }
+    const { rows } = await pool.query('SELECT * FROM schemes WHERE id = ANY($1::int[]) ORDER BY id ASC', [ids]);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to compare schemes' });
+  }
+});
+
+// Single scheme by ID
+app.get('/api/schemes/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) {
+      res.status(400).json({ error: 'Invalid scheme ID' });
+      return;
+    }
+    const { rows } = await pool.query('SELECT * FROM schemes WHERE id = $1', [id]);
+    if (rows.length === 0) {
+      res.status(404).json({ error: 'Scheme not found' });
+      return;
+    }
+    res.json(rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch scheme' });
+  }
+});
+
+
 app.use((err: Error, _req: import('express').Request, res: import('express').Response, _next: import('express').NextFunction) => {
   const msg = err?.message || String(err);
   process.stdout.write(`[express-error] ${msg}\n${err?.stack || ''}\n`);

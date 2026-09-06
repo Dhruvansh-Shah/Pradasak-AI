@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import VoiceButton from './VoiceButton';
+import { buildEmiSpeech } from '@/lib/speechBuilders';
 import {
   Calculator,
   Sparkles,
@@ -21,12 +23,15 @@ import {
   ChevronUp,
   Award,
   Coins,
+  CheckCircle2,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
+import { fetchSchemes, fetchSchemeById, fetchTTS, Scheme } from '@/lib/api';
 
 export type BorrowerMode = 'individual' | 'msme';
 
 interface SchemePreset {
+  id?: number;
   name: string;
   nameHi: string;
   amount: number; // in Rupees
@@ -39,6 +44,7 @@ interface SchemePreset {
 
 const PRESETS: SchemePreset[] = [
   {
+    id: 5,
     name: 'Term Loan Scheme',
     nameHi: 'टर्म लोन योजना',
     amount: 500000,
@@ -49,6 +55,7 @@ const PRESETS: SchemePreset[] = [
     recommendedMode: 'individual',
   },
   {
+    id: 1,
     name: 'Micro Credit Finance (MCF)',
     nameHi: 'माइक्रो क्रेडिट वित्त',
     amount: 140000,
@@ -59,6 +66,7 @@ const PRESETS: SchemePreset[] = [
     recommendedMode: 'individual',
   },
   {
+    id: 2,
     name: 'Mahila Samriddhi Yojana',
     nameHi: 'महिला समृद्धि योजना',
     amount: 140000,
@@ -79,6 +87,7 @@ const PRESETS: SchemePreset[] = [
     recommendedMode: 'msme',
   },
   {
+    id: 3,
     name: 'Education Loan (General)',
     nameHi: 'शिक्षा ऋण',
     amount: 1000000,
@@ -89,7 +98,8 @@ const PRESETS: SchemePreset[] = [
     recommendedMode: 'individual',
   },
   {
-    name: 'Vocational Education Loan',
+    id: 4,
+    name: 'Education Loan (Vocational/Skill)',
     nameHi: 'कौशल विकास शिक्षा ऋण',
     amount: 400000,
     rate: 4,
@@ -102,9 +112,14 @@ const PRESETS: SchemePreset[] = [
 
 export default function EmiTab({ onSchemeSelect }: { onSchemeSelect?: (schemeName: string) => void }) {
   const router = useRouter();
-  const { t } = useLanguage();
+  const searchParams = useSearchParams();
+  const schemeIdParam = searchParams ? searchParams.get('schemeId') : null;
+
+  const { t, lang } = useLanguage();
   const [borrowerMode, setBorrowerMode] = useState<BorrowerMode>('individual');
   const [presetIndex, setPresetIndex] = useState<number>(0);
+  const [selectedScheme, setSelectedScheme] = useState<Scheme | null>(null);
+  const [dbSchemes, setDbSchemes] = useState<Scheme[]>([]);
   const [amount, setAmount] = useState<number>(500000);
   const [rate, setRate] = useState<number>(7);
   const [tenure, setTenure] = useState<number>(60);
@@ -112,6 +127,37 @@ export default function EmiTab({ onSchemeSelect }: { onSchemeSelect?: (schemeNam
   const [userSalary, setUserSalary] = useState<number | null>(null);
   const [familySize, setFamilySize] = useState<number>(1); // includes self
   const [showSchedule, setShowSchedule] = useState<boolean>(false);
+
+  // Fetch db schemes
+  useEffect(() => {
+    fetchSchemes()
+      .then((schemes) => {
+        if (schemes && schemes.length > 0) {
+          setDbSchemes(schemes);
+        }
+      })
+      .catch((e) => console.warn('Failed to load schemes for EMI tab:', e));
+  }, []);
+
+  // Handle schemeId parameter
+  useEffect(() => {
+    if (!schemeIdParam) return;
+    const numId = parseInt(schemeIdParam, 10);
+    if (isNaN(numId)) return;
+
+    fetchSchemeById(numId)
+      .then((s) => {
+        if (s) {
+          setSelectedScheme(s);
+          setAmount(s.max_loan_lakh ? Math.round(s.max_loan_lakh * 100000) : 200000);
+          setRate(s.interest_rate ?? 5);
+          setTenure(s.tenure_months ?? 36);
+          setMoratorium(s.moratorium_months ?? 3);
+          setPresetIndex(-1);
+        }
+      })
+      .catch((err) => console.warn('Failed to fetch scheme by id:', err));
+  }, [schemeIdParam]);
 
   useMemo(() => {
     if (typeof window !== 'undefined') {
@@ -129,6 +175,7 @@ export default function EmiTab({ onSchemeSelect }: { onSchemeSelect?: (schemeNam
 
   function applyPreset(p: SchemePreset, idx: number) {
     setPresetIndex(idx);
+    setSelectedScheme(null);
     setAmount(p.amount);
     setRate(p.rate);
     setTenure(p.tenure);
@@ -136,6 +183,15 @@ export default function EmiTab({ onSchemeSelect }: { onSchemeSelect?: (schemeNam
     if (p.recommendedMode) {
       setBorrowerMode(p.recommendedMode);
     }
+  }
+
+  function applyScheme(s: Scheme) {
+    setSelectedScheme(s);
+    setPresetIndex(-1);
+    setAmount(s.max_loan_lakh ? Math.round(s.max_loan_lakh * 100000) : 200000);
+    setRate(s.interest_rate ?? 5);
+    setTenure(s.tenure_months ?? 36);
+    setMoratorium(s.moratorium_months ?? 3);
   }
 
   // Full Dual-Mode and Moratorium Calculation
@@ -247,6 +303,90 @@ export default function EmiTab({ onSchemeSelect }: { onSchemeSelect?: (schemeNam
       schedule,
     };
   }, [amount, rate, tenure, moratorium, borrowerMode]);
+
+  const minRate = selectedScheme?.interest_rate_min != null ? Number(selectedScheme.interest_rate_min) : 3;
+  const maxRate = selectedScheme?.interest_rate_max != null ? Number(selectedScheme.interest_rate_max) : 12;
+  const minTenure = (selectedScheme as any)?.min_tenure_months != null ? Number((selectedScheme as any).min_tenure_months) : 12;
+  const maxTenure = (selectedScheme as any)?.max_tenure_months != null ? Number((selectedScheme as any).max_tenure_months) : 120;
+
+  const [isPlayingVoice, setIsPlayingVoice] = useState(false);
+  const [isLoadingVoice, setIsLoadingVoice] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioUrlRef = useRef<string | null>(null);
+
+  const stopAudio = useCallback(() => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    if (audioUrlRef.current) {
+      URL.revokeObjectURL(audioUrlRef.current);
+      audioUrlRef.current = null;
+    }
+    setIsPlayingVoice(false);
+    setIsLoadingVoice(false);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      stopAudio();
+    };
+  }, [stopAudio]);
+
+  const emiSpeechText = useMemo(() => {
+    return buildEmiSpeech({
+      scheme: selectedScheme || (presetIndex >= 0 ? { name: PRESETS[presetIndex].name } : { name: 'Loan Scheme' }),
+      schemeName: selectedScheme?.name || (presetIndex >= 0 ? PRESETS[presetIndex].name : undefined),
+      loanAmount: amount,
+      interestRate: rate,
+      tenureMonths: tenure,
+      moratoriumMonths: moratorium,
+      monthlyEMI: calculation.monthlyEMI,
+      totalInterest: calculation.totalInterest,
+      totalOutflow: calculation.totalRepaid,
+    });
+  }, [selectedScheme, presetIndex, amount, rate, tenure, moratorium, calculation]);
+
+  const handlePlayVoice = useCallback(
+    async (textToSpeak: string) => {
+      stopAudio();
+      setIsLoadingVoice(true);
+      try {
+        const blob = await fetchTTS(textToSpeak, lang);
+        const url = URL.createObjectURL(blob);
+        audioUrlRef.current = url;
+        const audio = new Audio(url);
+        audioRef.current = audio;
+        audio.onended = () => stopAudio();
+        audio.onerror = () => {
+          stopAudio();
+          if (typeof window !== 'undefined' && window.speechSynthesis) {
+            const u = new SpeechSynthesisUtterance(textToSpeak);
+            u.onend = () => setIsPlayingVoice(false);
+            u.onerror = () => setIsPlayingVoice(false);
+            setIsPlayingVoice(true);
+            window.speechSynthesis.speak(u);
+          }
+        };
+        setIsLoadingVoice(false);
+        setIsPlayingVoice(true);
+        await audio.play();
+      } catch (err) {
+        setIsLoadingVoice(false);
+        if (typeof window !== 'undefined' && window.speechSynthesis) {
+          const u = new SpeechSynthesisUtterance(textToSpeak);
+          u.onend = () => setIsPlayingVoice(false);
+          u.onerror = () => setIsPlayingVoice(false);
+          setIsPlayingVoice(true);
+          window.speechSynthesis.speak(u);
+        }
+      }
+    },
+    [lang, stopAudio]
+  );
 
   function formatINR(val: number) {
     return new Intl.NumberFormat('en-IN', {
@@ -405,14 +545,132 @@ export default function EmiTab({ onSchemeSelect }: { onSchemeSelect?: (schemeNam
         </div>
       )}
 
+      {/* ── Prominent Selected Scheme Header Banner ──────────────────────── */}
+      {selectedScheme && (
+        <div
+          style={{
+            background: 'linear-gradient(135deg, #0b1f3a, #16345d)',
+            color: '#ffffff',
+            borderRadius: 18,
+            padding: '20px 24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12,
+            boxShadow: '0 6px 20px rgba(11,31,58,0.14)',
+            border: '1px solid rgba(251,191,36,0.3)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 8,
+                  background: 'rgba(251,191,36,0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Sparkles size={16} color="#fbbf24" />
+              </div>
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 800,
+                  color: '#fbbf24',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                }}
+              >
+                Selected Scheme Active
+              </span>
+            </div>
+            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>
+              Moratorium & Loan Repayment Calculator
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+            <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0, color: '#ffffff' }}>
+              {selectedScheme.name}
+            </h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span
+                style={{
+                  padding: '4px 12px',
+                  borderRadius: 20,
+                  background: 'rgba(251,191,36,0.25)',
+                  color: '#fbbf24',
+                  fontSize: 12,
+                  fontWeight: 700,
+                }}
+              >
+                {selectedScheme.interest_rate ?? rate}% p.a.
+              </span>
+              <button
+                onClick={() => {
+                  setSelectedScheme(null);
+                  applyPreset(PRESETS[0], 0);
+                }}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  color: 'rgba(255,255,255,0.7)',
+                  borderRadius: 8,
+                  padding: '4px 10px',
+                  fontSize: 11,
+                  cursor: 'pointer',
+                }}
+              >
+                Clear Selection
+              </button>
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 18,
+              fontSize: 13,
+              color: '#cbd5e1',
+              paddingTop: 8,
+              borderTop: '1px solid rgba(255,255,255,0.1)',
+            }}
+          >
+            <span>
+              <strong>Interest Rate:</strong> {selectedScheme.interest_rate ?? rate}% p.a.
+            </span>
+            <span>•</span>
+            <span>
+              <strong>Max Tenure:</strong> Up to {selectedScheme.tenure_months ?? tenure} months
+            </span>
+            <span>•</span>
+            <span>
+              <strong>Grace / Moratorium:</strong> {selectedScheme.moratorium_months ?? moratorium} months
+            </span>
+            {selectedScheme.max_loan_lakh && (
+              <>
+                <span>•</span>
+                <span>
+                  <strong>Max Loan Ceiling:</strong> ₹{selectedScheme.max_loan_lakh} Lakhs
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── Scheme Presets Pills ───────────────────────────────────────────── */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <span style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-          Quick Scheme Presets:
+          Select Scheme or Preset:
         </span>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           {PRESETS.map((p, i) => {
-            const isSelected = presetIndex === i;
+            const isSelected = !selectedScheme && presetIndex === i;
             return (
               <button
                 key={p.name}
@@ -449,6 +707,47 @@ export default function EmiTab({ onSchemeSelect }: { onSchemeSelect?: (schemeNam
               </button>
             );
           })}
+          {dbSchemes
+            .filter((s) => !PRESETS.some((p) => p.name.toLowerCase() === s.name.toLowerCase()))
+            .slice(0, 4)
+            .map((s) => {
+              const isSelected = selectedScheme?.id === s.id;
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => applyScheme(s)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '8px 16px',
+                    borderRadius: 12,
+                    fontSize: 13,
+                    fontWeight: isSelected ? 700 : 500,
+                    cursor: 'pointer',
+                    border: isSelected ? '1.5px solid #0b1f3a' : '1.5px solid #e2e8f0',
+                    background: isSelected ? '#0b1f3a' : '#ffffff',
+                    color: isSelected ? '#ffffff' : '#334155',
+                    boxShadow: isSelected ? '0 2px 8px rgba(11,31,58,0.15)' : '0 1px 3px rgba(0,0,0,0.02)',
+                    transition: 'all 150ms ease',
+                  }}
+                >
+                  <span>{s.name}</span>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: 20,
+                      background: isSelected ? 'rgba(251,191,36,0.25)' : '#f1f5f9',
+                      color: isSelected ? '#fbbf24' : '#64748b',
+                    }}
+                  >
+                    {s.interest_rate}% p.a.
+                  </span>
+                </button>
+              );
+            })}
         </div>
       </div>
 
@@ -578,18 +877,18 @@ export default function EmiTab({ onSchemeSelect }: { onSchemeSelect?: (schemeNam
                 <span>Interest Rate (Concessional Subsidized)</span>
               </label>
               <span style={{ fontSize: 16, fontWeight: 800, color: '#c2410c' }}>
-                {rate}% per annum
+                {Number(rate).toFixed(1)}% per annum
               </span>
             </div>
 
             <input
               type="range"
-              min={3}
-              max={12}
-              step={0.5}
+              min={minRate}
+              max={maxRate}
+              step={0.1}
               value={rate}
               onChange={(e) => {
-                setRate(Number(e.target.value));
+                setRate(Number(parseFloat(e.target.value).toFixed(1)));
                 setPresetIndex(-1);
               }}
               style={{
@@ -601,9 +900,9 @@ export default function EmiTab({ onSchemeSelect }: { onSchemeSelect?: (schemeNam
             />
 
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#94a3b8' }}>
-              <span>3%</span>
+              <span>{minRate}%</span>
               <span style={{ color: '#15803d', fontWeight: 600 }}>4%–7% (NSFDC Standard)</span>
-              <span>12%</span>
+              <span>{maxRate}%</span>
             </div>
           </div>
 
@@ -621,9 +920,9 @@ export default function EmiTab({ onSchemeSelect }: { onSchemeSelect?: (schemeNam
 
             <input
               type="range"
-              min={12}
-              max={120}
-              step={6}
+              min={minTenure}
+              max={maxTenure}
+              step={1}
               value={tenure}
               onChange={(e) => {
                 setTenure(Number(e.target.value));
@@ -638,9 +937,9 @@ export default function EmiTab({ onSchemeSelect }: { onSchemeSelect?: (schemeNam
             />
 
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#94a3b8' }}>
-              <span>1 Year (12 Mo)</span>
-              <span>5 Years (60 Mo)</span>
-              <span>10 Years (120 Mo)</span>
+              <span>{minTenure} Mo</span>
+              <span>{Math.round((minTenure + maxTenure) / 2)} Mo</span>
+              <span>{maxTenure} Mo</span>
             </div>
           </div>
 
@@ -772,14 +1071,25 @@ export default function EmiTab({ onSchemeSelect }: { onSchemeSelect?: (schemeNam
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.15)', paddingBottom: 14 }}>
               <div>
                 <span style={{ fontSize: 10.5, fontWeight: 700, color: '#fbbf24', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  {borrowerMode === 'msme' ? 'MSME Enterprise Plan' : 'Individual Entrepreneur Plan'}
+                  {borrowerMode === 'msme' ? 'MSME Enterprise Plan' : 'Estimated Repayment Plan'}
                 </span>
                 <h3 style={{ fontSize: 16, fontWeight: 800, color: '#ffffff', margin: '2px 0 0' }}>
-                  {presetIndex >= 0 ? PRESETS[presetIndex].name : 'Custom Loan Schedule'}
+                  {selectedScheme ? selectedScheme.name : (presetIndex >= 0 ? PRESETS[presetIndex].name : 'Custom Loan Schedule')}
                 </h3>
               </div>
-              <div style={{ background: 'rgba(255,255,255,0.1)', padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#ffffff' }}>
-                {rate}% p.a.
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <VoiceButton
+                  text={emiSpeechText}
+                  isPlaying={isPlayingVoice}
+                  isLoading={isLoadingVoice}
+                  onPlay={() => handlePlayVoice(emiSpeechText)}
+                  onStop={stopAudio}
+                  variant="glass"
+                  size="sm"
+                />
+                <div style={{ background: 'rgba(255,255,255,0.1)', padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#ffffff' }}>
+                  {rate}% p.a.
+                </div>
               </div>
             </div>
 
@@ -838,8 +1148,8 @@ export default function EmiTab({ onSchemeSelect }: { onSchemeSelect?: (schemeNam
             </div>
 
             {/* ── Family-Aware Income Affordability ────────────────────────── */}
-            {userSalary != null && (() => {
-              const monthlyIncome = Math.round(userSalary / 12);
+            {userSalary != null && ((salary: number) => {
+              const monthlyIncome = Math.round(salary / 12);
               const livingCostPerMonth = 3000 * familySize;
               const disposableIncome = Math.max(0, monthlyIncome - livingCostPerMonth);
               const dtiRatio = disposableIncome > 0
@@ -868,7 +1178,7 @@ export default function EmiTab({ onSchemeSelect }: { onSchemeSelect?: (schemeNam
                       Affordability · Family of {familySize}
                     </span>
                     <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>
-                      {formatINR(userSalary)}/yr
+                      {formatINR(salary)}/yr
                     </span>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
@@ -894,13 +1204,15 @@ export default function EmiTab({ onSchemeSelect }: { onSchemeSelect?: (schemeNam
                   </div>
                 </div>
               );
-            })()}
+            })(userSalary)}
 
             {/* Action Triggers */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 4 }}>
               <button
                 onClick={() => {
-                  const query = `I want to apply for a ₹${amount / 100000} Lakh loan at ${rate}% interest for ${tenure} months under ${borrowerMode === 'msme' ? 'MSME' : 'Individual'} mode`;
+                  const query = selectedScheme
+                    ? `I want to apply for ${selectedScheme.name} with a ₹${amount / 100000} Lakh loan at ${rate}% interest for ${tenure} months under ${borrowerMode === 'msme' ? 'MSME' : 'Individual'} mode`
+                    : `I want to apply for a ₹${amount / 100000} Lakh loan at ${rate}% interest for ${tenure} months under ${borrowerMode === 'msme' ? 'MSME' : 'Individual'} mode`;
                   if (onSchemeSelect) {
                     onSchemeSelect(query);
                   } else {
