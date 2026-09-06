@@ -10,7 +10,7 @@ import PartnersTab from '@/components/PartnersTab';
 import type { UserProfile, ChatMessage } from '@/lib/api';
 import { getChat } from '@/lib/api';
 import {
-  Bot,
+  MessageSquare,
   Calculator,
   MapPin,
   Plus,
@@ -38,7 +38,7 @@ function ChatPage() {
   const { t } = useLanguage();
 
   const TABS: { id: TabId; label: string; Icon: React.ElementType }[] = [
-    { id: 'chat',     label: t('chat.tab_ai', 'AI Scheme Assistant'), Icon: Bot },
+    { id: 'chat',     label: t('chat.tab_ai', 'Scheme Advisory'),     Icon: MessageSquare },
     { id: 'emi',      label: t('chat.tab_emi', 'EMI Calculator'),      Icon: Calculator },
     { id: 'partners', label: t('nav.partners', 'Partner Locator'),     Icon: MapPin },
   ];

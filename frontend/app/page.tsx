@@ -1,10 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
 import Interactive3DCard from '@/components/Interactive3DCard';
-import Hero3DCanvas from '@/components/Hero3DCanvas';
 import EmblemOfIndia from '@/components/EmblemOfIndia';
 import InstitutionalMatrix from '@/components/InstitutionalMatrix';
 import {
@@ -27,6 +27,52 @@ import { useLanguage } from '@/context/LanguageContext';
 
 export default function HomePage() {
   const { t } = useLanguage();
+
+  const [heroScheme, setHeroScheme] = useState<'msy' | 'term' | 'els'>('msy');
+
+  const HERO_SCHEMES = {
+    msy: {
+      name: 'Mahila Samriddhi Yojana (MSY)',
+      badge: 'Women Micro-Credit',
+      rate: '4% p.a.',
+      maxLoan: '₹1.40 Lakh',
+      tenure: '3.5 Years',
+      moratorium: '3 Months',
+      monthlyEmi: '₹3,577',
+      commercialEmi: '₹4,228',
+      savings: '₹651 / mo',
+      target: 'Petty trade, tailoring, dairy, and artisanal crafts for women',
+      query: 'Tell me about Mahila Samriddhi Yojana eligibility and application process',
+    },
+    term: {
+      name: 'Flagship Term Loan Scheme',
+      badge: 'Commercial Enterprise',
+      rate: '6% – 8% p.a.',
+      maxLoan: '₹50.00 Lakh',
+      tenure: '5 – 10 Years',
+      moratorium: '6 – 12 Months',
+      monthlyEmi: '₹9,666',
+      commercialEmi: '₹11,634',
+      savings: '₹1,968 / mo',
+      target: 'Manufacturing, commercial vehicles, solar & logistics units',
+      query: 'What are the requirements for NSFDC Term Loan Scheme up to 50 Lakhs?',
+    },
+    els: {
+      name: 'Education Loan Scheme (ELS)',
+      badge: 'Higher Education',
+      rate: '4% p.a.',
+      maxLoan: '₹20.00 Lakh',
+      tenure: '5 Years post study',
+      moratorium: 'Course + 6 Months',
+      monthlyEmi: '₹4,342',
+      commercialEmi: '₹5,394',
+      savings: '₹1,052 / mo',
+      target: 'Premier professional, technical, medical and engineering degrees',
+      query: 'How to apply for NSFDC Education Loan Scheme at 4% interest rate?',
+    },
+  };
+
+  const currentHero = HERO_SCHEMES[heroScheme];
 
   const STATS = [
     { value: t('stats.s1_val', '15+'), label: t('stats.s1_lbl', 'Concessional Schemes'), sub: t('stats.s1_sub', 'Micro-credit to ₹50L loans'), icon: Layers, color: '#003366' },
@@ -276,70 +322,193 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Right Hero Visual: 3D Interactive Concessional Scheme Network */}
-          <div className="hero-visual" style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
+          {/* Right Hero Visual: National Concessional Finance Interactive Snapshot */}
+          <div className="hero-visual" style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%' }}>
             <div
               style={{
                 width: '100%',
-                background: 'rgba(0, 24, 51, 0.9)',
-                border: '1px solid rgba(255, 255, 255, 0.18)',
-                borderRadius: 8,
-                padding: '16px',
-                boxShadow: '0 16px 36px rgba(0, 0, 0, 0.35)',
+                background: '#00132b',
+                border: '1.5px solid rgba(255, 255, 255, 0.16)',
+                borderRadius: 12,
+                padding: '20px 22px',
+                boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 16,
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 10, borderBottom: '1px solid rgba(255, 255, 255, 0.12)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 22, height: 24, borderRadius: 2, background: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1px' }}>
-                    <EmblemOfIndia size={18} />
+              {/* Header Bar */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12, borderBottom: '1px solid rgba(255, 255, 255, 0.12)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 24, height: 26, borderRadius: 3, background: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2px' }}>
+                    <EmblemOfIndia size={20} />
                   </div>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: '#e6eef8', letterSpacing: '0.02em' }}>
-                    National Concessional Scheme Network
-                  </span>
+                  <div>
+                    <div style={{ fontSize: 12.5, fontWeight: 700, color: '#f8fafc', letterSpacing: '0.02em' }}>
+                      Concessional Scheme Rate Monitor
+                    </div>
+                    <div style={{ fontSize: 10.5, color: '#94a3b8' }}>
+                      Ministry of Social Justice & Empowerment • GoI
+                    </div>
+                  </div>
                 </div>
-                <span style={{ fontSize: 11, background: '#003366', color: '#ffdcc2', padding: '2px 8px', borderRadius: 4, fontWeight: 600, border: '1px solid rgba(255,255,255,0.15)' }}>
-                  Interactive 3D
+                <span style={{ fontSize: 11, background: '#15803d', color: '#ffffff', padding: '3px 10px', borderRadius: 20, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#8dfc75', display: 'inline-block' }} />
+                  Subsidized Rates Active
                 </span>
               </div>
 
-              {/* 3D Canvas */}
-              <Hero3DCanvas />
+              {/* Segmented Scheme Selector Tabs */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, background: 'rgba(255, 255, 255, 0.06)', padding: 4, borderRadius: 8 }}>
+                {[
+                  { id: 'msy', label: 'Women (MSY)', rate: '4%' },
+                  { id: 'term', label: 'Term Loan', rate: '6%–8%' },
+                  { id: 'els', label: 'Education (ELS)', rate: '4%' },
+                ].map((tab) => {
+                  const active = heroScheme === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setHeroScheme(tab.id as any)}
+                      style={{
+                        padding: '8px 10px',
+                        borderRadius: 6,
+                        border: active ? '1.5px solid #fe9832' : '1.5px solid transparent',
+                        background: active ? '#001e40' : 'transparent',
+                        color: active ? '#ffffff' : '#cbd5e1',
+                        fontSize: 12,
+                        fontWeight: active ? 700 : 500,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: 2,
+                        transition: 'all 150ms ease',
+                      }}
+                    >
+                      <span>{tab.label}</span>
+                      <span style={{ fontSize: 10, color: active ? '#fe9832' : '#94a3b8', fontWeight: 600 }}>
+                        {tab.rate} p.a.
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
 
-              {/* Quick Assessment Launch */}
+              {/* Active Scheme Details Card */}
               <div
                 style={{
-                  marginTop: 10,
-                  background: 'rgba(255, 255, 255, 0.06)',
-                  borderRadius: 6,
-                  padding: '10px 12px',
+                  background: 'rgba(255, 255, 255, 0.04)',
                   border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: 8,
+                  padding: '16px',
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 10,
+                  flexDirection: 'column',
+                  gap: 12,
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Sparkles size={16} color="#fe9832" />
-                  <span style={{ fontSize: 12, color: '#cbd5e1' }}>
-                    Dairy, Transport, MSME & Education assistance discovery
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <h2 style={{ fontSize: 15, fontWeight: 800, color: '#ffffff', margin: 0 }}>
+                    {currentHero.name}
+                  </h2>
+                  <span style={{ fontSize: 10.5, fontWeight: 700, color: '#ffdcc2', background: '#002855', padding: '2px 8px', borderRadius: 4, border: '1px solid rgba(254, 152, 50, 0.3)' }}>
+                    {currentHero.badge}
                   </span>
                 </div>
-                <Link
-                  href="/chat"
-                  className="btn btn-bounce"
+
+                {/* 4 Parameter Pills */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+                  <div style={{ background: 'rgba(255, 255, 255, 0.06)', padding: '8px 10px', borderRadius: 6 }}>
+                    <div style={{ fontSize: 10.5, color: '#94a3b8' }}>Interest Rate</div>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: '#8dfc75' }}>{currentHero.rate}</div>
+                  </div>
+                  <div style={{ background: 'rgba(255, 255, 255, 0.06)', padding: '8px 10px', borderRadius: 6 }}>
+                    <div style={{ fontSize: 10.5, color: '#94a3b8' }}>Max Assistance</div>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: '#f8fafc' }}>{currentHero.maxLoan}</div>
+                  </div>
+                  <div style={{ background: 'rgba(255, 255, 255, 0.06)', padding: '8px 10px', borderRadius: 6 }}>
+                    <div style={{ fontSize: 10.5, color: '#94a3b8' }}>Moratorium Period</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#ffdcc2' }}>{currentHero.moratorium}</div>
+                  </div>
+                  <div style={{ background: 'rgba(255, 255, 255, 0.06)', padding: '8px 10px', borderRadius: 6 }}>
+                    <div style={{ fontSize: 10.5, color: '#94a3b8' }}>Tenure</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#f8fafc' }}>{currentHero.tenure}</div>
+                  </div>
+                </div>
+
+                {/* Live Government Subsidy Comparison Strip */}
+                <div
                   style={{
-                    background: '#fe9832',
-                    color: '#001e40',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    padding: '6px 14px',
-                    borderRadius: 4,
-                    textDecoration: 'none',
-                    whiteSpace: 'nowrap',
+                    background: 'linear-gradient(90deg, rgba(21, 128, 61, 0.2), rgba(0, 30, 64, 0.4))',
+                    border: '1px solid rgba(141, 252, 117, 0.3)',
+                    borderRadius: 6,
+                    padding: '10px 12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
                   }}
                 >
-                  Test Match →
+                  <div>
+                    <div style={{ fontSize: 10, color: '#8dfc75', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 700 }}>
+                      Subsidized Repayment
+                    </div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: '#ffffff' }}>
+                      {currentHero.monthlyEmi} <span style={{ fontSize: 11, fontWeight: 500, color: '#cbd5e1' }}>/ mo</span>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 10, color: '#cbd5e1' }}>Commercial (~14%): <span style={{ textDecoration: 'line-through', color: '#94a3b8' }}>{currentHero.commercialEmi}</span></div>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: '#ffdcc2' }}>
+                      Save {currentHero.savings}
+                    </div>
+                  </div>
+                </div>
+
+                <p style={{ fontSize: 11.5, color: '#94a3b8', margin: 0, lineHeight: 1.4 }}>
+                  {currentHero.target}
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <Link
+                  href={`/chat?q=${encodeURIComponent(currentHero.query)}`}
+                  className="btn btn-amber"
+                  style={{
+                    flex: 1,
+                    padding: '10px 16px',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    borderRadius: 6,
+                    textDecoration: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <span>Start Consultation with this Scheme</span>
+                  <ArrowRight size={14} />
+                </Link>
+
+                <Link
+                  href="/chat?tab=emi"
+                  className="btn btn-outline"
+                  style={{
+                    padding: '10px 14px',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    borderRadius: 6,
+                    textDecoration: 'none',
+                    whiteSpace: 'nowrap',
+                    color: '#ffffff !important',
+                    borderColor: 'rgba(255,255,255,0.3)',
+                    background: 'rgba(255,255,255,0.08)',
+                  }}
+                >
+                  <Calculator size={14} />
+                  <span>Custom EMI</span>
                 </Link>
               </div>
             </div>

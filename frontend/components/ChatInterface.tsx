@@ -13,6 +13,7 @@ import ComparisonCard from './ComparisonCard';
 import DocumentCard from './DocumentCard';
 import VoiceVisualizer from './VoiceVisualizer';
 import VoiceButton from './VoiceButton';
+import EmblemOfIndia from './EmblemOfIndia';
 import {
   buildSchemeSpeech,
   buildDocumentsSpeech,
@@ -306,17 +307,19 @@ function MessageBubble({
         style={{
           width: 38,
           height: 38,
-          borderRadius: 12,
+          borderRadius: 8,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0,
-          background: isUser ? '#0b1f3a' : 'linear-gradient(135deg, #e87722, #d36513)',
-          color: '#ffffff',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          background: isUser ? '#001e40' : '#ffffff',
+          border: isUser ? '1px solid #001e40' : '1.5px solid #cbd5e1',
+          color: isUser ? '#ffffff' : '#001e40',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+          padding: isUser ? 0 : 3,
         }}
       >
-        {isUser ? <User size={18} /> : <Bot size={18} />}
+        {isUser ? <User size={18} /> : <EmblemOfIndia size={28} />}
       </div>
 
       <div
@@ -1419,32 +1422,33 @@ export default function ChatInterface({
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
                 <div
                   style={{
-                    width: 52,
-                    height: 52,
-                    borderRadius: 16,
-                    background: 'linear-gradient(135deg, #0b1f3a, #16345d)',
-                    color: '#fbbf24',
+                    width: 58,
+                    height: 62,
+                    borderRadius: 8,
+                    background: '#ffffff',
+                    border: '1.5px solid #cbd5e1',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    boxShadow: '0 8px 20px rgba(11,31,58,0.18)',
+                    padding: '4px',
+                    boxShadow: '0 4px 14px rgba(0, 30, 64, 0.08)',
                   }}
                 >
-                  <Sparkles size={26} />
+                  <EmblemOfIndia size={48} />
                 </div>
 
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#eef3f9', padding: '4px 12px', borderRadius: 20, border: '1px solid #dbe5f1' }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#0b1f3a', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Government Loan Discovery Engine
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#eef3f9', padding: '5px 14px', borderRadius: 6, border: '1px solid #cbd5e1' }}>
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: '#001e40', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    National SC Finance & Development Corporation (NSFDC)
                   </span>
                 </div>
 
-                <h1 style={{ fontSize: 30, fontWeight: 800, color: '#0b1f3a', letterSpacing: '-0.02em', margin: '4px 0 0' }}>
-                  {t('chat.welcome_title', 'PradarshakAI Scheme Assistant')}
+                <h1 style={{ fontSize: 28, fontWeight: 800, color: '#001e40', letterSpacing: '-0.02em', margin: '4px 0 0' }}>
+                  {t('chat.welcome_title', 'NSFDC Scheme & Concessional Loan Advisory')}
                 </h1>
 
-                <p style={{ fontSize: 15, color: '#64748b', maxWidth: 620, lineHeight: 1.6, margin: 0 }}>
-                  {t('chat.welcome_desc', 'Describe your business idea, annual income, or educational goal to find verified concessional loan schemes.')}
+                <p style={{ fontSize: 14.5, color: '#475569', maxWidth: 640, lineHeight: 1.6, margin: 0 }}>
+                  {t('chat.welcome_desc', 'Official consultation service for Scheduled Caste entrepreneurs, students, and self-help groups. Provide your project trade, income profile, or loan requirement to receive eligible program rankings and exact subsidized repayment plans.')}
                 </p>
               </div>
 

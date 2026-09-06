@@ -8,7 +8,7 @@ import {
   ChevronDown,
   Menu,
   X,
-  Bot,
+  MessageSquare,
   Layers,
   MapPin,
   User,
@@ -68,7 +68,7 @@ export default function NavBar() {
 
   const navLinks = [
     { label: t('nav.schemes', 'Explore Schemes'), href: '/schemes', icon: Layers },
-    { label: t('nav.chat', 'AI Assistant'), href: '/chat', icon: Bot },
+    { label: t('nav.chat', 'Scheme Advisory'), href: '/chat', icon: MessageSquare },
     { label: t('nav.emi', 'EMI Calculator'), href: '/chat?tab=emi', icon: Calculator },
     { label: t('nav.partners', 'Partner Locator'), href: '/partners', icon: MapPin },
   ];

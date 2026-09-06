@@ -76,20 +76,20 @@ const labelStyle: React.CSSProperties = {
 };
 
 const sectionStyle: React.CSSProperties = {
-  background: '#fff',
-  padding: '36px 40px',
-  borderRadius: 24,
-  boxShadow: '0 4px 24px rgba(11, 31, 58, 0.07)',
-  border: '1px solid #e8edf3',
+  background: '#ffffff',
+  padding: '28px 32px',
+  borderRadius: 12,
+  boxShadow: '0 2px 8px rgba(0, 30, 64, 0.04)',
+  border: '1px solid #e2e8f0',
 };
 
 const sectionHeadingStyle: React.CSSProperties = {
-  fontSize: 18,
+  fontSize: 17,
   fontWeight: 800,
-  color: '#0b1f3a',
-  borderBottom: '2px solid #f1f5f9',
-  paddingBottom: 14,
-  marginBottom: 24,
+  color: '#001e40',
+  borderBottom: '1.5px solid #f1f5f9',
+  paddingBottom: 12,
+  marginBottom: 20,
   marginTop: 0,
 };
 
@@ -574,6 +574,56 @@ function RegisterContent() {
                 Sign In to Citizen Portal →
               </a>
             </p>
+          </div>
+
+          {/* ── Official 4-Step Stepper Progress Bar ──────────────────────── */}
+          <div
+            style={{
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
+              borderRadius: 12,
+              padding: '14px 18px',
+              marginBottom: 28,
+              boxShadow: '0 2px 6px rgba(0, 30, 64, 0.03)',
+              overflowX: 'auto',
+            }}
+          >
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(130px, 1fr))', gap: 12, minWidth: 560 }}>
+              {[
+                { step: '1', title: 'Personal Details', done: !!fullName && !!mobile && emailStep === 'verified' },
+                { step: '2', title: 'Security & Access', done: password.length >= 8 && password === confirmPassword },
+                { step: '3', title: 'Verification (OCR/Face)', done: isCertVerified && isIdentityVerified },
+                { step: '4', title: 'Scheme Goals', done: !!educationLevel && !!tradeCategory && !!fundingBracket },
+              ].map((s, idx) => (
+                <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div
+                    style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: '50%',
+                      background: s.done ? '#15803d' : '#001e40',
+                      color: '#ffffff',
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {s.done ? '✓' : s.step}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>
+                      Step {s.step}
+                    </span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap' }}>
+                      {s.title}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           {error && (
