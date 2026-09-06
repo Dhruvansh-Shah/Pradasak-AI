@@ -136,6 +136,8 @@ export interface NearbyPartner {
   fund_availability_status: string;
   npa_percent: number | null;
   distance_km: number;
+  is_healthy?: boolean;
+  health_status?: string;
 }
 
 export async function findNearbyPartners(
@@ -144,7 +146,7 @@ export async function findNearbyPartners(
   radiusKm = 150,
   limit = 5
 ): Promise<NearbyPartner[]> {
-  // First attempt with specified radius
+  // First attempt with specified radius and strict health filtering (NPA <= 7%, funds available)
   const { rows } = await pool.query<NearbyPartner>(
     `SELECT
        id, name, partner_type, address, city, state, district, phone, email,
@@ -153,6 +155,8 @@ export async function findNearbyPartners(
      FROM partners
      WHERE
        is_active = TRUE
+       AND (npa_percent IS NULL OR npa_percent <= 7.0)
+       AND (fund_availability_status IS NULL OR fund_availability_status = 'available')
        AND ($2::text IS NULL OR $2 = ANY(eligible_categories))
        AND ST_DWithin(location, ST_GeographyFromText($1), $3)
      ORDER BY distance_km ASC
@@ -170,18 +174,23 @@ export async function findNearbyPartners(
     id: typeof r.id === 'string' ? parseInt(r.id, 10) : r.id,
     distance_km: r.distance_km != null ? Number(parseFloat(r.distance_km).toFixed(1)) : 0,
     npa_percent: r.npa_percent != null ? Number(r.npa_percent) : null,
+    is_healthy: (r.npa_percent == null || Number(r.npa_percent) <= 7.0) && (r.fund_availability_status == null || r.fund_availability_status === 'available'),
+    health_status: 'HEALTHY',
   });
 
   if (rows.length > 0) return rows.map(formatRow);
 
-  // Fallback: search closest partners nationally or within 600km
+  // Fallback: search closest healthy partners nationally or within 600km
   const { rows: fallbackRows } = await pool.query<NearbyPartner>(
     `SELECT
        id, name, partner_type, address, city, state, district, phone, email,
        eligible_categories, fund_availability_status, npa_percent,
        ROUND((ST_Distance(location, ST_GeographyFromText($1)) / 1000)::numeric, 1) AS distance_km
      FROM partners
-     WHERE is_active = TRUE
+     WHERE
+       is_active = TRUE
+       AND (npa_percent IS NULL OR npa_percent <= 7.0)
+       AND (fund_availability_status IS NULL OR fund_availability_status = 'available')
      ORDER BY ST_Distance(location, ST_GeographyFromText($1)) ASC
      LIMIT $2`,
     [

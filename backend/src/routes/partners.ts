@@ -75,6 +75,8 @@ router.get('/nearby', async (req: Request, res: Response) => {
         FROM partners
         WHERE
           is_active = TRUE
+          AND (npa_percent IS NULL OR npa_percent <= 7.0)
+          AND (fund_availability_status IS NULL OR fund_availability_status = 'available')
           AND ($2::text IS NULL OR partner_type = $2 OR $2 = ANY(eligible_categories))
           AND ST_DWithin(location, ST_GeographyFromText($1), $3)
         ORDER BY
@@ -104,6 +106,8 @@ router.get('/nearby', async (req: Request, res: Response) => {
         FROM partners
         WHERE
           is_active = TRUE
+          AND (npa_percent IS NULL OR npa_percent <= 7.0)
+          AND (fund_availability_status IS NULL OR fund_availability_status = 'available')
           AND ($2::text IS NULL OR partner_type = $2 OR $2 = ANY(eligible_categories))
           AND (city ILIKE $3 OR district ILIKE $3 OR state ILIKE $3 OR address ILIKE $3)
         ORDER BY distance_km ASC
@@ -129,6 +133,9 @@ router.get('/nearby', async (req: Request, res: Response) => {
         longitude: row.longitude != null ? Number(row.longitude) : null,
         npa_percent: row.npa_percent != null ? Number(row.npa_percent) : null,
         fund_utilization_percent: row.fund_utilization_percent != null ? Number(row.fund_utilization_percent) : null,
+        is_healthy: (row.npa_percent == null || Number(row.npa_percent) <= 7.0) && (row.fund_availability_status == null || row.fund_availability_status === 'available'),
+        health_status: 'HEALTHY',
+        health_badge: 'Healthy Partner (<7% NPA)',
       }))
       .filter((p) => p.distance_km != null && p.distance_km <= reqRadiusKm);
 

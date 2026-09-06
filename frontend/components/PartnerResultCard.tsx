@@ -148,6 +148,26 @@ export default function PartnerResultCard({ partner, isSelected, onSelect }: Par
               <span>🟡 ADDITIONAL FINANCIAL INSTITUTION</span>
             </span>
           )}
+
+          {partner.npa_percent != null && Number(partner.npa_percent) <= 7.0 && (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                fontSize: 10.5,
+                fontWeight: 700,
+                padding: '2px 8px',
+                borderRadius: 20,
+                background: '#f0fdf4',
+                color: '#15803d',
+                border: '1px solid #bbf7d0',
+              }}
+            >
+              <CheckCircle2 size={12} />
+              <span>HEALTHY PARTNER ({partner.npa_percent}% NPA)</span>
+            </span>
+          )}
         </div>
 
         {partner.distance_km != null && !isNaN(Number(partner.distance_km)) && (
