@@ -78,12 +78,35 @@ router.post('/verify-income', async (req: Request, res: Response): Promise<void>
 
 router.post('/send-email-otp', async (req: Request, res: Response): Promise<void> => {
   const { email } = req.body;
-  if (!email) {
+  if (!email || typeof email !== 'string') {
     res.status(400).json({ error: 'Email is required' });
     return;
   }
+
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+    res.status(400).json({ error: 'Please enter a valid email address.' });
+    return;
+  }
+
   try {
-    await sendOtp(email.toLowerCase().trim());
+    // Check whether an account with this email already exists in the database
+    const { rows } = await pool.query(
+      'SELECT id FROM users WHERE LOWER(TRIM(email)) = $1 LIMIT 1',
+      [normalizedEmail]
+    );
+
+    if (rows.length > 0) {
+      res.status(409).json({
+        success: false,
+        code: 'EMAIL_ALREADY_EXISTS',
+        error: 'Account with this email ID already exists. Please use a different email ID or log in to your existing account.',
+        message: 'Account with this email ID already exists. Please use a different email ID or log in to your existing account.'
+      });
+      return;
+    }
+
+    await sendOtp(normalizedEmail);
     res.json({ success: true, message: 'OTP sent successfully' });
   } catch (error: any) {
     res.status(400).json({ error: error.message || 'Failed to send OTP' });
@@ -187,8 +210,14 @@ router.post('/complete', async (req: Request, res: Response): Promise<void> => {
 
     res.status(201).json({ token, user });
   } catch (err: any) {
-    if (err.message.includes('unique')) {
-      res.status(409).json({ error: 'An account with this email/phone already exists' });
+    const msg = (err as Error).message || '';
+    if (msg.includes('unique') || (err as any).code === '23505') {
+      res.status(409).json({
+        success: false,
+        code: 'EMAIL_ALREADY_EXISTS',
+        error: 'Account with this email ID already exists. Please use a different email ID or log in to your existing account.',
+        message: 'Account with this email ID already exists. Please use a different email ID or log in to your existing account.'
+      });
     } else {
       res.status(500).json({ error: 'Registration failed: ' + err.message });
     }

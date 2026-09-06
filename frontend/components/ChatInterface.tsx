@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { sendChat, fetchTTS, transcribeAudio } from '@/lib/api';
-import type { ChatResponse, ChatMessage } from '@/lib/api';
+import type { ChatResponse, ChatMessage, Scheme } from '@/lib/api';
 import TypingIndicator from './TypingIndicator';
 import TypewriterText from './TypewriterText';
 import SchemeResultCard from './SchemeResultCard';
@@ -12,6 +12,13 @@ import PartnerResultCard from './PartnerResultCard';
 import ComparisonCard from './ComparisonCard';
 import DocumentCard from './DocumentCard';
 import VoiceVisualizer from './VoiceVisualizer';
+import VoiceButton from './VoiceButton';
+import {
+  buildSchemeSpeech,
+  buildDocumentsSpeech,
+  buildEmiSpeech,
+  buildComparisonSpeech,
+} from '@/lib/speechBuilders';
 import {
   Send,
   Sparkles,
@@ -29,6 +36,9 @@ import {
   Volume2,
   Square,
   Loader2,
+  MapPin,
+  Scale,
+  BookOpen,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { renderText } from '@/lib/textFormat';
@@ -41,6 +51,7 @@ interface Message {
   data?: Record<string, unknown>;
   quickActions?: ChatResponse['quickActions'];
   disclaimer?: string;
+  speechText?: string;
   /** True only for freshly-received assistant replies — drives the typing
    *  animation. Messages loaded from chat history render instantly. */
   animate?: boolean;
@@ -235,9 +246,17 @@ function MessageBubble({
   scrollRef,
   playingMessageId,
   loadingTTSMessageId,
+  playingVoiceId,
+  loadingVoiceId,
   onPlayTTS,
   onStopTTS,
+  onPlayVoice,
+  onStopVoice,
   t,
+  onSchemeAction,
+  onCompareSchemes,
+  onOpenPartners,
+  onOpenEMI,
 }: {
   msg: Message;
   onAction: (text: string) => void;
@@ -245,15 +264,26 @@ function MessageBubble({
   scrollRef?: React.RefObject<HTMLDivElement | null>;
   playingMessageId?: string | null;
   loadingTTSMessageId?: string | null;
+  playingVoiceId?: string | null;
+  loadingVoiceId?: string | null;
   onPlayTTS?: (msg: Message) => void;
   onStopTTS?: () => void;
+  onPlayVoice?: (voiceId: string, text: string) => void;
+  onStopVoice?: () => void;
   t: (key: string, fallback?: string) => string;
+  onSchemeAction?: (action: 'KNOW_MORE' | 'DOCUMENTS' | 'EMI', scheme: any) => void;
+  onCompareSchemes?: (schemes: any[]) => void;
+  onOpenPartners?: () => void;
+  onOpenEMI?: (schemeId?: number) => void;
 }) {
   const isUser = msg.role === 'user';
   const [textDone, setTextDone] = useState(!msg.animate);
   const showExtras = !msg.animate || textDone;
-  const isPlaying = playingMessageId === msg.id;
-  const isThisLoading = loadingTTSMessageId === msg.id;
+
+  const activePlayingId = playingVoiceId ?? playingMessageId ?? null;
+  const activeLoadingId = loadingVoiceId ?? loadingTTSMessageId ?? null;
+  const isPlaying = activePlayingId === msg.id;
+  const isThisLoading = activeLoadingId === msg.id;
 
   const schemes = msg.type === 'schemes' ? (msg.data?.schemes as unknown[]) || [] : [];
   const emiData = msg.type === 'emi' ? msg.data : null;
@@ -307,9 +337,9 @@ function MessageBubble({
             borderTopLeftRadius: isUser ? 18 : 4,
             fontSize: 14.5,
             lineHeight: 1.65,
-            background: isUser ? '#0b1f3a' : '#ffffff',
-            color: isUser ? '#ffffff' : '#1e293b',
-            border: isUser ? 'none' : '1px solid #e2e8f0',
+            background: isUser ? 'var(--navy, #001e40)' : 'var(--surface)',
+            color: isUser ? '#ffffff' : 'var(--text)',
+            border: isUser ? 'none' : '1px solid var(--border)',
             boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
           }}
         >
@@ -324,91 +354,204 @@ function MessageBubble({
               <TypewriterText
                 text={msg.text}
                 animate={!!msg.animate}
-                color="#1e293b"
+                color="var(--text)"
                 onTick={() => scrollRef?.current?.scrollIntoView({ behavior: 'auto', block: 'end' })}
                 onDone={() => setTextDone(true)}
               />
             )}
           </div>
 
-          {!isUser && showExtras && onPlayTTS && onStopTTS && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, paddingTop: 8, borderTop: '1px solid #f1f5f9' }}>
-              <button
-                onClick={() => {
-                  if (isPlaying) {
-                    onStopTTS();
-                  } else {
-                    onPlayTTS(msg);
-                  }
+          {!isUser && (onPlayVoice || onPlayTTS) && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
+              <VoiceButton
+                text={msg.speechText || msg.text}
+                isPlaying={isPlaying}
+                isLoading={isThisLoading}
+                isAnyLoading={Boolean(activeLoadingId) && !isThisLoading}
+                onPlay={() => {
+                  const textToPlay = msg.speechText || msg.text;
+                  if (onPlayVoice) onPlayVoice(msg.id, textToPlay);
+                  else if (onPlayTTS) onPlayTTS(msg);
                 }}
-                disabled={Boolean(loadingTTSMessageId) && !isThisLoading}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '5px 12px',
-                  borderRadius: 16,
-                  fontSize: 12,
-                  fontWeight: 600,
-                  background: isPlaying ? '#fee2e2' : '#f1f5f9',
-                  color: isPlaying ? '#dc2626' : '#334155',
-                  border: isPlaying ? '1.5px solid #fca5a5' : '1px solid #cbd5e1',
-                  cursor: loadingTTSMessageId && !isThisLoading ? 'default' : 'pointer',
-                  opacity: loadingTTSMessageId && !isThisLoading ? 0.6 : 1,
-                  transition: 'all 150ms ease',
+                onStop={() => {
+                  if (onStopVoice) onStopVoice();
+                  else if (onStopTTS) onStopTTS();
                 }}
-              >
-                {isThisLoading ? (
-                  <>
-                    <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} color="#64748b" />
-                    <span>{t('chat.generating_voice', 'Generating voice...')}</span>
-                  </>
-                ) : isPlaying ? (
-                  <>
-                    <Square size={12} fill="#dc2626" color="#dc2626" />
-                    <span>{t('chat.stop_btn', 'Stop')}</span>
-                  </>
-                ) : (
-                  <>
-                    <Volume2 size={13} color="#334155" />
-                    <span>{t('chat.listen_btn', 'Listen')}</span>
-                  </>
-                )}
-              </button>
+                variant="subtle"
+                size="sm"
+              />
             </div>
           )}
         </div>
 
         {/* Structured Data Result Cards — held back until the reply finishes typing */}
         {showExtras && schemes.length > 0 && (
-          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {schemes.map((s, i) => (
-              <SchemeResultCard
-                key={i}
-                scheme={s as Parameters<typeof SchemeResultCard>[0]['scheme']}
-                rank={i + 1}
-                onCalculateEMI={() => {
-                  onStepComplete?.('scheme');
-                  onStepComplete?.('emi');
-                  onAction(`Calculate EMI for the ${(s as { name: string }).name} scheme`);
-                }}
-                onFindPartners={() => {
-                  onStepComplete?.('scheme');
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {schemes.map((s: any, i: number) => {
+              const schemeVoiceId = `scheme_${msg.id}_${s.id || i}`;
+              const schemeSpeech = buildSchemeSpeech(s);
+              return (
+                <SchemeResultCard
+                  key={s.id || i}
+                  scheme={s as Parameters<typeof SchemeResultCard>[0]['scheme']}
+                  rank={i + 1}
+                  onKnowMore={() => {
+                    onSchemeAction?.('KNOW_MORE', s);
+                  }}
+                  onGetDocuments={() => {
+                    onSchemeAction?.('DOCUMENTS', s);
+                  }}
+                  onCalculateEMI={() => {
+                    onStepComplete?.('scheme');
+                    onStepComplete?.('emi');
+                    onSchemeAction?.('EMI', s);
+                  }}
+                  speechText={schemeSpeech}
+                  isVoicePlaying={activePlayingId === schemeVoiceId}
+                  isVoiceLoading={activeLoadingId === schemeVoiceId}
+                  onPlayVoice={() => onPlayVoice?.(schemeVoiceId, schemeSpeech)}
+                  onStopVoice={onStopVoice}
+                />
+              );
+            })}
+
+            {/* Separate Global Actions Area (after ALL schemes) */}
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                gap: 10,
+                paddingTop: 10,
+                borderTop: '1.5px dashed #cbd5e1',
+                marginTop: 4,
+              }}
+            >
+              {schemes.length > 1 && onCompareSchemes && (
+                <button
+                  type="button"
+                  onClick={() => onCompareSchemes(schemes)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 7,
+                    padding: '9px 16px',
+                    borderRadius: 10,
+                    background: '#0b1f3a',
+                    color: '#ffffff',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    border: 'none',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 8px rgba(11,31,58,0.15)',
+                    transition: 'all 150ms ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLElement).style.background = '#1e3a8a';
+                    (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.background = '#0b1f3a';
+                    (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+                  }}
+                >
+                  <Scale size={15} color="#fbbf24" />
+                  <span>Compare Schemes ({schemes.length})</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
                   onStepComplete?.('partner');
-                  onAction('Find nearest partner for applying');
+                  if (onOpenPartners) {
+                    onOpenPartners();
+                  }
                 }}
-              />
-            ))}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 7,
+                  padding: '9px 16px',
+                  borderRadius: 10,
+                  background: '#ffffff',
+                  color: '#0b1f3a',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  border: '1.5px solid #0b1f3a',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 6px rgba(11,31,58,0.06)',
+                  transition: 'all 150ms ease',
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = '#f8fafc';
+                  (e.currentTarget as HTMLElement).style.borderColor = '#1e3a8a';
+                  (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = '#ffffff';
+                  (e.currentTarget as HTMLElement).style.borderColor = '#0b1f3a';
+                  (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+                }}
+              >
+                <MapPin size={15} color="#e87722" />
+                <span>Know Partner Locations</span>
+              </button>
+            </div>
           </div>
         )}
 
-        {showExtras && emiData && (
-          <div style={{ width: '100%' }}>
-            <EMIResultCard
-              data={emiData as unknown as Parameters<typeof EMIResultCard>[0]['data']}
-            />
-          </div>
-        )}
+        {showExtras && emiData && (() => {
+          const emiVoiceId = `emi_${msg.id}`;
+          const emiSpeech = buildEmiSpeech(emiData);
+          return (
+            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <EMIResultCard
+                data={emiData as unknown as Parameters<typeof EMIResultCard>[0]['data']}
+                speechText={emiSpeech}
+                isVoicePlaying={activePlayingId === emiVoiceId}
+                isVoiceLoading={activeLoadingId === emiVoiceId}
+                onPlayVoice={() => onPlayVoice?.(emiVoiceId, emiSpeech)}
+                onStopVoice={onStopVoice}
+              />
+              {onOpenEMI && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const sid = (emiData as any).schemeId || (emiData as any).scheme?.id;
+                    onOpenEMI(sid);
+                  }}
+                  style={{
+                    alignSelf: 'flex-start',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '8px 14px',
+                    borderRadius: 8,
+                    background: '#fff7ed',
+                    border: '1.5px solid #ea580c',
+                    color: '#9a3412',
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 150ms ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLElement).style.background = '#ea580c';
+                    (e.currentTarget as HTMLElement).style.color = '#ffffff';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.background = '#fff7ed';
+                    (e.currentTarget as HTMLElement).style.color = '#9a3412';
+                  }}
+                >
+                  <Calculator size={14} />
+                  <span>Open in Interactive EMI Calculator →</span>
+                </button>
+              )}
+            </div>
+          );
+        })()}
 
         {showExtras && partners.length > 0 && (
           <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -422,23 +565,47 @@ function MessageBubble({
           </div>
         )}
 
-        {showExtras && comparison && (
-          <div style={{ width: '100%' }}>
-            <ComparisonCard
-              schemeA={comparison.schemeA as Parameters<typeof ComparisonCard>[0]['schemeA']}
-              schemeB={comparison.schemeB as Parameters<typeof ComparisonCard>[0]['schemeB']}
-            />
-          </div>
-        )}
+        {showExtras && comparison && (() => {
+          const compVoiceId = `comp_${msg.id}`;
+          const schemesList = (comparison.schemes as any[]) || [comparison.schemeA, comparison.schemeB].filter(Boolean);
+          const compSpeech = msg.speechText || (comparison.speechText as string) || buildComparisonSpeech(schemesList);
+          return (
+            <div style={{ width: '100%' }}>
+              <ComparisonCard
+                schemes={schemesList}
+                schemeA={comparison.schemeA as any}
+                schemeB={comparison.schemeB as any}
+                onCalculateEMI={(s) => onSchemeAction?.('EMI', s)}
+                onKnowMore={(s) => onSchemeAction?.('KNOW_MORE', s)}
+                speechText={compSpeech}
+                isPlaying={activePlayingId === compVoiceId}
+                isLoadingTTS={activeLoadingId === compVoiceId}
+                onPlayTTS={() => onPlayVoice?.(compVoiceId, compSpeech)}
+                onStopTTS={onStopVoice}
+              />
+            </div>
+          );
+        })()}
 
-        {showExtras && documents.length > 0 && (
-          <div style={{ width: '100%' }}>
-            <DocumentCard
-              documents={documents}
-              note={msg.data?.note as string | undefined}
-            />
-          </div>
-        )}
+        {showExtras && documents.length > 0 && (() => {
+          const docVoiceId = `doc_${msg.id}`;
+          const schemeName = (msg.data?.schemeName || msg.data?.scheme_name || (msg.data?.scheme as any)?.name) as string | undefined;
+          const docSpeech = buildDocumentsSpeech(documents, schemeName, msg.data?.note as string | undefined);
+          return (
+            <div style={{ width: '100%' }}>
+              <DocumentCard
+                documents={documents}
+                schemeName={schemeName}
+                note={msg.data?.note as string | undefined}
+                speechText={docSpeech}
+                isVoicePlaying={activePlayingId === docVoiceId}
+                isVoiceLoading={activeLoadingId === docVoiceId}
+                onPlayVoice={() => onPlayVoice?.(docVoiceId, docSpeech)}
+                onStopVoice={onStopVoice}
+              />
+            </div>
+          );
+        })()}
 
         {/* Grounding Disclaimer */}
         {showExtras && msg.disclaimer && (
@@ -539,6 +706,7 @@ export default function ChatInterface({
       data: m.data || undefined,
       quickActions: m.quick_actions || undefined,
       disclaimer: m.disclaimer || undefined,
+      speechText: (m.speechText || (m as any).speech_text || (m.data as any)?.speechText) as string | undefined,
     }));
   });
 
@@ -562,12 +730,15 @@ export default function ChatInterface({
   const audioChunksRef = useRef<Blob[]>([]);
   const mediaStreamRef = useRef<MediaStream | null>(null);
 
-  const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
-  const [loadingTTSMessageId, setLoadingTTSMessageId] = useState<string | null>(null);
+  const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
+  const [loadingVoiceId, setLoadingVoiceId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioUrlRef = useRef<string | null>(null);
 
   const stopAudio = useCallback(() => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current = null;
@@ -576,18 +747,43 @@ export default function ChatInterface({
       URL.revokeObjectURL(audioUrlRef.current);
       audioUrlRef.current = null;
     }
-    setPlayingMessageId(null);
-    setLoadingTTSMessageId(null);
+    setPlayingVoiceId(null);
+    setLoadingVoiceId(null);
   }, []);
 
-  const handlePlayTTS = useCallback(
-    async (msg: Message) => {
+  const fallbackBrowserSpeech = useCallback((text: string, lang: string, voiceId?: string) => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      if (lang === 'hi') utterance.lang = 'hi-IN';
+      else if (lang === 'mr') utterance.lang = 'mr-IN';
+      else if (lang === 'pa') utterance.lang = 'pa-IN';
+      else utterance.lang = 'en-IN';
+      utterance.onend = () => setPlayingVoiceId(null);
+      utterance.onerror = () => setPlayingVoiceId(null);
+      if (voiceId) setPlayingVoiceId(voiceId);
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {
+      console.error('[browser-tts-error]', e);
+      setPlayingVoiceId(null);
+    }
+  }, []);
+
+  const handlePlayVoice = useCallback(
+    async (voiceId: string, speechText: string) => {
       stopAudio();
-      setLoadingTTSMessageId(msg.id);
+      setLoadingVoiceId(voiceId);
       setSpeechError(null);
 
+      const cleanText = speechText.replace(/[#*`_\[\]]/g, '').trim();
+      if (!cleanText) {
+        setLoadingVoiceId(null);
+        return;
+      }
+
       try {
-        const blob = await fetchTTS(msg.text, language);
+        const blob = await fetchTTS(cleanText, language);
         const url = URL.createObjectURL(blob);
         audioUrlRef.current = url;
         const audio = new Audio(url);
@@ -598,19 +794,29 @@ export default function ChatInterface({
         };
         audio.onerror = () => {
           stopAudio();
-          setSpeechError('Voice output audio playback failed.');
+          setPlayingVoiceId(voiceId);
+          fallbackBrowserSpeech(cleanText, language, voiceId);
         };
 
-        setLoadingTTSMessageId(null);
-        setPlayingMessageId(msg.id);
+        setLoadingVoiceId(null);
+        setPlayingVoiceId(voiceId);
         await audio.play();
       } catch (err) {
-        console.error('[tts-error]', err);
-        stopAudio();
-        setSpeechError('Voice output unavailable. Please verify network or backend config.');
+        console.warn('[tts-fetch-fallback]', err);
+        setLoadingVoiceId(null);
+        setPlayingVoiceId(voiceId);
+        fallbackBrowserSpeech(cleanText, language, voiceId);
       }
     },
-    [language, stopAudio]
+    [language, stopAudio, fallbackBrowserSpeech]
+  );
+
+  const handlePlayTTS = useCallback(
+    (msg: Message) => {
+      const rawSpeech = msg.speechText || msg.text || '';
+      handlePlayVoice(msg.id, rawSpeech);
+    },
+    [handlePlayVoice]
   );
 
   useEffect(() => {
@@ -742,10 +948,20 @@ export default function ChatInterface({
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
+  const onStepCompleteRef = useRef(onStepComplete);
+  useEffect(() => {
+    onStepCompleteRef.current = onStepComplete;
+  }, [onStepComplete]);
+
+  const lastSyncedMessagesRef = useRef<ChatMessage[] | null>(
+    initialMessages && initialMessages.length > 0 ? initialMessages : null
+  );
+
   // Reset chat on explicit New Chat action
   useEffect(() => {
     if (resetKey !== undefined && resetKey > 0) {
       chatIdRef.current = null;
+      lastSyncedMessagesRef.current = null;
       setSessionId('');
       setMessages([]);
       setShowWelcome(true);
@@ -767,7 +983,12 @@ export default function ChatInterface({
       stopListening();
     }
 
-    if (initialMessages && initialMessages.length > 0) {
+    if (
+      initialMessages &&
+      initialMessages.length > 0 &&
+      initialMessages !== lastSyncedMessagesRef.current
+    ) {
+      lastSyncedMessagesRef.current = initialMessages;
       setMessages(
         initialMessages.map((m) => ({
           id: String(m.id),
@@ -777,26 +998,27 @@ export default function ChatInterface({
           data: m.data || undefined,
           quickActions: m.quick_actions || undefined,
           disclaimer: m.disclaimer || undefined,
+          speechText: (m.speechText || (m as any).speech_text || (m.data as any)?.speechText) as string | undefined,
         }))
       );
       setShowWelcome(false);
 
       const hasAssistant = initialMessages.some((m) => m.role === 'assistant');
-      if (hasAssistant) onStepComplete?.('eligibility');
+      if (hasAssistant) onStepCompleteRef.current?.('eligibility');
 
       const hasEmi = initialMessages.some((m) => m.type === 'emi');
       if (hasEmi) {
-        onStepComplete?.('scheme');
-        onStepComplete?.('emi');
+        onStepCompleteRef.current?.('scheme');
+        onStepCompleteRef.current?.('emi');
       }
 
       const hasPartner = initialMessages.some((m) => m.type === 'partners');
       if (hasPartner) {
-        onStepComplete?.('scheme');
-        onStepComplete?.('partner');
+        onStepCompleteRef.current?.('scheme');
+        onStepCompleteRef.current?.('partner');
       }
     }
-  }, [propChatId, initialMessages, onStepComplete, stopAudio, stopListening]);
+  }, [propChatId, initialMessages, stopAudio, stopListening]);
 
   const addMessage = useCallback((msg: Omit<Message, 'id'>) => {
     setMessages((prev) => [
@@ -858,6 +1080,7 @@ export default function ChatInterface({
           data: res.data,
           quickActions: res.quickActions,
           disclaimer: res.disclaimer,
+          speechText: res.speechText,
           animate: true,
         });
       } catch (err) {
@@ -873,6 +1096,151 @@ export default function ChatInterface({
       }
     },
     [loading, sessionId, token, onChatCreated, onStepComplete, addMessage, isListening, stopListening, language, isAuto, updateDetectedLang, category]
+  );
+
+  const handleSchemeAction = useCallback(
+    async (action: 'KNOW_MORE' | 'DOCUMENTS' | 'EMI', scheme: Scheme) => {
+      if (loading) return;
+      if (isListening) stopListening();
+
+      let actionLabel = '';
+      if (action === 'KNOW_MORE') actionLabel = `Tell me more about ${scheme.name}`;
+      else if (action === 'DOCUMENTS') actionLabel = `What documents are required for ${scheme.name}?`;
+      else if (action === 'EMI') actionLabel = `Calculate EMI for ${scheme.name}`;
+
+      setShowWelcome(false);
+      addMessage({ role: 'user', text: actionLabel });
+      setLoading(true);
+
+      try {
+        const reqLang = isAuto ? 'auto' : language;
+        const res = await sendChat(
+          actionLabel,
+          sessionId || undefined,
+          chatIdRef.current || undefined,
+          token,
+          reqLang,
+          sttDetectedLang.code,
+          sttDetectedLang.probability,
+          category || undefined,
+          {
+            action,
+            schemeId: scheme.id,
+            schemeName: scheme.name,
+          }
+        );
+        setSttDetectedLang({ code: null, probability: null });
+
+        if (res.detectedLanguage) {
+          updateDetectedLang(res.detectedLanguage);
+        }
+
+        const newChatId = res.chatId || res.sessionId;
+        setSessionId(newChatId);
+        if (!chatIdRef.current && res.chatId) {
+          chatIdRef.current = res.chatId;
+          onChatCreated?.(res.chatId);
+        }
+
+        onStepComplete?.('eligibility');
+        if (action === 'EMI' || res.type === 'emi' || res.data?.emi) {
+          onStepComplete?.('scheme');
+          onStepComplete?.('emi');
+        }
+
+        addMessage({
+          role: 'assistant',
+          text: res.message,
+          type: res.type,
+          data: res.data,
+          quickActions: res.quickActions,
+          disclaimer: res.disclaimer,
+          speechText: res.speechText,
+          animate: true,
+        });
+      } catch (err) {
+        addMessage({
+          role: 'assistant',
+          text: t('chat.error_fallback', 'Unable to process your request right now. Please try again in a moment.'),
+          animate: true,
+        });
+        console.error(err);
+      } finally {
+        setLoading(false);
+        setTimeout(() => inputRef.current?.focus(), 100);
+      }
+    },
+    [loading, isListening, stopListening, addMessage, isAuto, language, sessionId, token, sttDetectedLang.code, sttDetectedLang.probability, category, onChatCreated, onStepComplete, t, updateDetectedLang]
+  );
+
+  const handleCompareSchemes = useCallback(
+    async (schemesToCompare: Scheme[]) => {
+      if (loading) return;
+      if (isListening) stopListening();
+
+      const names = schemesToCompare.map((s) => s.name).join(', ');
+      const ids = schemesToCompare.map((s) => s.id);
+      const text = `Compare the schemes: ${names}`;
+
+      setShowWelcome(false);
+      addMessage({ role: 'user', text });
+      setLoading(true);
+
+      try {
+        const reqLang = isAuto ? 'auto' : language;
+        const res = await sendChat(
+          text,
+          sessionId || undefined,
+          chatIdRef.current || undefined,
+          token,
+          reqLang,
+          sttDetectedLang.code,
+          sttDetectedLang.probability,
+          category || undefined,
+          {
+            action: 'COMPARE',
+            schemeIds: ids,
+            schemeNames: schemesToCompare.map((s) => s.name),
+          }
+        );
+        setSttDetectedLang({ code: null, probability: null });
+
+        if (res.detectedLanguage) {
+          updateDetectedLang(res.detectedLanguage);
+        }
+
+        const newChatId = res.chatId || res.sessionId;
+        setSessionId(newChatId);
+        if (!chatIdRef.current && res.chatId) {
+          chatIdRef.current = res.chatId;
+          onChatCreated?.(res.chatId);
+        }
+
+        onStepComplete?.('scheme');
+
+        addMessage({
+          role: 'assistant',
+          text: res.message,
+          type: res.type,
+          data: res.data,
+          quickActions: res.quickActions,
+          disclaimer: res.disclaimer,
+          speechText: res.speechText,
+          animate: true,
+        });
+      } catch (err) {
+        addMessage({
+          role: 'assistant',
+          text: t('chat.error_fallback', 'Unable to process your request right now. Please try again in a moment.'),
+          animate: true,
+        });
+        console.error(err);
+      } finally {
+        setLoading(false);
+        setTimeout(() => inputRef.current?.focus(), 100);
+      }
+    },
+    [loading, isListening, stopListening, addMessage, isAuto, language, sessionId, token, sttDetectedLang.code, sttDetectedLang.probability, category, onChatCreated, onStepComplete, t, updateDetectedLang]
   );
 
   const lastProcessedQueryRef = useRef<string | null>(null);
@@ -1191,12 +1559,16 @@ export default function ChatInterface({
                 key={msg.id}
                 msg={msg}
                 onAction={send}
+                onSchemeAction={handleSchemeAction}
+                onCompareSchemes={handleCompareSchemes}
+                onOpenPartners={() => router.push('/partners')}
+                onOpenEMI={(schemeId) => router.push(`/chat?tab=emi${schemeId ? `&schemeId=${schemeId}` : ''}`)}
                 onStepComplete={onStepComplete}
                 scrollRef={bottomRef}
-                playingMessageId={playingMessageId}
-                loadingTTSMessageId={loadingTTSMessageId}
-                onPlayTTS={handlePlayTTS}
-                onStopTTS={stopAudio}
+                playingVoiceId={playingVoiceId}
+                loadingVoiceId={loadingVoiceId}
+                onPlayVoice={handlePlayVoice}
+                onStopVoice={stopAudio}
                 t={t}
               />
             ))}

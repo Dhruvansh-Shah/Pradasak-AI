@@ -1,8 +1,9 @@
 'use client';
 
 import { Calculator, Calendar, Percent } from 'lucide-react';
+import VoiceButton from './VoiceButton';
 
-interface EMIData {
+export interface EMIData {
   emi?: number;
   totalPayable?: number;
   totalInterest?: number;
@@ -13,6 +14,7 @@ interface EMIData {
   moratoriumMonths?: number;
   params?: { principal?: number; rate?: number; tenureMonths?: number; moratoriumMonths?: number };
   schemeName?: string;
+  warning?: string;
 }
 
 function fmt(n: number | string | null | undefined): string {
@@ -20,7 +22,23 @@ function fmt(n: number | string | null | undefined): string {
   return '₹' + Number(n).toLocaleString('en-IN');
 }
 
-export default function EMIResultCard({ data }: { data: EMIData }) {
+export interface EMIResultCardProps {
+  data: EMIData;
+  speechText?: string;
+  onPlayVoice?: () => void;
+  onStopVoice?: () => void;
+  isVoicePlaying?: boolean;
+  isVoiceLoading?: boolean;
+}
+
+export default function EMIResultCard({
+  data,
+  speechText,
+  onPlayVoice,
+  onStopVoice,
+  isVoicePlaying,
+  isVoiceLoading,
+}: EMIResultCardProps) {
   if (!data) return null;
 
   const emi = data.emi ?? 0;
@@ -34,23 +52,54 @@ export default function EMIResultCard({ data }: { data: EMIData }) {
   return (
     <div
       style={{
-        background: '#ffffff',
-        border: '1.5px solid #e2e8f0',
+        background: 'var(--surface, #ffffff)',
+        border: '1.5px solid var(--border, #e2e8f0)',
         borderRadius: 18,
         padding: '22px 24px',
-        boxShadow: '0 2px 10px rgba(11,31,58,0.04)',
+        boxShadow: '0 2px 10px rgba(0, 0, 0, 0.05)',
         display: 'flex',
         flexDirection: 'column',
         gap: 16,
         width: '100%',
+        color: 'var(--text)',
       }}
     >
-      {data.schemeName && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+      {/* ── Top Header with Title and Voice Button ───────────────────────── */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 10,
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            fontSize: 12,
+            fontWeight: 700,
+            color: 'var(--text-secondary, #64748b)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em',
+          }}
+        >
           <Calculator size={15} color="#ea580c" />
-          <span>Calculated EMI for: {data.schemeName}</span>
+          <span>{data.schemeName ? `Calculated EMI: ${data.schemeName}` : 'EMI Calculation'}</span>
         </div>
-      )}
+
+        {onPlayVoice && (
+          <VoiceButton
+            isPlaying={!!isVoicePlaying}
+            isLoading={!!isVoiceLoading}
+            onPlay={onPlayVoice}
+            onStop={onStopVoice || (() => {})}
+            title="Listen to EMI projection"
+          />
+        )}
+      </div>
 
       {/* Hero Highlight */}
       <div
@@ -79,17 +128,33 @@ export default function EMIResultCard({ data }: { data: EMIData }) {
 
       {/* Breakdown Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
-          <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', display: 'block', marginBottom: 2 }}>
+        <div
+          style={{
+            background: 'var(--surface-container, #f8fafc)',
+            border: '1px solid var(--border, #e2e8f0)',
+            borderRadius: 12,
+            padding: '10px 8px',
+            textAlign: 'center',
+          }}
+        >
+          <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary, #94a3b8)', display: 'block', marginBottom: 2 }}>
             Principal
           </span>
-          <strong style={{ fontSize: 14, fontWeight: 800, color: '#0f172a' }}>
+          <strong style={{ fontSize: 14, fontWeight: 800, color: 'var(--text, #0f172a)' }}>
             {fmt(principal)}
           </strong>
         </div>
 
-        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
-          <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', display: 'block', marginBottom: 2 }}>
+        <div
+          style={{
+            background: 'var(--surface-container, #f8fafc)',
+            border: '1px solid var(--border, #e2e8f0)',
+            borderRadius: 12,
+            padding: '10px 8px',
+            textAlign: 'center',
+          }}
+        >
+          <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary, #94a3b8)', display: 'block', marginBottom: 2 }}>
             Total Interest
           </span>
           <strong style={{ fontSize: 14, fontWeight: 800, color: '#c2410c' }}>
@@ -97,8 +162,16 @@ export default function EMIResultCard({ data }: { data: EMIData }) {
           </strong>
         </div>
 
-        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
-          <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', display: 'block', marginBottom: 2 }}>
+        <div
+          style={{
+            background: 'var(--surface-container, #f8fafc)',
+            border: '1px solid var(--border, #e2e8f0)',
+            borderRadius: 12,
+            padding: '10px 8px',
+            textAlign: 'center',
+          }}
+        >
+          <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary, #94a3b8)', display: 'block', marginBottom: 2 }}>
             Total Outflow
           </span>
           <strong style={{ fontSize: 14, fontWeight: 800, color: '#15803d' }}>
@@ -108,21 +181,34 @@ export default function EMIResultCard({ data }: { data: EMIData }) {
       </div>
 
       {/* Terms Bar */}
-      <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 12, padding: '10px 14px', fontSize: 12, color: '#1e40af', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
-          <Percent size={14} color="#2563eb" />
-          <span>{rate}% per annum</span>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
-          <Calendar size={14} color="#2563eb" />
-          <span>{tenureMonths} Months Total</span>
-        </div>
-
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: 'var(--surface-container, #f8fafc)',
+          border: '1px solid var(--border, #e2e8f0)',
+          borderRadius: 12,
+          padding: '10px 16px',
+          fontSize: 12,
+          color: 'var(--text-secondary, #475569)',
+          flexWrap: 'wrap',
+          gap: 6,
+        }}
+      >
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <Percent size={13} color="#ea580c" />
+          <strong>{rate}%</strong> p.a. interest
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <Calendar size={13} color="#0b1f3a" />
+          <strong>{tenureMonths}</strong> Mo tenure
+        </span>
         {moratoriumMonths > 0 && (
-          <div style={{ fontWeight: 700, color: '#9a3412', background: '#ffedd5', padding: '2px 8px', borderRadius: 6 }}>
-            {moratoriumMonths} Mo Moratorium
-          </div>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <Calendar size={13} color="#15803d" />
+            <strong>{moratoriumMonths}</strong> Mo moratorium
+          </span>
         )}
       </div>
     </div>

@@ -17,3 +17,4 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS aadhaar TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS eligibility_status TEXT DEFAULT 'pending_manual_review';
 ALTER TABLE users ADD COLUMN IF NOT EXISTS registration_complete BOOLEAN DEFAULT FALSE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS salary NUMERIC;
+CREATE UNIQUE INDEX IF NOT EXISTS users_email_lower_idx ON users (LOWER(email));
