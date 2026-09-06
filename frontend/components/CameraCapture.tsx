@@ -4,6 +4,23 @@ import { useRef, useState, useEffect, useCallback } from 'react';
 import { Camera, Upload, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
 
+// Suppress benign MediaPipe / TFLite C++ informational logs routed to stderr/console.error by Emscripten
+if (typeof window !== 'undefined') {
+  const originalConsoleError = console.error;
+  console.error = (...args: unknown[]) => {
+    const msg = typeof args[0] === 'string' ? args[0] : '';
+    if (
+      msg.includes('Created TensorFlow Lite XNNPACK delegate') ||
+      msg.includes('INFO: Created TensorFlow Lite') ||
+      msg.startsWith('INFO:')
+    ) {
+      console.info(...args);
+      return;
+    }
+    originalConsoleError.apply(console, args);
+  };
+}
+
 interface CameraCaptureProps {
   title: string;
   description?: string;
@@ -76,6 +93,31 @@ export default function CameraCapture({ title, description, onPhotoSet, isDocume
   }, []);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const originalConsoleError = console.error;
+      const filter = (...args: unknown[]) => {
+        const msg = typeof args[0] === 'string' ? args[0] : '';
+        if (
+          msg.includes('Created TensorFlow Lite XNNPACK delegate') ||
+          msg.includes('INFO: Created TensorFlow Lite') ||
+          msg.startsWith('INFO:')
+        ) {
+          console.info(...args);
+          return;
+        }
+        originalConsoleError.apply(console, args);
+      };
+      console.error = filter;
+      return () => {
+        if (console.error === filter) {
+          console.error = originalConsoleError;
+        }
+        stopCamera();
+        if (faceLandmarkerRef.current) {
+          faceLandmarkerRef.current.close();
+        }
+      };
+    }
     return () => {
       stopCamera();
       if (faceLandmarkerRef.current) {
@@ -158,7 +200,21 @@ export default function CameraCapture({ title, description, onPhotoSet, isDocume
     state.isProcessing = true;
 
     try {
-      const results = landmarker.detectForVideo(video, startTimeMs);
+      const origError = console.error;
+      let results;
+      try {
+        console.error = (...args: unknown[]) => {
+          const msg = typeof args[0] === 'string' ? args[0] : '';
+          if (msg.includes('XNNPACK') || msg.startsWith('INFO:')) {
+            console.info(...args);
+            return;
+          }
+          origError.apply(console, args);
+        };
+        results = landmarker.detectForVideo(video, startTimeMs);
+      } finally {
+        console.error = origError;
+      }
       if (!results) return;
       const numFaces = results.faceBlendshapes?.length || 0;
       state.faceCount = numFaces;
