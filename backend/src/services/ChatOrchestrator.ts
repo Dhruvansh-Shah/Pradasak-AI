@@ -256,7 +256,10 @@ export function getComparisonSummaryText(schemes: Scheme[], lang: string = 'en')
     return `यहाँ चयनित ${count} योजनाओं की तुलना प्रस्तुत है: ${names}। ब्याज दर, ऋण सीमा और पुनर्भुगतान शर्तों के मुख्य अंतर नीचे दिए गए तुलना मैट्रिक्स में प्रदर्शित हैं।`;
   }
   if (lang === 'mr') {
-    return `येथे निवडलेल्या ${count} योजनांची तुलना दिली आहे: ${names}. व्याज दर आणि परतफेडीच्या अटी खालील मॅट्रिक्समध्ये दर्शविल्या आहेत.`;
+    return `येथे निवडलेल्या ${count} योजनांची तुलना दिली आहे: ${names}. व्याज दर, कर्ज मर्यादा आणि परतफेडीच्या अटी खालील तुलना मॅट्रिक्समध्ये दर्शविल्या आहेत.`;
+  }
+  if (lang === 'bn') {
+    return `এখানে নির্বাচিত ${count}টি প্রকল্পের তুলনা উপস্থাপন করা হলো: ${names}। সুদের হার, ঋণের সীমা এবং পরিশোধের শর্তাবলী নীচের তুলনা ম্যাট্রিক্সে প্রদর্শিত হয়েছে।`;
   }
   return `Here is the side-by-side comparison of the ${count} schemes: ${names}. Key differences in interest rates, loan limits, and repayment terms are highlighted in the comparison matrix below.`;
 }
@@ -277,6 +280,30 @@ export function generateComparisonSpeechText(schemes: Scheme[], lang: string = '
     return `${count} योजनाओं की तुलना। ${lines.join(' ')}`;
   }
 
+  if (lang === 'mr') {
+    const lines = schemes.map((s) => {
+      const loan = s.max_loan_lakh ? `${s.max_loan_lakh} लाख रुपये` : 'उपलब्ध मर्यादा';
+      const rate = s.interest_rate_min === s.interest_rate_max
+        ? `${s.interest_rate_min} टक्के`
+        : `${s.interest_rate_min} ते ${s.interest_rate_max} टक्के`;
+      const tenure = s.max_tenure_months ? `कमाल ${s.max_tenure_months} महिने` : '';
+      return `${s.name} मध्ये कमाल कर्ज ${loan}, दरसाल व्याज ${rate} आणि परतफेड मुदत ${tenure} पर्यंत आहे.`;
+    });
+    return `${count} योजनांची तुलना. ${lines.join(' ')}`;
+  }
+
+  if (lang === 'bn') {
+    const lines = schemes.map((s) => {
+      const loan = s.max_loan_lakh ? `${s.max_loan_lakh} লাখ টাকা` : 'উপলব্ধ সীমা';
+      const rate = s.interest_rate_min === s.interest_rate_max
+        ? `${s.interest_rate_min} শতাংশ`
+        : `${s.interest_rate_min} থেকে ${s.interest_rate_max} শতাংশ`;
+      const tenure = s.max_tenure_months ? `সর্বোচ্চ ${s.max_tenure_months} মাস` : '';
+      return `${s.name}-এ সর্বোচ্চ ঋণ ${loan}, বার্ষিক সুদের হার ${rate} এবং পরিশোধের মেয়াদ ${tenure} পর্যন্ত।`;
+    });
+    return `${count}টি প্রকল্পের তুলনা। ${lines.join(' ')}`;
+  }
+
   const lines = schemes.map((s) => {
     const loan = s.max_loan_lakh ? `${s.max_loan_lakh} lakh rupees` : 'specified limits';
     const rate = s.interest_rate_min === s.interest_rate_max
@@ -295,6 +322,16 @@ export function generateDocumentsSpeechText(schemeName: string, mandatory: strin
     const cStr = conditional.length > 0 ? `। परिस्थिति अनुसार आवश्यक दस्तावेज: ${conditional.map((d) => d.split('(')[0].trim()).join(', ')}` : '';
     return `${sName} के लिए आवश्यक दस्तावेज। अनिवार्य दस्तावेज हैं: ${mStr}${cStr}। मूल प्रमाण पत्र सत्यापन हेतु आवश्यक हैं।`;
   }
+  if (lang === 'mr') {
+    const mStr = mandatory.map((d) => d.split('(')[0].trim()).join(', ');
+    const cStr = conditional.length > 0 ? `। परिस्थितीनुसार लागणारी अतिरिक्त कागदपत्रे: ${conditional.map((d) => d.split('(')[0].trim()).join(', ')}` : '';
+    return `${sName} साठी आवश्यक कागदपत्रे. अनिवार्य कागदपत्रे आहेत: ${mStr}${cStr}. पडताळणीसाठी मूळ प्रमाणपत्रे सादर करणे आवश्यक आहे.`;
+  }
+  if (lang === 'bn') {
+    const mStr = mandatory.map((d) => d.split('(')[0].trim()).join(', ');
+    const cStr = conditional.length > 0 ? `। পরিস্থিতি অনুযায়ী প্রয়োজনীয় অতিরিক্ত নথি: ${conditional.map((d) => d.split('(')[0].trim()).join(', ')}` : '';
+    return `${sName}-এর জন্য প্রয়োজনীয় নথি। বাধ্যতামূলক নথিগুলি হলো: ${mStr}${cStr}। যাচাইকরণের জন্য আসল শংসাপত্র উপস্থাপন করতে হবে।`;
+  }
   const mStr = mandatory.map((d) => d.split('(')[0].trim()).join(', ');
   const cStr = conditional.length > 0 ? `. Additional documents depending on your business: ${conditional.map((d) => d.split('(')[0].trim()).join(', ')}` : '';
   return `Required documents for ${sName}. Mandatory documents include: ${mStr}${cStr}. Original certificates must be presented for verification at the channel partner branch.`;
@@ -306,6 +343,12 @@ export function generateEmiSpeechText(schemeName: string, emi: number, principal
   const pStr = principal ? `₹${principal.toLocaleString('en-IN')}` : '';
   if (lang === 'hi') {
     return `${sName} के लिए अनुमानित मासिक ईएमआई ${emiStr} है। मूल ऋण राशि ${pStr} पर ${rate} प्रतिशत वार्षिक ब्याज और ${tenure} महीने की अवधि है, जिसमें ${moratorium} महीने की छूट अवधि शामिल है।`;
+  }
+  if (lang === 'mr') {
+    return `${sName} साठी अंदाजे मासिक ईएमआई ${emiStr} आहे. मूळ कर्ज रक्कम ${pStr} वर दरसाल ${rate} टक्के व्याज आणि ${tenure} महिने मुदत आहे, ज्यामध्ये ${moratorium} महिन्यांचा मोरेटोरियम कालावधी समाविष्ट आहे.`;
+  }
+  if (lang === 'bn') {
+    return `${sName}-এর জন্য আনুমানিক মাসিক ইএমআই হলো ${emiStr}। মূল ঋণের পরিমাণ ${pStr}-এর উপর বার্ষিক ${rate} শতাংশ সুদে ${tenure} মাসের মেয়াদ, যার মধ্যে ${moratorium} মাসের গ্রেস পিরিয়ড অন্তর্ভুক্ত রয়েছে।`;
   }
   return `For ${sName}, the estimated monthly EMI is ${emiStr} for a loan of ${pStr} at ${rate} percent annual interest over ${tenure} months, including a ${moratorium} month moratorium grace period.`;
 }
@@ -595,16 +638,28 @@ Explain clearly and warmly that during the ${morat}-month moratorium no principa
       if (schemeAction.action === 'KNOW_MORE') {
         finalText = session.language === 'hi'
           ? `${targetScheme?.name || 'योजना'} का विस्तृत विवरण नीचे प्रस्तुत है।`
+          : session.language === 'mr'
+          ? `${targetScheme?.name || 'योजना'}चे सविस्तर मार्गदर्शक तत्त्वे आणि अटी खाली दिल्या आहेत.`
+          : session.language === 'bn'
+          ? `${targetScheme?.name || 'প্রকল্প'} এর বিস্তারিত নির্দেশিকা ও শর্তাবলী নীচে দেওয়া হলো।`
           : `${targetScheme?.name || 'Scheme'} detailed guidelines and terms are provided below.`;
         speechText = finalText;
       } else if (schemeAction.action === 'DOCUMENTS') {
         finalText = session.language === 'hi'
           ? `${targetScheme?.name || 'इस योजना'} के लिए आवश्यक दस्तावेजों की सूची नीचे दी गई है।`
+          : session.language === 'mr'
+          ? `${targetScheme?.name || 'या योजने'}साठी आवश्यक कागदपत्रांची यादी खाली दिली आहे.`
+          : session.language === 'bn'
+          ? `${targetScheme?.name || 'এই প্রকল্পের'} জন্য প্রয়োজনীয় নথিপত্রের তালিকা নীচে দেওয়া হলো।`
           : `Here is the checklist of required documents for ${targetScheme?.name || 'this scheme'}.`;
         speechText = finalText;
       } else if (schemeAction.action === 'EMI') {
         finalText = session.language === 'hi'
           ? `${targetScheme?.name || 'इस योजना'} के लिए ईएमआई गणना नीचे दी गई है।`
+          : session.language === 'mr'
+          ? `${targetScheme?.name || 'या योजने'}साठी ईएमआई गणना खाली दिली आहे.`
+          : session.language === 'bn'
+          ? `${targetScheme?.name || 'এই প্রকল্পের'} জন্য ইএমআই হিসাব নীচে দেওয়া হলো।`
           : `Here is the calculated EMI schedule for ${targetScheme?.name || 'this scheme'}.`;
         speechText = finalText;
       } else {
@@ -731,6 +786,8 @@ Explain clearly and warmly that during the ${morat}-month moratorium no principa
         ? 'आपकी आवश्यकता के अनुसार उपयुक्त योजनाएं नीचे प्रदर्शित की गई हैं।'
         : session.language === 'mr'
         ? 'तुमच्या गरजेनुसार योग्य योजना खाली दाखवल्या आहेत.'
+        : session.language === 'bn'
+        ? 'আপনার প্রয়োজনীয়তা অনুযায়ী উপযুক্ত প্রকল্পগুলি নীচে প্রদর্শিত হয়েছে।'
         : 'Here are the recommended schemes matching your inquiry.';
       speechText = finalText;
     } else {
@@ -739,6 +796,8 @@ Explain clearly and warmly that during the ${morat}-month moratorium no principa
           ? 'क्षमा करें, कृपया अपना प्रश्न दोबारा बताएं।'
           : session.language === 'mr'
           ? 'माफ करा, कृपया तुमचा प्रश्न पुन्हा सांगा.'
+          : session.language === 'bn'
+          ? 'দুঃখিত, অনুগ্রহ করে আপনার প্রশ্নটি পুনরায় বলুন।'
           : "Sorry, could you rephrase that for me?";
       speechText = finalText;
     }

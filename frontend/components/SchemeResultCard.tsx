@@ -3,6 +3,13 @@
 import { CheckCircle2, AlertTriangle, Calculator, Sparkles, BookOpen, FileText } from 'lucide-react';
 import Interactive3DCard from './Interactive3DCard';
 import VoiceButton from './VoiceButton';
+import { useLanguage } from '@/context/LanguageContext';
+import {
+  getLocalizedSchemeName,
+  getLocalizedSchemeDesc,
+  getLocalizedMatchReason,
+  getLocalizedWarning,
+} from '@/lib/translations';
 
 interface Scheme {
   id: number;
@@ -76,8 +83,14 @@ export default function SchemeResultCard({
   isVoicePlaying,
   isVoiceLoading,
 }: Props) {
+  const { language, t } = useLanguage();
   const meta = CATEGORY_COLORS[scheme.category] || CATEGORY_COLORS.default;
-  const label = CATEGORY_LABELS[scheme.category] || scheme.category;
+  const categoryKey = `category.${scheme.category}`;
+  const translatedCategory = t(categoryKey);
+  const label = translatedCategory !== categoryKey ? translatedCategory : (CATEGORY_LABELS[scheme.category] || scheme.category);
+
+  const schemeName = getLocalizedSchemeName(scheme.name, language);
+  const schemeDesc = getLocalizedSchemeDesc(scheme.name, scheme.description, language);
 
   return (
     <Interactive3DCard
@@ -114,7 +127,7 @@ export default function SchemeResultCard({
                 }}
               >
                 <Sparkles size={13} />
-                <span>Best Match</span>
+                <span>{t('scheme.best_match')}</span>
               </span>
             )}
             <span
@@ -133,7 +146,7 @@ export default function SchemeResultCard({
           </div>
 
           <h3 style={{ fontSize: 17, fontWeight: 700, color: '#001e40', margin: 0, lineHeight: 1.3 }}>
-            {scheme.name}
+            {schemeName}
           </h3>
         </div>
 
@@ -157,7 +170,7 @@ export default function SchemeResultCard({
                 borderRadius: 6,
               }}
             >
-              {Math.max(0, Math.min(100, Math.round(scheme.score)))}% Match
+              {Math.max(0, Math.min(100, Math.round(scheme.score)))}% {t('scheme.match')}
             </span>
           </div>
         )}
@@ -167,7 +180,7 @@ export default function SchemeResultCard({
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
         <div style={{ background: '#fbf9f8', border: '1px solid #e4e2e1', borderRadius: 8, padding: '10px 8px', textAlign: 'center' }}>
           <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', color: '#64748b', display: 'block', marginBottom: 2 }}>
-            Max Loan
+            {t('scheme.max_loan')}
           </span>
           <strong style={{ fontSize: 14, fontWeight: 800, color: '#001e40' }}>
             {fmt(scheme.max_loan_lakh * 100000)}
@@ -176,18 +189,18 @@ export default function SchemeResultCard({
 
         <div style={{ background: '#fbf9f8', border: '1px solid #e4e2e1', borderRadius: 8, padding: '10px 8px', textAlign: 'center' }}>
           <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', color: '#64748b', display: 'block', marginBottom: 2 }}>
-            Interest Rate
+            {t('scheme.interest_rate')}
           </span>
           <strong style={{ fontSize: 14, fontWeight: 800, color: '#15803d' }}>
             {scheme.interest_rate_min === scheme.interest_rate_max
-              ? `${scheme.interest_rate_min}% p.a.`
+              ? `${scheme.interest_rate_min}% ${t('scheme.per_annum')}`
               : `${scheme.interest_rate_min}–${scheme.interest_rate_max}%`}
           </strong>
         </div>
 
         <div style={{ background: '#fbf9f8', border: '1px solid #e4e2e1', borderRadius: 8, padding: '10px 8px', textAlign: 'center' }}>
           <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', color: '#64748b', display: 'block', marginBottom: 2 }}>
-            Income Limit
+            {t('scheme.income_limit')}
           </span>
           <strong style={{ fontSize: 14, fontWeight: 800, color: '#43474f' }}>
             ≤ {fmt(scheme.max_income_lakh * 100000)}
@@ -196,9 +209,9 @@ export default function SchemeResultCard({
       </div>
 
       {/* Description */}
-      {scheme.description && (
+      {schemeDesc && (
         <p style={{ fontSize: 13, color: '#43474f', lineHeight: 1.55, margin: 0 }}>
-          {scheme.description}
+          {schemeDesc}
         </p>
       )}
 
@@ -222,7 +235,7 @@ export default function SchemeResultCard({
               }}
             >
               <CheckCircle2 size={14} color="#059669" style={{ flexShrink: 0 }} />
-              <span>{r}</span>
+              <span>{getLocalizedMatchReason(r, language)}</span>
             </div>
           ))}
         </div>
@@ -248,7 +261,7 @@ export default function SchemeResultCard({
               }}
             >
               <AlertTriangle size={14} color="#ea580c" style={{ flexShrink: 0 }} />
-              <span>{w}</span>
+              <span>{getLocalizedWarning(w, language)}</span>
             </div>
           ))}
         </div>
@@ -256,10 +269,16 @@ export default function SchemeResultCard({
 
       {/* Parameter Chips */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, fontSize: 11.5, color: '#64748b' }}>
-        <span style={{ background: '#f0eded', padding: '3px 8px', borderRadius: 4 }}>Tenure: up to {scheme.max_tenure_months} mo</span>
-        <span style={{ background: '#f0eded', padding: '3px 8px', borderRadius: 4 }}>Moratorium: {scheme.moratorium_months_min}–{scheme.moratorium_months_max} mo</span>
+        <span style={{ background: '#f0eded', padding: '3px 8px', borderRadius: 4 }}>
+          {t('scheme.tenure_up_to')} {scheme.max_tenure_months} {t('scheme.months')}
+        </span>
+        <span style={{ background: '#f0eded', padding: '3px 8px', borderRadius: 4 }}>
+          {t('scheme.moratorium_prefix')} {scheme.moratorium_months_min}–{scheme.moratorium_months_max} {t('scheme.months')}
+        </span>
         {scheme.gender_eligibility === 'women_only' && (
-          <span style={{ background: '#fdf2f8', color: '#be185d', fontWeight: 700, padding: '3px 8px', borderRadius: 4 }}>Women Exclusive</span>
+          <span style={{ background: '#fdf2f8', color: '#be185d', fontWeight: 700, padding: '3px 8px', borderRadius: 4 }}>
+            {t('scheme.women_exclusive')}
+          </span>
         )}
       </div>
 
@@ -303,7 +322,7 @@ export default function SchemeResultCard({
             }}
           >
             <BookOpen size={14} />
-            <span>Know More</span>
+            <span>{t('scheme.action_know_more')}</span>
           </button>
         )}
 
@@ -336,7 +355,7 @@ export default function SchemeResultCard({
             }}
           >
             <FileText size={14} />
-            <span>Required Documents</span>
+            <span>{t('scheme.action_documents')}</span>
           </button>
         )}
 
@@ -369,7 +388,7 @@ export default function SchemeResultCard({
             }}
           >
             <Calculator size={14} />
-            <span>Calculate EMI</span>
+            <span>{t('scheme.action_emi')}</span>
           </button>
         )}
       </div>
@@ -390,7 +409,7 @@ export default function SchemeResultCard({
             isLoading={!!isVoiceLoading}
             onPlay={onPlayVoice}
             onStop={onStopVoice || (() => {})}
-            title={`Listen to ${scheme.name} details`}
+            title={`${t('scheme.listen')}: ${schemeName}`}
           />
         </div>
       )}

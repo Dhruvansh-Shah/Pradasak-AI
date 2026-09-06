@@ -175,7 +175,7 @@ router.post('/complete', async (req: Request, res: Response): Promise<void> => {
       full_name, mobile, emailStr, passwordHash, dob || null, gender || null,
       address_line1 || null, address_line2 || null, city || null, district || null, state || null, pincode || null,
       selfie_image || null, sc_certificate_file || null, income_certificate_file || null, aadhaar || null,
-      eligibility_status || 'pending_manual_review',
+      eligibility_status || 'verified',
       resolvedSalary
     ]);
 

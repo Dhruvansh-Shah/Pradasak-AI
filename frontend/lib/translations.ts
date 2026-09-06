@@ -198,6 +198,96 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'footer.privacy': 'Privacy Policy',
     'footer.terms': 'Terms of Service',
     'footer.hyperlink': 'Hyperlinking Policy',
+
+    // Dynamic Scheme Card Elements
+    'scheme.best_match': 'Best Match',
+    'scheme.match': 'Match',
+    'scheme.max_loan': 'Max Loan',
+    'scheme.interest_rate': 'Interest Rate',
+    'scheme.income_limit': 'Income Limit',
+    'scheme.tenure_up_to': 'Tenure: up to',
+    'scheme.moratorium_prefix': 'Moratorium:',
+    'scheme.months': 'mo',
+    'scheme.women_exclusive': 'Women Exclusive',
+    'scheme.action_know_more': 'Know More',
+    'scheme.action_documents': 'Required Documents',
+    'scheme.action_emi': 'Calculate EMI',
+    'scheme.listen': 'Listen',
+    'scheme.listen_details': 'Listen to scheme details',
+    'scheme.per_annum': 'p.a.',
+    'scheme.compare_btn': 'Compare Schemes',
+    'scheme.know_partners': 'Know Partner Locations',
+    'scheme.open_calculator': 'Open in Interactive EMI Calculator →',
+    'scheme.per_annum_rate': '% p.a.',
+
+    // Scheme Categories
+    'category.micro_finance': 'Micro Finance',
+    'category.term_loan': 'Term Loan Scheme',
+    'category.education_loan': 'Education Loan',
+    'category.entrepreneurship': 'Entrepreneurship',
+    'category.skill_development': 'Skill Development',
+    'category.all': 'All Beneficiaries',
+
+    // Required Documents Card
+    'docs.title_prefix': 'Required Documents:',
+    'docs.checklist_title': 'Required Documentation Checklist',
+    'docs.subtitle': 'Prepare these official documents before visiting the partner branch',
+    'docs.official_criteria': 'Official Criteria',
+    'docs.verification_note': 'Original certificates must be presented for in-person verification at the Channel Partner branch.',
+    'docs.listen_title': 'Listen to required documentation checklist',
+
+    // Scheme Comparison Card
+    'compare.title': 'Scheme Comparison Matrix',
+    'compare.subtitle': 'Comparing schemes side-by-side',
+    'compare.comparing_count': 'Comparing {count} schemes side-by-side',
+    'compare.listen_title': 'Listen to scheme comparison',
+    'compare.official_data': 'Official NSFDC Data',
+    'compare.match_score': 'Match Score',
+    'compare.max_loan': 'Maximum Loan',
+    'compare.highest_limit': 'Highest Limit',
+    'compare.interest_rate': 'Subsidized Interest',
+    'compare.lowest_rate': 'Lowest Rate ★',
+    'compare.income_limit': 'Annual Income Cap',
+    'compare.tenure': 'Repayment Tenure',
+    'compare.longest_tenure': 'Longest Tenure',
+    'compare.moratorium': 'Moratorium Grace',
+    'compare.activities': 'Eligible Activities',
+    'compare.general_enterprises': 'General Enterprises',
+    'compare.beneficiaries': 'Target Beneficiaries',
+    'compare.women_only': '👩 Women Only',
+    'compare.all_sc': 'All SC Beneficiaries',
+    'compare.channels': 'Application Channel',
+
+    // EMI Result Card
+    'emi.calc_title': 'EMI Calculation',
+    'emi.calculated_for': 'Calculated EMI:',
+    'emi.listen_title': 'Listen to EMI projection',
+    'emi.monthly_instalment': 'Estimated Monthly Instalment',
+    'emi.per_month_grace': 'per month after moratorium grace period',
+    'emi.principal_amount': 'Principal',
+    'emi.interest_amount': 'Total Interest',
+    'emi.outflow_amount': 'Total Outflow',
+    'emi.interest_p_a': 'p.a. interest',
+    'emi.mo_tenure': 'Mo tenure',
+    'emi.mo_moratorium': 'Mo moratorium',
+
+    // Partner Result Card & Tabs
+    'partner.verified_branch': 'Verified Active',
+    'partner.call_branch': 'Call Branch',
+    'partner.locate_nearest': 'Locate Partners',
+    'partner.radius_label': 'Search Radius',
+    'partner.category_label': 'Partner Category',
+    'partner.all_categories': 'All Partner Categories',
+    'partner.popular_cities': 'Popular Cities:',
+    'partner.state_agency': 'State Agency (SCA)',
+    'partner.public_bank': 'Public Sector Bank',
+    'partner.rural_bank': 'Regional Rural Bank',
+    'partner.nbfc_mfi': 'NBFC-MFI Partner',
+    'partner.cooperative_bank': 'Co-operative Bank',
+    'partner.other_agency': 'Other Agencies & SIDBI',
+    'partner.small_finance_bank': 'Small Finance Bank',
+    'partner.cooperative_society': 'Cooperative Society',
+    'partner.authorized_partner': 'Authorized Partner',
   },
 
   hi: {
@@ -393,9 +483,97 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'footer.ministry': 'सामाजिक न्याय एवं अधिकारिता मंत्रालय',
     'footer.sih': 'स्मार्ट इंडिया हैकाथॉन (SIH)',
     'footer.copyright': '© 2024 राष्ट्रीय अनुसूचित जाति वित्त एवं विकास निगम (NSFDC), भारत सरकार।',
-    'footer.privacy': 'गोपनीयता नीति',
-    'footer.terms': 'सेवा की शर्तें',
     'footer.hyperlink': 'हाइपरलिंक नीति',
+
+    // Dynamic Scheme Card Elements
+    'scheme.best_match': 'सर्वश्रेष्ठ मिलान',
+    'scheme.match': 'मिलान',
+    'scheme.max_loan': 'अधिकतम ऋण',
+    'scheme.interest_rate': 'ब्याज दर',
+    'scheme.income_limit': 'आय सीमा',
+    'scheme.tenure_up_to': 'अवधि: अधिकतम',
+    'scheme.moratorium_prefix': 'मोरेटोरियम:',
+    'scheme.months': 'महीने',
+    'scheme.women_exclusive': 'महिला विशेष',
+    'scheme.action_know_more': 'अधिक जानें',
+    'scheme.action_documents': 'आवश्यक दस्तावेज',
+    'scheme.action_emi': 'EMI गणना',
+    'scheme.listen': 'सुनें',
+    'scheme.listen_details': 'योजना विवरण सुनें',
+    'scheme.per_annum': 'वार्षिक',
+    'scheme.compare_btn': 'योजनाओं की तुलना करें',
+    'scheme.know_partners': 'पार्टनर शाखा खोजें',
+    'scheme.open_calculator': 'इंटरैक्टिव ईएमआई कैलकुलेटर खोलें →',
+    'scheme.per_annum_rate': '% वार्षिक',
+
+    // Scheme Categories
+    'category.micro_finance': 'सूक्ष्म वित्त',
+    'category.term_loan': 'टर्म लोन योजना',
+    'category.education_loan': 'शिक्षा ऋण',
+    'category.entrepreneurship': 'उद्यमिता',
+    'category.skill_development': 'कौशल विकास',
+    'category.all': 'सभी लाभार्थी',
+
+    // Required Documents Card
+    'docs.title_prefix': 'आवश्यक दस्तावेज:',
+    'docs.checklist_title': 'आवश्यक दस्तावेज चेकलिस्ट',
+    'docs.subtitle': 'पार्टनर शाखा जाने से पहले ये आधिकारिक दस्तावेज तैयार रखें',
+    'docs.official_criteria': 'आधिकारिक मानदंड',
+    'docs.verification_note': 'चैनल पार्टनर शाखा पर व्यक्तिगत सत्यापन के लिए मूल प्रमाण पत्र प्रस्तुत करना आवश्यक है।',
+    'docs.listen_title': 'आवश्यक दस्तावेज चेकलिस्ट सुनें',
+
+    // Scheme Comparison Card
+    'compare.title': 'योजना तुलना मैट्रिक्स',
+    'compare.subtitle': 'योजनाओं की तुलना',
+    'compare.comparing_count': '{count} योजनाओं की साथ-साथ तुलना',
+    'compare.listen_title': 'योजनाओं की तुलना सुनें',
+    'compare.official_data': 'आधिकारिक NSFDC डेटा',
+    'compare.match_score': 'मिलान स्कोर',
+    'compare.max_loan': 'अधिकतम ऋण',
+    'compare.highest_limit': 'उच्चतम सीमा',
+    'compare.interest_rate': 'रियायती ब्याज',
+    'compare.lowest_rate': 'न्यूनतम दर ★',
+    'compare.income_limit': 'वार्षिक आय सीमा',
+    'compare.tenure': 'पुनर्भुगतान अवधि',
+    'compare.longest_tenure': 'सबसे लंबी अवधि',
+    'compare.moratorium': 'मोरेटोरियम छूट',
+    'compare.activities': 'पात्र गतिविधियां',
+    'compare.general_enterprises': 'सामान्य व्यवसाय',
+    'compare.beneficiaries': 'लक्षित लाभार्थी',
+    'compare.women_only': '👩 केवल महिलाएं',
+    'compare.all_sc': 'सभी अनुसूचित जाति लाभार्थी',
+    'compare.channels': 'आवेदन माध्यम',
+
+    // EMI Result Card
+    'emi.calc_title': 'ईएमआई गणना',
+    'emi.calculated_for': 'ईएमआई गणना:',
+    'emi.listen_title': 'ईएमआई अनुमान सुनें',
+    'emi.monthly_instalment': 'अनुमानित मासिक किस्त',
+    'emi.per_month_grace': 'मोरेटोरियम छूट अवधि के बाद प्रति माह',
+    'emi.principal_amount': 'मूलधन',
+    'emi.interest_amount': 'कुल ब्याज',
+    'emi.outflow_amount': 'कुल भुगतान',
+    'emi.interest_p_a': 'वार्षिक ब्याज',
+    'emi.mo_tenure': 'महीने अवधि',
+    'emi.mo_moratorium': 'महीने मोरेटोरियम',
+
+    // Partner Result Card & Tabs
+    'partner.verified_branch': 'सत्यापित सक्रिय',
+    'partner.call_branch': 'शाखा से संपर्क करें',
+    'partner.locate_nearest': 'पार्टनर खोजें',
+    'partner.radius_label': 'खोज का दायरा',
+    'partner.category_label': 'पार्टनर श्रेणी',
+    'partner.all_categories': 'सभी पार्टनर श्रेणियां',
+    'partner.popular_cities': 'लोकप्रिय शहर:',
+    'partner.state_agency': 'राज्य एजेंसी (SCA)',
+    'partner.public_bank': 'सार्वजनिक क्षेत्र बैंक',
+    'partner.rural_bank': 'क्षेत्रीय ग्रामीण बैंक',
+    'partner.nbfc_mfi': 'एनबीएफसी-एमएफआई पार्टनर',
+    'partner.cooperative_bank': 'सहकारी बैंक',
+    'partner.other_agency': 'अन्य एजेंसियां और सिडबी',
+    'partner.small_finance_bank': 'स्मॉल फाइनेंस बैंक',
+    'partner.cooperative_society': 'सहकारी समिति',
+    'partner.authorized_partner': 'अधिकृत पार्टनर',
   },
 
   mr: {
@@ -593,6 +771,96 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'footer.privacy': 'गोपनीयता धोरण',
     'footer.terms': 'सेवा अटी',
     'footer.hyperlink': 'हायपरलिंकिंग धोरण',
+
+    // Dynamic Scheme Card Elements
+    'scheme.best_match': 'सर्वोत्तम जुळणी',
+    'scheme.match': 'जुळणी',
+    'scheme.max_loan': 'कमाल कर्ज',
+    'scheme.interest_rate': 'व्याज दर',
+    'scheme.income_limit': 'उत्पन्न मर्यादा',
+    'scheme.tenure_up_to': 'मुदत: कमाल',
+    'scheme.moratorium_prefix': 'मोरेटोरियम:',
+    'scheme.months': 'महिने',
+    'scheme.women_exclusive': 'महिला विशेष',
+    'scheme.action_know_more': 'अधिक माहिती',
+    'scheme.action_documents': 'आवश्यक कागदपत्रे',
+    'scheme.action_emi': 'EMI गणना',
+    'scheme.listen': 'ऐका',
+    'scheme.listen_details': 'योजनेचे तपशील ऐका',
+    'scheme.per_annum': 'दरसाल',
+    'scheme.compare_btn': 'योजनांची तुलना करा',
+    'scheme.know_partners': 'भागीदारांची ठिकाणे शोधा',
+    'scheme.open_calculator': 'परस्पर संवादी ईएमआई कॅल्क्युलेटर उघडा →',
+    'scheme.per_annum_rate': '% दरसाल',
+
+    // Scheme Categories
+    'category.micro_finance': 'सूक्ष्म वित्त',
+    'category.term_loan': 'मुदत कर्ज योजना',
+    'category.education_loan': 'शिक्षण कर्ज',
+    'category.entrepreneurship': 'उद्योग व व्यवसाय',
+    'category.skill_development': 'कौशल्य विकास',
+    'category.all': 'सर्व लाभार्थी',
+
+    // Required Documents Card
+    'docs.title_prefix': 'आवश्यक कागदपत्रे:',
+    'docs.checklist_title': 'आवश्यक कागदपत्रे पडताळणी सूची',
+    'docs.subtitle': 'भागीदार शाखेला भेट देण्यापूर्वी ही अधिकृत कागदपत्रे तयार ठेवा',
+    'docs.official_criteria': 'अधिकृत निकष',
+    'docs.verification_note': 'चॅनेल भागीदार शाखेत प्रत्यक्ष पडताळणीसाठी मूळ प्रमाणपत्रे सादर करणे आवश्यक आहे.',
+    'docs.listen_title': 'आवश्यक कागदपत्रांची सूची ऐका',
+
+    // Scheme Comparison Card
+    'compare.title': 'योजना तुलना मॅट्रिक्स',
+    'compare.subtitle': 'योजनांची तुलना',
+    'compare.comparing_count': '{count} योजनांची सविस्तर तुलना',
+    'compare.listen_title': 'योजनांची तुलना ऐका',
+    'compare.official_data': 'अधिकृत NSFDC डेटा',
+    'compare.match_score': 'जुळणी गुण',
+    'compare.max_loan': 'कमाल कर्ज मर्यादा',
+    'compare.highest_limit': 'सर्वोच्च मर्यादा',
+    'compare.interest_rate': 'सवलतीचा व्याज दर',
+    'compare.lowest_rate': 'सर्वात कमी दर ★',
+    'compare.income_limit': 'वार्षिक उत्पन्न मर्यादा',
+    'compare.tenure': 'परतफेड मुदत',
+    'compare.longest_tenure': 'सर्वात मोठी मुदत',
+    'compare.moratorium': 'मोरेटोरियम सवलत',
+    'compare.activities': 'पात्र उपक्रम',
+    'compare.general_enterprises': 'सामान्य उद्योग',
+    'compare.beneficiaries': 'लक्ष्यित लाभार्थी',
+    'compare.women_only': '👩 फक्त महिला',
+    'compare.all_sc': 'सर्व अनुसूचित जाती लाभार्थी',
+    'compare.channels': 'अर्ज चॅनेल',
+
+    // EMI Result Card
+    'emi.calc_title': 'ईएमआई गणना',
+    'emi.calculated_for': 'ईएमआई गणना:',
+    'emi.listen_title': 'ईएमआई अंदाज ऐका',
+    'emi.monthly_instalment': 'अंदाजे मासिक हप्ता',
+    'emi.per_month_grace': 'मोरेटोरियम सवलतीनंतर दरमहा',
+    'emi.principal_amount': 'मूळ रक्कम',
+    'emi.interest_amount': 'एकूण व्याज',
+    'emi.outflow_amount': 'एकूण परतफेड',
+    'emi.interest_p_a': 'दरसाल व्याज',
+    'emi.mo_tenure': 'महिने मुदत',
+    'emi.mo_moratorium': 'महिने मोरेटोरियम',
+
+    // Partner Result Card & Tabs
+    'partner.verified_branch': 'सत्यापित सक्रिय',
+    'partner.call_branch': 'शाखेशी संपर्क साधा',
+    'partner.locate_nearest': 'भागीदार शोधा',
+    'partner.radius_label': 'शोध त्रिज्या',
+    'partner.category_label': 'भागीदार श्रेणी',
+    'partner.all_categories': 'सर्व भागीदार श्रेणी',
+    'partner.popular_cities': 'लोकप्रिय शहरे:',
+    'partner.state_agency': 'राज्य संस्था (SCA)',
+    'partner.public_bank': 'सार्वजनिक बँक',
+    'partner.rural_bank': 'प्रादेशिक ग्रामीण बँक',
+    'partner.nbfc_mfi': 'NBFC-MFI संस्था',
+    'partner.cooperative_bank': 'सहकारी बँक',
+    'partner.other_agency': 'इतर संस्था आणि सिडबी',
+    'partner.small_finance_bank': 'स्मॉल फायनान्स बँक',
+    'partner.cooperative_society': 'सहकारी संस्था',
+    'partner.authorized_partner': 'अधिकृत भागीदार',
   },
 
   bn: {
@@ -790,6 +1058,96 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'footer.privacy': 'গোপনীয়তা নীতি',
     'footer.terms': 'সেবার শর্তাবলী',
     'footer.hyperlink': 'হাইপারলিংক নীতি',
+
+    // Dynamic Scheme Card Elements
+    'scheme.best_match': 'সেরা মিল',
+    'scheme.match': 'মিল',
+    'scheme.max_loan': 'সর্বোচ্চ ঋণ',
+    'scheme.interest_rate': 'সুদের হার',
+    'scheme.income_limit': 'আয়ের সীমা',
+    'scheme.tenure_up_to': 'মেয়াদ: সর্বোচ্চ',
+    'scheme.moratorium_prefix': 'গ্রেস পিরিয়ড:',
+    'scheme.months': 'মাস',
+    'scheme.women_exclusive': 'মহিলাদের জন্য বিশেষ',
+    'scheme.action_know_more': 'আরও জানুন',
+    'scheme.action_documents': 'প্রয়োজনীয় নথি',
+    'scheme.action_emi': 'EMI হিসাব',
+    'scheme.listen': 'শুনুন',
+    'scheme.listen_details': 'প্রকল্পের বিবরণ শুনুন',
+    'scheme.per_annum': 'বার্ষিক',
+    'scheme.compare_btn': 'প্রকল্পগুলির তুলনা করুন',
+    'scheme.know_partners': 'পার্টনারের অবস্থান জানুন',
+    'scheme.open_calculator': 'ইন্টারঅ্যাক্টিভ ইএমআই ক্যালকুলেটরে খুলুন →',
+    'scheme.per_annum_rate': '% বার্ষিক',
+
+    // Scheme Categories
+    'category.micro_finance': 'ক্ষুদ্র ঋণ',
+    'category.term_loan': 'টার্ম লোন প্রকল্প',
+    'category.education_loan': 'শিক্ষা ঋণ',
+    'category.entrepreneurship': 'উদ্যোক্তা',
+    'category.skill_development': 'দক্ষতা উন্নয়ন',
+    'category.all': 'সমস্ত সুবিধাভোগী',
+
+    // Required Documents Card
+    'docs.title_prefix': 'প্রয়োজনীয় নথি:',
+    'docs.checklist_title': 'প্রয়োজনীয় নথিপত্রের তালিকা',
+    'docs.subtitle': 'পার্টনার শাখায় যাওয়ার আগে এই আনুষ্ঠানিক নথিগুলি প্রস্তুত রাখুন',
+    'docs.official_criteria': 'অফিসিয়াল মাপকাঠি',
+    'docs.verification_note': 'চ্যানেল পার্টনার শাখায় ব্যক্তিগত যাচাইকরণের জন্য আসল শংসাপত্র উপস্থাপন করতে হবে।',
+    'docs.listen_title': 'প্রয়োজনীয় নথিপত্রের তালিকা শুনুন',
+
+    // Scheme Comparison Card
+    'compare.title': 'প্রকল্প তুলনা ম্যাট্রিক্স',
+    'compare.subtitle': 'প্রকল্পগুলির তুলনা',
+    'compare.comparing_count': '{count}টি প্রকল্পের পাশাপাশি তুলনা',
+    'compare.listen_title': 'প্রকল্পের তুলনা শুনুন',
+    'compare.official_data': 'অফিসিয়াল NSFDC তথ্য',
+    'compare.match_score': 'মিল স্কোর',
+    'compare.max_loan': 'সর্বোচ্চ ঋণ',
+    'compare.highest_limit': 'সর্বোচ্চ সীমা',
+    'compare.interest_rate': 'ভর্তুকিযুক্ত সুদ',
+    'compare.lowest_rate': 'সর্বনিম্ন হার ★',
+    'compare.income_limit': 'বার্ষিক আয়ের সীমা',
+    'compare.tenure': 'ঋণ পরিশোধের মেয়াদ',
+    'compare.longest_tenure': 'দীর্ঘতম মেয়াদ',
+    'compare.moratorium': 'মোরেটোরিয়াম গ্রেস',
+    'compare.activities': 'যোগ্য কার্যক্রম',
+    'compare.general_enterprises': 'সাধারণ ব্যবসা',
+    'compare.beneficiaries': 'লক্ষ্যযুক্ত সুবিধাভোগী',
+    'compare.women_only': '👩 শুধুমাত্র মহিলারা',
+    'compare.all_sc': 'সমস্ত তপশিলি জাতি সুবিধাভোগী',
+    'compare.channels': 'আবেদনের মাধ্যম',
+
+    // EMI Result Card
+    'emi.calc_title': 'ইএমআই হিসাব',
+    'emi.calculated_for': 'ইএমআই হিসাব:',
+    'emi.listen_title': 'ইএমআই পূর্বাভাস শুনুন',
+    'emi.monthly_instalment': 'আনুমানিক মাসিক কিস্তি',
+    'emi.per_month_grace': 'মোরেটোরিয়াম গ্রেস সময়ের পরে প্রতি মাসে',
+    'emi.principal_amount': 'মূলধন',
+    'emi.interest_amount': 'মোট সুদ',
+    'emi.outflow_amount': 'মোট পরিশোধ',
+    'emi.interest_p_a': 'বার্ষিক সুদ',
+    'emi.mo_tenure': 'মাস মেয়াদ',
+    'emi.mo_moratorium': 'মাস মোরেটোরিয়াম',
+
+    // Partner Result Card & Tabs
+    'partner.verified_branch': 'যাচাইকৃত সক্রিয়',
+    'partner.call_branch': 'শাখায় কল করুন',
+    'partner.locate_nearest': 'পার্টনার খুঁজুন',
+    'partner.radius_label': 'অনুসন্ধানের ব্যাসার্ধ',
+    'partner.category_label': 'পার্টনারের বিভাগ',
+    'partner.all_categories': 'সমস্ত পার্টনার বিভাগ',
+    'partner.popular_cities': 'জনপ্রিয় শহরগুলি:',
+    'partner.state_agency': 'রাজ্য সংস্থা (SCA)',
+    'partner.public_bank': 'রাষ্ট্রায়ত্ত ব্যাঙ্ক',
+    'partner.rural_bank': 'আঞ্চলিক গ্রামীণ ব্যাঙ্ক',
+    'partner.nbfc_mfi': 'এনবিএফসি-এমএফআই পার্টনার',
+    'partner.cooperative_bank': 'সমবায় ব্যাঙ্ক',
+    'partner.other_agency': 'অন্যান্য সংস্থা ও সিডবি',
+    'partner.small_finance_bank': 'স্মল ফিনান্স ব্যাঙ্ক',
+    'partner.cooperative_society': 'সমবায় সমিতি',
+    'partner.authorized_partner': 'অনুমোদিত পার্টনার',
   },
 
   gu: {
@@ -2171,3 +2529,294 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'footer.hyperlink': 'హైపర్‌లింకింగ్ విధానం',
   },
 };
+
+// ── Localized Scheme Names Dictionary ─────────────────────────────────────────
+
+const SCHEME_NAMES_LOCALIZED: Record<string, Record<string, string>> = {
+  'Term Loan (TL)': {
+    mr: 'मुदत कर्ज योजना (TL)',
+    hi: 'टर्म लोन योजना (TL)',
+    bn: 'টার্ম লোন প্রকল্প (TL)',
+  },
+  'Term Loan Scheme': {
+    mr: 'मुदत कर्ज योजना (TL)',
+    hi: 'टर्म लोन योजना (TL)',
+    bn: 'টার্ম লোন প্রকল্প (TL)',
+  },
+  'Micro Credit Finance (MCF)': {
+    mr: 'मायक्रो क्रेडिट वित्त (MCF)',
+    hi: 'माइक्रो क्रेडिट वित्त (MCF)',
+    bn: 'মাইক্রো ক্রেডিট ফিনান্স (MCF)',
+  },
+  'Mahila Samriddhi Yojana (MSY)': {
+    mr: 'महिला समृद्धी योजना (MSY)',
+    hi: 'महिला समृद्धि योजना (MSY)',
+    bn: 'মহিলা সমৃদ্ধি যোজনা (MSY)',
+  },
+  'Mahila Samriddhi Yojana': {
+    mr: 'महिला समृद्धी योजना (MSY)',
+    hi: 'महिला समृद्धि योजना (MSY)',
+    bn: 'মহিলা সমৃদ্ধি যোজনা (MSY)',
+  },
+  'Mahila Adhikarita Yojana (MAY)': {
+    mr: 'महिला अधिकारिता योजना (MAY)',
+    hi: 'महिला अधिकारिता योजना (MAY)',
+    bn: 'মহিলা অধিকারিতা যোজনা (MAY)',
+  },
+  'Shilpi Samriddhi Yojana (SSY)': {
+    mr: 'शिल्पी समृद्धी योजना (SSY)',
+    hi: 'शिल्पी समृद्धि योजना (SSY)',
+    bn: 'শিল্পী সমৃদ্ধি যোজনা (SSY)',
+  },
+  'Green Business Scheme (GBS)': {
+    mr: 'ग्रीन बिझनेस योजना (GBS)',
+    hi: 'हरित व्यवसाय योजना (GBS)',
+    bn: 'গ্রিন বিজনেস স্কিম (GBS)',
+  },
+  'Education Loan Scheme (ELS)': {
+    mr: 'उच्च शिक्षण कर्ज योजना (ELS)',
+    hi: 'शिक्षा ऋण योजना (ELS)',
+    bn: 'শিক্ষা ঋণ প্রকল্প (ELS)',
+  },
+  'Vocational Education and Training Loan Scheme (VETLS)': {
+    mr: 'व्यावसायिक शिक्षण व प्रशिक्षण कर्ज (VETLS)',
+    hi: 'व्यावसायिक शिक्षा एवं प्रशिक्षण ऋण (VETLS)',
+    bn: 'বৃত্তিমূলক শিক্ষা ও প্রশিক্ষণ ঋণ (VETLS)',
+  },
+  'Laghu Vyavasay Yojana (LVY)': {
+    mr: 'लघु व्यवसाय योजना (LVY)',
+    hi: 'लघु व्यवसाय योजना (LVY)',
+    bn: 'ক্ষুদ্র ব্যবসা যোজना (LVY)',
+  },
+  'Sanitation Workers Assistance Scheme': {
+    mr: 'स्वच्छता कर्मचारी साहाय्य योजना (SUY)',
+    hi: 'स्वच्छता उद्यमी सहायता योजना',
+    bn: 'পরিচ্ছন্নতা কর্মীদের সহায়তা প্রকল্প',
+  },
+  'Stand Up India Linked Scheme (SUY)': {
+    mr: 'स्टँड अप इंडिया लिंक्ड योजना (SUY)',
+    hi: 'स्टैंड अप इंडिया लिंक योजना (SUY)',
+    bn: 'স্ট্যান্ড আপ ইন্ডিয়া লিংক প্রকল্প (SUY)',
+  },
+  'Ajeevika Micro Finance Scheme (AMFS)': {
+    mr: 'उपजीविका मायक्रो फायनान्स योजना (AMFS)',
+    hi: 'आजीविका माइक्रो फाइनेंस योजना (AMFS)',
+    bn: 'জীবিকা মাইক্রো ফিনান্স স্কিম (AMFS)',
+  },
+  'Transport Sector Loan Scheme (TSLS)': {
+    mr: 'वाहतूक क्षेत्र कर्ज योजना (TSLS)',
+    hi: 'परिवहन क्षेत्र ऋण योजना (TSLS)',
+    bn: 'পরিবহন ক্ষেত্র ঋণ প্রকল্প (TSLS)',
+  },
+  'Self Employment Scheme for Liberation & Rehabilitation of Scavengers (SRMS)': {
+    mr: 'मुक्ती व पुनर्वसन स्वयंरोजगार योजना (SRMS)',
+    hi: 'हाथ से मैला उठाने वालों की मुक्ति एवं पुनर्वास योजना (SRMS)',
+    bn: 'মুক্তি ও পুনর্বাসন স্ব-কর্মসংস্থান প্রকল্প (SRMS)',
+  },
+  'Special Educational Loan Scheme (SELS)': {
+    mr: 'विशेष शैक्षणिक कर्ज योजना (SELS)',
+    hi: 'विशेष शिक्षा ऋण योजना (SELS)',
+    bn: 'বিশেষ শিক্ষা ঋণ প্রকল্প (SELS)',
+  },
+};
+
+export function getLocalizedSchemeName(name: string | undefined | null, lang: string = 'en'): string {
+  if (!name) return '';
+  if (lang === 'en') return name;
+
+  // Exact match
+  if (SCHEME_NAMES_LOCALIZED[name]?.[lang]) {
+    return SCHEME_NAMES_LOCALIZED[name][lang];
+  }
+
+  // Partial match by keys
+  for (const [key, map] of Object.entries(SCHEME_NAMES_LOCALIZED)) {
+    if (name.includes(key) || key.includes(name)) {
+      if (map[lang]) return map[lang];
+    }
+  }
+
+  return name;
+}
+
+// ── Localized Scheme Descriptions ─────────────────────────────────────────────
+
+const SCHEME_DESCRIPTIONS_LOCALIZED: Record<string, Record<string, string>> = {
+  'Term Loan (TL)': {
+    mr: 'अनुसूचित जातीच्या उद्योजकांसाठी शेती, उत्पादन, सेवा आणि संबंधित क्षेत्रांमध्ये ₹५० लाखांपर्यंतचे उत्पन्न मिळवून देणारे उद्योग सुरू करण्यासाठी किंवा विस्तारण्यासाठी प्रमुख मोठे प्रकल्प कर्ज.',
+    hi: 'अनुसूचित जाति के उद्यमियों के लिए कृषि, विनिर्माण, सेवाओं और संबद्ध क्षेत्रों में ₹50 लाख तक के आय-सृजक उद्यम स्थापित करने या उनका विस्तार करने हेतु प्रमुख ऋण योजना।',
+    bn: 'তপশিলি জাতিভুক্ত উদ্যোক্তাদের জন্য কৃষি, উৎপাদন, পরিষেবা ও সংশ্লিষ্ট ক্ষেত্রে ₹৫০ লাখ পর্যন্ত আয় সৃষ্টিকারী উদ্যোগ স্থাপন বা সম্প্রসারণের জন্য প্রধান বড় প্রকল্প ঋণ।',
+  },
+  'Micro Credit Finance (MCF)': {
+    mr: 'लहान उत्पन्न मिळवून देणाऱ्या उपक्रमांसाठी ₹१.४० लाखांपर्यंत लहान पतपुरवठा, अनुसूचित जातीच्या व्यक्ती व बचत गटांना (SHGs) अतिशय सवलतीच्या दरात उपलब्ध.',
+    hi: 'लघु आय-सृजक गतिविधियों के लिए ₹1.40 लाख तक का रियायती माइक्रो-क्रेडिट ऋण, जो अनुसूचित जाति के व्यक्तियों और स्वयं सहायता समूहों (SHG) के लिए उपलब्ध है।',
+    bn: 'ছোট আয় সৃষ্টিকারী কার্যক্রমের জন্য ₹১.৪০ লাখ পর্যন্ত ক্ষুদ্র ঋণ, যা তপশিলি জাতিভুক্ত ব্যক্তি ও স্বনির্ভর গোষ্ঠীর (SHG) জন্য অত্যন্ত রেয়াতি হারে উপলব্ধ।',
+  },
+  'Mahila Samriddhi Yojana (MSY)': {
+    mr: 'अनुसूचित जातीच्या महिलांसाठी लहान उत्पन्न मिळवून देणाऱ्या उपक्रमांसाठी विशेष सूक्ष्म-पतपुरवठा योजना. बचत गट आणि राज्य संस्थांमार्फत अत्यंत सवलतीच्या दरात उपलब्ध.',
+    hi: 'अनुसूचित जाति की महिलाओं के लिए छोटे आय-सृजक कार्यों हेतु विशेष सूक्ष्म-ऋण योजना। राज्य एजेंसियों और महिला स्वयं सहायता समूहों के माध्यम से अत्यधिक रियायती ब्याज दर पर उपलब्ध।',
+    bn: 'তপশিলি জাতিভুক্ত মহিলাদের জন্য ছোট আয় সৃষ্টিকারী কাজের বিশেষ ক্ষুদ্র ঋণ প্রকল্প। রাজ্য সংস্থা ও স্বনির্ভর গোষ্ঠীর মাধ্যমে অত্যন্ত ভর্তুকিযুক্ত হারে উপলব্ধ।',
+  },
+  'Mahila Adhikarita Yojana (MAY)': {
+    mr: 'अनुसूचित जातीच्या महिला उद्योजक व महिला शेतकऱ्यांसाठी शेती, जोडधंदे आणि सूक्ष्म-व्यवसाय उपक्रमांसाठी सवलतीची सूक्ष्म-कर्ज योजना.',
+    hi: 'अनुसूचित जाति की महिला उद्यमियों और महिला किसानों के लिए कृषि, संबद्ध गतिविधियों और सूक्ष्म-व्यापार के लिए रियायती माइक्रो-क्रेडिट योजना।',
+    bn: 'তপশিলি জাতিভুক্ত মহিলা উদ্যোক্তা ও মহিলা কৃষকদের জন্য কৃষি ও ক্ষুদ্র ব্যবসার সুবিধার্থে রেয়াতি মাইক্রো-ক্রেডিট প্রকল্প।',
+  },
+  'Shilpi Samriddhi Yojana (SSY)': {
+    mr: 'अनुसूचित जातीच्या कारागिरांसाठी (महिला कारागिरांना प्राधान्य) साधने, कच्चा माल खरेदी व कार्यशाळा सुरू करण्यासाठी आर्थिक साहाय्य.',
+    hi: 'अनुसूचित जाति के कारीगरों (महिला कारीगरों को प्राथमिकता) के लिए उपकरण, कच्चा माल खरीदने और कार्यशालाएं स्थापित करने हेतु वित्तीय सहायता।',
+    bn: 'তপশিলি জাতিভুক্ত কারিগরদের সরঞ্জাম ও কাঁচামাল কেনার জন্য আর্থিক সহায়তা প্রকল্প।',
+  },
+  'Green Business Scheme (GBS)': {
+    mr: 'अनुसूचित जातीच्या उद्योजकांसाठी ई-रिक्षा, सौर ऊर्जा उत्पादने, सेंद्रिय शेती आणि बायोगॅससह पर्यावरणपूरक व्यवसाय सुरू करण्यासाठी सवलतीचे कर्ज.',
+    hi: 'पर्यावरण-अनुकूल व्यवसाय जैसे ई-रिक्शा, सौर ऊर्जा, जैविक खेती और बायोगैस स्थापित करने के लिए अनुसूचित जाति उद्यमियों हेतु रियायती ऋण।',
+    bn: 'ইলেকট্রিক যান, সৌর শক্তি, জৈব চাষ এবং পরিবেশবান্ধব ব্যবসা শুরুর জন্য তপশিলি জাতিভুক্ত উদ্যোক্তাদের রেয়াতি ঋণ।',
+  },
+  'Education Loan Scheme (ELS)': {
+    mr: 'अनुसूचित जातीच्या विद्यार्थ्यांसाठी भारतात किंवा परदेशात व्यावसायिक, तांत्रिक व उच्च शिक्षणासाठी सवलतीच्या ४% ते ६% व्याजदरावर शैक्षणिक कर्ज.',
+    hi: 'अनुसूचित जाति के छात्रों के लिए भारत या विदेश में व्यावसायिक, तकनीकी और उच्च शिक्षा की पढ़ाई हेतु 4% से 6% की कम ब्याज दर पर शिक्षा ऋण।',
+    bn: 'ভারতে বা বিদেশে পেশাদার ও উচ্চশিক্ষার জন্য তপশিলি জাতিভুক্ত শিক্ষার্থীদের জন্য ৪% থেকে ৬% সুদে শিক্ষা ঋণ।',
+  },
+};
+
+export function getLocalizedSchemeDesc(name: string | undefined | null, defaultDesc: string = '', lang: string = 'en'): string {
+  if (!name || lang === 'en') return defaultDesc;
+
+  for (const [key, map] of Object.entries(SCHEME_DESCRIPTIONS_LOCALIZED)) {
+    if (name.includes(key) || key.includes(name)) {
+      if (map[lang]) return map[lang];
+    }
+  }
+
+  return defaultDesc;
+}
+
+// ── Localized Document Checklist Items ────────────────────────────────────────
+
+const DOCUMENT_ITEMS_LOCALIZED: Record<string, Record<string, string>> = {
+  'aadhaar': {
+    mr: 'आधार कार्ड (ओळख आणि पत्त्याचा पुरावा)',
+    hi: 'आधार कार्ड (पहचान और पते का प्रमाण)',
+    bn: 'আধার কার্ড (পরিচয় ও ঠিকানার প্রমাণ)',
+  },
+  'caste': {
+    mr: 'सक्षम महसूल अधिकाऱ्याने जारी केलेले वैध अनुसूचित जाती (SC) प्रमाणपत्र',
+    hi: 'सक्षम राजस्व प्राधिकारी (तहसीलदार/एसडीएम) द्वारा जारी वैध अनुसूचित जाति (SC) प्रमाण पत्र',
+    bn: 'সক্ষম রাজস্ব কর্তৃপক্ষ কর্তৃক জারি করা বৈধ তপশিলি জাতি (SC) শংসাপত্র',
+  },
+  'income': {
+    mr: 'उत्पन्न प्रमाणपत्र / पगार पावती (वार्षिक कौटुंबिक उत्पन्न ≤ ₹५.०० लाख)',
+    hi: 'आय प्रमाण पत्र / वेतन पर्ची (वार्षिक पारिवारिक आय ≤ ₹5.00 लाख)',
+    bn: 'আয় শংসাপত্র / বেতন স্লিপ (বার্ষিক পারিবারিক আয় ≤ ₹৫.০০ লাখ)',
+  },
+  'bank': {
+    mr: 'बँक खाते पासबुक / स्टेटमेंट (डीबीटी अनुदानासाठी आधार लिंक केलेले)',
+    hi: 'बैंक खाता पासबुक / स्टेटमेंट (DBT के लिए आधार से लिंक)',
+    bn: 'ব্যাঙ্ক অ্যাকাউন্ট পাসবুক / স্টেটমেন্ট (DBT-এর জন্য আধার সংযুক্ত)',
+  },
+  'photo': {
+    mr: 'पासपोर्ट आकाराचे अलीकडील फोटो (२ प्रती)',
+    hi: 'पासपोर्ट साइज नवीनतम फोटो (2 प्रतियां)',
+    bn: 'সাম্প্রতিক পাসপোর্ট সাইজ ছবি (২ কপি)',
+  },
+  'business plan': {
+    mr: 'सविस्तर व्यवसाय योजना / प्रकल्प प्रस्ताव अहवाल',
+    hi: 'विस्तृत व्यावसायिक योजना / विस्तृत परियोजना प्रस्ताव',
+    bn: 'বিস্তারিত ব্যবসায়িক পরিকল্পনা / প্রকল্প প্রস্তাব',
+  },
+  'quotation': {
+    mr: 'अधिकृत विक्रेत्याकडून यंत्रसामग्री / उपकरणे / साहित्याचे कोटेशन',
+    hi: 'अधिकृत विक्रेता से मशीनरी / उपकरण / स्टॉक कोटेशन',
+    bn: 'অনুমোদিত বিক্রেতার কাছ থেকে যন্ত্রপাতি / সরঞ্জামের কোটেশন',
+  },
+  'rent': {
+    mr: 'भाडे करार किंवा जागेच्या मालकीचा पुरावा दस्तऐवज',
+    hi: 'किराया अनुबंध या व्यावसायिक परिसर स्वामित्व दस्तावेज',
+    bn: 'ভাড়া চুক্তি বা বাণিজ্যিক চত্বরের মালিকানার নথি',
+  },
+  'admission': {
+    mr: 'महाविद्यालय / विद्यापीठाकडून प्रवेश पत्र किंवा बोनाफाईड प्रमाणपत्र',
+    hi: 'कॉलेज/विश्वविद्यालय से प्रवेश पत्र या बोनाफाइड प्रमाण पत्र',
+    bn: 'কলেজ/বিশ্ববিদ্যালয় থেকে ভর্তির অফার লেটার বা বোনাফাইড সার্টিফিকেট',
+  },
+  'fee structure': {
+    mr: 'संस्थेचे अधिकृत फी रचना विवरणपत्र (ट्यूशन, वसतिगृह, पुस्तके)',
+    hi: 'संस्थान का आधिकारिक फीस संरचना विवरण (ट्यूशन, हॉस्टल, पुस्तकें)',
+    bn: 'প্রতিষ্ঠানের আনুষ্ঠানিক ফি কাঠামো (টিউশন, হোস্টেল, বই)',
+  },
+  'marksheets': {
+    mr: 'शैक्षणिक गुणपत्रिका (१०वी, १२वी किंवा पदवी प्रमाणपत्र)',
+    hi: 'शैक्षणिक अंकतालिका (10वीं, 12वीं या स्नातक डिग्री)',
+    bn: 'শিক্ষাগত মার্কশিট (১০ম, ১২তম বা স্নাতক ডিগ্রি)',
+  },
+};
+
+export function getLocalizedDocumentItem(doc: string, lang: string = 'en'): string {
+  if (!doc || lang === 'en') return doc;
+  const lower = doc.toLowerCase();
+
+  if (lower.includes('aadhaar')) return DOCUMENT_ITEMS_LOCALIZED['aadhaar'][lang] || doc;
+  if (lower.includes('caste') || lower.includes('sc cert') || lower.includes('scheduled caste')) return DOCUMENT_ITEMS_LOCALIZED['caste'][lang] || doc;
+  if (lower.includes('income') || lower.includes('salary')) return DOCUMENT_ITEMS_LOCALIZED['income'][lang] || doc;
+  if (lower.includes('bank') || lower.includes('passbook')) return DOCUMENT_ITEMS_LOCALIZED['bank'][lang] || doc;
+  if (lower.includes('photo')) return DOCUMENT_ITEMS_LOCALIZED['photo'][lang] || doc;
+  if (lower.includes('business plan') || lower.includes('project proposal') || lower.includes('proposal')) return DOCUMENT_ITEMS_LOCALIZED['business plan'][lang] || doc;
+  if (lower.includes('quotation') || lower.includes('machinery') || lower.includes('equipment')) return DOCUMENT_ITEMS_LOCALIZED['quotation'][lang] || doc;
+  if (lower.includes('rent') || lower.includes('land ownership') || lower.includes('premises')) return DOCUMENT_ITEMS_LOCALIZED['rent'][lang] || doc;
+  if (lower.includes('admission') || lower.includes('offer letter') || lower.includes('bonafide')) return DOCUMENT_ITEMS_LOCALIZED['admission'][lang] || doc;
+  if (lower.includes('fee structure') || lower.includes('tuition')) return DOCUMENT_ITEMS_LOCALIZED['fee structure'][lang] || doc;
+  if (lower.includes('marksheet') || lower.includes('degree') || lower.includes('10th')) return DOCUMENT_ITEMS_LOCALIZED['marksheets'][lang] || doc;
+
+  return doc;
+}
+
+// ── Localized Match Reasons & Warnings ────────────────────────────────────────
+
+const REASONS_LOCALIZED: Record<string, Record<string, string>> = {
+  'purpose': {
+    mr: 'उद्दिष्ट योजना निकषांनुसार व्यवसाय उपक्रमांशी जुळते',
+    hi: 'उद्देश योजना के अनुसार पात्र व्यावसायिक गतिविधियों से मेल खाता है',
+    bn: 'উদ্দেশ্য প্রকল্পের যোগ্য ব্যবসায়িক কার্যক্রমের সাথে মিলে যায়',
+  },
+  'income': {
+    mr: 'कौटुंबिक वार्षिक उत्पन्न योजनेच्या पात्र मर्यादेत येते',
+    hi: 'पारिवारिक वार्षिक आय योजना की पात्र सीमा के अंतर्गत है',
+    bn: 'পারিবারিক বার্ষিক আয় প্রকল্পের যোগ্য সীমার মধ্যে রয়েছে',
+  },
+  'women': {
+    mr: 'महिला अर्जदारांसाठी विशेष सवलत व लाभ उपलब्ध',
+    hi: 'महिला आवेदकों के लिए विशेष रियायतें और लाभ उपलब्ध',
+    bn: 'মহিলা আবেদনকারীদের জন্য বিশেষ সুবিধা ও রেয়াত উপলব্ধ',
+  },
+  'requested': {
+    mr: 'लाभार्थ्याने योजनेच्या सविस्तर माहितीची विनंती केली',
+    hi: 'लाभार्थी ने योजना की विस्तृत जानकारी का अनुरोध किया',
+    bn: 'সুবিধাভোগী প্রকল্পের বিস্তারিত তথ্যের জন্য অনুরোধ করেছেন',
+  },
+};
+
+export function getLocalizedMatchReason(reason: string, lang: string = 'en'): string {
+  if (!reason || lang === 'en') return reason;
+  const lower = reason.toLowerCase();
+
+  if (lower.includes('purpose') || lower.includes('business')) return REASONS_LOCALIZED['purpose'][lang] || reason;
+  if (lower.includes('income') || lower.includes('earning')) return REASONS_LOCALIZED['income'][lang] || reason;
+  if (lower.includes('women') || lower.includes('female')) return REASONS_LOCALIZED['women'][lang] || reason;
+  if (lower.includes('requested') || lower.includes('detail') || lower.includes('information')) return REASONS_LOCALIZED['requested'][lang] || reason;
+
+  return reason;
+}
+
+export function getLocalizedWarning(warning: string, lang: string = 'en'): string {
+  if (!warning || lang === 'en') return warning;
+  const lower = warning.toLowerCase();
+
+  if (lower.includes('income') && lower.includes('5')) {
+    if (lang === 'mr') return 'कुटुंबाचे वार्षिक उत्पन्न ₹५ लाख मर्यादेपेक्षा जास्त असू नये.';
+    if (lang === 'hi') return 'पारिवारिक वार्षिक आय ₹5 लाख की सीमा से अधिक नहीं होनी चाहिए।';
+    if (lang === 'bn') return 'পারিবারিক বার্ষিক আয় ₹৫ লাখের সীমার বেশি হওয়া উচিত নয়।';
+  }
+
+  return warning;
+}
+

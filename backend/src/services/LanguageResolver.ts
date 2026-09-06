@@ -67,7 +67,27 @@ export function resolveEffectiveLanguage(input: LanguageResolutionInput): Langua
     }
   }
 
-  // PRIORITY 3 — EXISTING TEXT DETECTION
+  // PRIORITY 3 — TEXT DETECTION
+  if (message && typeof message === 'string' && message.trim() !== '') {
+    const detectedTextCode = detectLanguage(message);
+    if (detectedTextCode && detectedTextCode !== 'unknown') {
+      const hasScriptChars = /[\u0900-\u0D7Fa-zA-Z]/.test(message);
+      if (hasScriptChars) {
+        const cfg = getLanguageConfig(detectedTextCode);
+        if (cfg) {
+          return {
+            effectiveLanguage: cfg.id,
+            resolutionSource: 'text_detection',
+            isSupported: true,
+            languageConfig: cfg,
+            speechProbability: validProb,
+          };
+        }
+      }
+    }
+  }
+
+  // PRIORITY 4 — GENERAL TEXT DETECTION (Romanized / Latin fallback)
   if (message && typeof message === 'string' && message.trim() !== '') {
     const detectedTextCode = detectLanguage(message);
     if (detectedTextCode && detectedTextCode !== 'unknown') {
