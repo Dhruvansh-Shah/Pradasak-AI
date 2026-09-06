@@ -50,3 +50,9 @@ coverage/
 scratch/
 tmp/
 temp/
+
+# BMad and local AI agent skills
+.agents
+_bmad
+_bmad-output
+skills-lock.json
