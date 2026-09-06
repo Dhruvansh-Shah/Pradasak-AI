@@ -48,43 +48,67 @@ router.post('/', async (req: UserAuthRequest, res: Response) => {
     return;
   }
 
-  const userId = req.userId;
+  let validUserId: number | undefined = undefined;
+  if (req.userId) {
+    try {
+      const { rows } = await pool.query('SELECT id FROM users WHERE id = $1', [req.userId]);
+      if (rows.length > 0) {
+        validUserId = req.userId;
+      }
+    } catch (e) {
+      console.warn('[chat] user verification warning:', e);
+    }
+  }
+
   let chatId = incomingChatId;
   const activeSessionId = chatId || incomingSessionId || undefined;
 
   try {
     // If authenticated, persist the chat
-    if (userId) {
-      if (!chatId) {
-        // Create new chat
-        chatId = generateChatId();
-        await pool.query(
-          'INSERT INTO chats (id, user_id, title) VALUES ($1, $2, $3)',
-          [chatId, userId, autoTitle(effectiveMessage)]
-        );
-      } else {
-        // Verify ownership
-        const { rows } = await pool.query('SELECT id FROM chats WHERE id = $1 AND user_id = $2', [chatId, userId]);
-        if (rows.length === 0) {
-          res.status(403).json({ error: 'Chat not found or access denied' });
-          return;
+    if (validUserId) {
+      try {
+        if (!chatId) {
+          // Create new chat
+          chatId = generateChatId();
+          await pool.query(
+            'INSERT INTO chats (id, user_id, title) VALUES ($1, $2, $3)',
+            [chatId, validUserId, autoTitle(effectiveMessage)]
+          );
+        } else {
+          // Verify ownership or create if not exists
+          const { rows } = await pool.query('SELECT id, user_id FROM chats WHERE id = $1', [chatId]);
+          if (rows.length === 0) {
+            await pool.query(
+              'INSERT INTO chats (id, user_id, title) VALUES ($1, $2, $3)',
+              [chatId, validUserId, autoTitle(effectiveMessage)]
+            );
+          } else if (rows[0].user_id !== validUserId) {
+            chatId = generateChatId();
+            await pool.query(
+              'INSERT INTO chats (id, user_id, title) VALUES ($1, $2, $3)',
+              [chatId, validUserId, autoTitle(effectiveMessage)]
+            );
+          } else {
+            // Auto-title if still "New Chat"
+            const { rows: chatRows } = await pool.query('SELECT title FROM chats WHERE id = $1', [chatId]);
+            if (chatRows[0]?.title === 'New Chat') {
+              await pool.query('UPDATE chats SET title = $1 WHERE id = $2', [autoTitle(effectiveMessage), chatId]);
+            }
+          }
         }
-        // Auto-title if still "New Chat"
-        const { rows: chatRows } = await pool.query('SELECT title FROM chats WHERE id = $1', [chatId]);
-        if (chatRows[0]?.title === 'New Chat') {
-          await pool.query('UPDATE chats SET title = $1 WHERE id = $2', [autoTitle(effectiveMessage), chatId]);
-        }
-      }
 
-      // Save user message to DB
-      await pool.query(
-        'INSERT INTO chat_messages (chat_id, role, content, type) VALUES ($1, $2, $3, $4)',
-        [chatId, 'user', effectiveMessage, 'text']
-      );
+        // Save user message to DB
+        await pool.query(
+          'INSERT INTO chat_messages (chat_id, role, content, type) VALUES ($1, $2, $3, $4)',
+          [chatId, 'user', effectiveMessage, 'text']
+        );
+      } catch (dbErr) {
+        console.warn('[chat] Failed to persist user message in DB:', dbErr);
+      }
     }
     // Fetch complete user profile info if authenticated (Unified Context Bus)
     let userContext: UserProfileContext | undefined;
-    if (userId) {
+    if (validUserId) {
       const { rows: userRows } = await pool.query<{
         name: string | null;
         salary: string | number | null;
@@ -99,7 +123,7 @@ router.post('/', async (req: UserAuthRequest, res: Response) => {
         caste_category: string | null;
       }>(
         'SELECT name, salary, gender, city, district, state, pincode, education_level, trade_category, funding_bracket, caste_category FROM users WHERE id = $1',
-        [userId]
+        [validUserId]
       );
       if (userRows.length > 0) {
         const u = userRows[0];
@@ -131,23 +155,27 @@ router.post('/', async (req: UserAuthRequest, res: Response) => {
       schemeAction
     );
 
-    if (userId && chatId) {
-      // Save assistant response to DB
-      await pool.query(
-        'INSERT INTO chat_messages (chat_id, role, content, type, data, quick_actions, disclaimer) VALUES ($1,$2,$3,$4,$5,$6,$7)',
-        [
-          chatId,
-          'assistant',
-          response.message,
-          response.type,
-          response.data ? JSON.stringify(response.data) : null,
-          response.quickActions ? JSON.stringify(response.quickActions) : null,
-          response.disclaimer || null,
-        ]
-      );
+    if (validUserId && chatId) {
+      try {
+        // Save assistant response to DB
+        await pool.query(
+          'INSERT INTO chat_messages (chat_id, role, content, type, data, quick_actions, disclaimer) VALUES ($1,$2,$3,$4,$5,$6,$7)',
+          [
+            chatId,
+            'assistant',
+            response.message,
+            response.type,
+            response.data ? JSON.stringify(response.data) : null,
+            response.quickActions ? JSON.stringify(response.quickActions) : null,
+            response.disclaimer || null,
+          ]
+        );
 
-      // Update chat's updated_at
-      await pool.query('UPDATE chats SET updated_at = NOW() WHERE id = $1', [chatId]);
+        // Update chat's updated_at
+        await pool.query('UPDATE chats SET updated_at = NOW() WHERE id = $1', [chatId]);
+      } catch (dbErr) {
+        console.warn('[chat] Failed to persist assistant response in DB:', dbErr);
+      }
     }
 
     res.json({ ...response, chatId: chatId || response.sessionId });

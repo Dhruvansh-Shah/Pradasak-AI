@@ -104,6 +104,10 @@ export async function sendChat(
     }),
   });
   if (!res.ok) {
+    if (res.status === 401 && typeof window !== 'undefined') {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
+    }
     const err = await res.json().catch(() => ({ error: 'Network error' })) as { error?: string; detail?: string };
     throw new Error(err.detail || err.error || 'Chat request failed');
   }
@@ -254,7 +258,13 @@ export async function resetPassword(
 
 export async function getUserProfile(token: string): Promise<UserProfile> {
   const res = await fetch(`${BASE}/users/me`, { headers: userHeaders(token) });
-  if (!res.ok) throw new Error('Not authenticated');
+  if (!res.ok) {
+    if (res.status === 401 && typeof window !== 'undefined') {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
+    }
+    throw new Error('Not authenticated');
+  }
   return res.json() as Promise<UserProfile>;
 }
 
@@ -262,13 +272,25 @@ export async function getUserProfile(token: string): Promise<UserProfile> {
 
 export async function listChats(token: string): Promise<ChatSummary[]> {
   const res = await fetch(`${BASE}/chats`, { headers: userHeaders(token) });
-  if (!res.ok) throw new Error('Failed to load chats');
+  if (!res.ok) {
+    if (res.status === 401 && typeof window !== 'undefined') {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
+    }
+    throw new Error('Failed to load chats');
+  }
   return res.json() as Promise<ChatSummary[]>;
 }
 
 export async function getChat(id: string, token: string): Promise<{ chat: ChatSummary; messages: ChatMessage[] }> {
   const res = await fetch(`${BASE}/chats/${id}`, { headers: userHeaders(token) });
-  if (!res.ok) throw new Error('Chat not found');
+  if (!res.ok) {
+    if (res.status === 401 && typeof window !== 'undefined') {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
+    }
+    throw new Error('Chat not found');
+  }
   return res.json() as Promise<{ chat: ChatSummary; messages: ChatMessage[] }>;
 }
 
