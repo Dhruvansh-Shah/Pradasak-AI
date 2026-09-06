@@ -20,6 +20,8 @@ export interface PartnerCardData {
   supported_schemes?: string[];
   eligible_categories?: string[];
   verification_status?: string;
+  tier?: 'GRASSROOTS' | 'APEX_SCA';
+  is_escalated?: boolean;
 }
 
 const TYPE_META: Record<
@@ -166,6 +168,61 @@ export default function PartnerResultCard({ partner, isSelected, onSelect }: Par
             >
               <CheckCircle2 size={12} />
               <span>HEALTHY PARTNER ({partner.npa_percent}% NPA)</span>
+            </span>
+          )}
+
+          {partner.tier === 'APEX_SCA' || partner.partner_type === 'SCA' ? (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                fontSize: 10.5,
+                fontWeight: 700,
+                padding: '2px 8px',
+                borderRadius: 20,
+                background: '#eff6ff',
+                color: '#1e40af',
+                border: '1px solid #bfdbfe',
+              }}
+            >
+              <span>🏛️ APEX STATE AGENCY (150 KM)</span>
+            </span>
+          ) : (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                fontSize: 10.5,
+                fontWeight: 700,
+                padding: '2px 8px',
+                borderRadius: 20,
+                background: '#f8fafc',
+                color: '#475569',
+                border: '1px solid #e2e8f0',
+              }}
+            >
+              <span>🌱 GRASSROOTS BRANCH (35 KM)</span>
+            </span>
+          )}
+
+          {partner.is_escalated && (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                fontSize: 10.5,
+                fontWeight: 800,
+                padding: '2px 8px',
+                borderRadius: 20,
+                background: '#fffbeb',
+                color: '#b45309',
+                border: '1px solid #fde68a',
+              }}
+            >
+              <span>⚠️ ESCALATED DIRECT CHANNEL</span>
             </span>
           )}
         </div>

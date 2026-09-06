@@ -19,6 +19,7 @@ import {
   Bot,
   Calculator,
   LocateFixed,
+  ShieldAlert,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 
@@ -62,6 +63,9 @@ function PartnersContent() {
   const [radius, setRadius] = useState(150);
   const [selectedPartner, setSelectedPartner] = useState<PartnerCardData | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [degradedState, setDegradedState] = useState(false);
+  const [escalationNotice, setEscalationNotice] = useState<string | null>(null);
+  const [advisoryCode, setAdvisoryCode] = useState<string | null>(null);
 
   // Sync category filtering
   const filteredPartners = typeFilter === 'All'
@@ -81,6 +85,9 @@ function PartnersContent() {
     setLoading(true);
     setError('');
     setSelectedPartner(null);
+    setDegradedState(false);
+    setEscalationNotice(null);
+    setAdvisoryCode(null);
 
     const activeRadius = overrideRadius ?? radius;
 
@@ -109,6 +116,9 @@ function PartnersContent() {
       const data = await res.json();
       const results: PartnerCardData[] = data.partners || [];
       setPartners(results);
+      setDegradedState(Boolean(data.degradedState));
+      setEscalationNotice(data.escalationNotice || null);
+      setAdvisoryCode(data.advisoryCode || null);
 
       if (data.location && data.location.lat && data.location.lng) {
         setUserLocation({ lat: data.location.lat, lng: data.location.lng });
@@ -505,6 +515,48 @@ function PartnersContent() {
                 {city ? ` near "${city}"` : ''}
               </span>
             </div>
+
+            {degradedState && escalationNotice && (
+              <div
+                style={{
+                  background: '#fffbeb',
+                  border: '1.5px solid #fde68a',
+                  borderRadius: 16,
+                  padding: '16px 20px',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 14,
+                  boxShadow: '0 4px 12px rgba(245, 158, 11, 0.08)',
+                }}
+              >
+                <ShieldAlert size={24} color="#b45309" style={{ flexShrink: 0, marginTop: 2 }} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 800,
+                        textTransform: 'uppercase',
+                        color: '#b45309',
+                        background: '#fef3c7',
+                        padding: '2px 8px',
+                        borderRadius: 6,
+                        border: '1px solid #fde68a',
+                        letterSpacing: '0.04em',
+                      }}
+                    >
+                      {advisoryCode || 'SUPERVISORY ESCROW ADVISORY'}
+                    </span>
+                    <span style={{ fontSize: 11.5, fontWeight: 700, color: '#92400e' }}>
+                      Tier-2 Automated Rural Channel Routing (Apex SCA up to 150 km)
+                    </span>
+                  </div>
+                  <p style={{ fontSize: 13.5, fontWeight: 600, color: '#78350f', margin: 0, lineHeight: 1.5 }}>
+                    {escalationNotice}
+                  </p>
+                </div>
+              </div>
+            )}
 
             {error && (
               <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 13, padding: '12px 16px', borderRadius: 12 }}>

@@ -74,9 +74,54 @@ async function runRadiusTests() {
     }
   }
 
+  // ── Verification: Tiered Geofencing & Rural Escalation Fallback ──
+  console.log('\n🏔️ Verifying Tiered Geofencing & Rural Escalation Fallback:');
+  try {
+    const shimlaRes = await fetch(`${BASE}/partners/nearby?city=Shimla`);
+    const shimlaData = await shimlaRes.json();
+
+    if (!shimlaData.degradedState || !shimlaData.escalatedToApex) {
+      console.error('❌ FAIL: Shimla did not trigger degradedState/escalatedToApex:', shimlaData);
+      failures++;
+    } else if (shimlaData.advisoryCode !== 'SUPERVISORY_ESCROW_ADVISORY') {
+      console.error('❌ FAIL: Shimla advisoryCode mismatch:', shimlaData.advisoryCode);
+      failures++;
+    } else if (!shimlaData.escalationNotice.includes('Escalated to Apex State Agency')) {
+      console.error('❌ FAIL: Shimla escalationNotice mismatch:', shimlaData.escalationNotice);
+      failures++;
+    } else if (shimlaData.tierBreakdown.grassrootsCount !== 0) {
+      console.error('❌ FAIL: Shimla grassrootsCount expected 0, got:', shimlaData.tierBreakdown.grassrootsCount);
+      failures++;
+    } else if (shimlaData.partners.length === 0 || !shimlaData.partners.every((p: any) => p.tier === 'APEX_SCA' && p.is_escalated)) {
+      console.error('❌ FAIL: Shimla partners not properly escalated as APEX_SCA:', shimlaData.partners);
+      failures++;
+    } else {
+      console.log(`✅ PASS: Shimla rural escalation triggered correctly (0 grassroots <= 35km -> ${shimlaData.partners.length} Apex SCAs <= 150km, degradedState: true, SUPERVISORY_ESCROW_ADVISORY).`);
+    }
+
+    const puneRes = await fetch(`${BASE}/partners/nearby?city=Pune`);
+    const puneData = await puneRes.json();
+
+    if (puneData.degradedState || puneData.escalatedToApex) {
+      console.error('❌ FAIL: Pune should NOT trigger escalation:', puneData);
+      failures++;
+    } else if (puneData.tierBreakdown.grassrootsCount <= 0) {
+      console.error('❌ FAIL: Pune grassrootsCount expected > 0, got:', puneData.tierBreakdown.grassrootsCount);
+      failures++;
+    } else if (puneData.escalationNotice !== null) {
+      console.error('❌ FAIL: Pune escalationNotice should be null, got:', puneData.escalationNotice);
+      failures++;
+    } else {
+      console.log(`✅ PASS: Pune urban routing healthy and un-escalated (${puneData.tierBreakdown.grassrootsCount} grassroots <= 35km, ${puneData.tierBreakdown.scaCount} SCAs, degradedState: false).`);
+    }
+  } catch (apiErr) {
+    console.error('❌ FAIL: API request to /api/partners/nearby failed:', apiErr);
+    failures++;
+  }
+
   console.log('\n=============================================================');
   if (failures === 0) {
-    console.log('🎉 ALL RADIUS & PARTNER HEALTH FILTER TESTS PASSED CLEANLY!');
+    console.log('🎉 ALL RADIUS, HEALTH FILTER & RURAL ESCALATION TESTS PASSED CLEANLY!');
     process.exit(0);
   } else {
     console.error(`💥 ${failures} TEST CASE(S) FAILED!`);
