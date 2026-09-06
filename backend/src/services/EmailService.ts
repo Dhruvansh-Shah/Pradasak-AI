@@ -1,27 +1,43 @@
-import nodemailer from 'nodemailer';
+import 'dotenv/config';
+import nodemailer, { SendMailOptions } from 'nodemailer';
 import path from 'path';
 import fs from 'fs';
 
 // Strict Brand Name Requirement
 export const BRAND_NAME = 'PradarshakAI';
 
-const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
-const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587', 10);
-const SMTP_USER = process.env.SMTP_USER;
-const SMTP_PASSWORD = process.env.SMTP_PASSWORD;
-const SMTP_FROM = process.env.SMTP_FROM || SMTP_USER || 'no-reply@pradarshakai.gov.in';
-
 const uploadDir = path.join(__dirname, '../../uploads');
 
-export const transporter = nodemailer.createTransport({
-  host: SMTP_HOST,
-  port: SMTP_PORT,
-  secure: SMTP_PORT === 465,
-  auth: {
-    user: SMTP_USER,
-    pass: SMTP_PASSWORD,
-  },
-});
+export function getTransporter() {
+  const host = process.env.SMTP_HOST || 'smtp.gmail.com';
+  const port = parseInt(process.env.SMTP_PORT || '587', 10);
+  const user = process.env.SMTP_USER?.trim();
+  const rawPass = process.env.SMTP_PASSWORD?.trim();
+  const pass = rawPass ? rawPass.replace(/\s+/g, '') : undefined;
+
+  if (!user || !pass) {
+    throw new Error('Missing SMTP credentials. Please ensure SMTP_USER and SMTP_PASSWORD are set in backend/.env');
+  }
+
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465,
+    auth: {
+      user,
+      pass,
+    },
+  });
+}
+
+export function getSmtpFrom(): string {
+  return process.env.SMTP_FROM || process.env.SMTP_USER || 'no-reply@pradarshakai.gov.in';
+}
+
+export const transporter = {
+  sendMail: (options: SendMailOptions) => getTransporter().sendMail(options),
+  verify: () => getTransporter().verify(),
+};
 
 export interface RegistrationEmailData {
   fullName: string;
@@ -177,7 +193,7 @@ This is a system-generated email from ${BRAND_NAME}. Please do not reply to this
   `.trim();
 
   await transporter.sendMail({
-    from: `"${BRAND_NAME}" <${SMTP_FROM}>`,
+    from: `"${BRAND_NAME}" <${getSmtpFrom()}>`,
     to,
     subject,
     text,
@@ -478,7 +494,7 @@ This is a system-generated email from ${BRAND_NAME}. Please do not reply to this
 
   try {
     await transporter.sendMail({
-      from: `"${BRAND_NAME}" <${SMTP_FROM}>`,
+      from: `"${BRAND_NAME}" <${getSmtpFrom()}>`,
       to: data.email,
       subject,
       text,

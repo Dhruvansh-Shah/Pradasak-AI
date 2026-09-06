@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -16,7 +17,7 @@ import registrationRoutes from './routes/registration';
 import { pool } from './db/pool';
 import fs from 'fs';
 
-dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, '../.env'), override: true });
 dotenv.config({ path: path.resolve(__dirname, '../../.env'), override: true });
 
 process.on('uncaughtException', (err) => console.error('Uncaught exception:', err));
