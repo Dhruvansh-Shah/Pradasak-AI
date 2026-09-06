@@ -535,7 +535,7 @@ function RegisterContent() {
   };
 
   const isIdentityVerified = !!selfiePhoto;
-  const isCertVerified = isIdentityVerified && scStatus === 'VERIFIED' && incomeStatus === 'VERIFIED';
+  const isCertVerified = scStatus === 'VERIFIED' && incomeStatus === 'VERIFIED';
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f1f5f9' }}>
@@ -811,72 +811,63 @@ function RegisterContent() {
                   </section>
 
                   {/* ── SECTION 4: Certificate Verification ── */}
-                  <section style={{ ...sectionStyle, opacity: isIdentityVerified ? 1 : 0.6, pointerEvents: isIdentityVerified ? 'auto' : 'none' }}>
+                  <section style={sectionStyle}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '2px solid #f1f5f9', paddingBottom: 14, marginBottom: 24 }}>
                       <h2 style={{ ...sectionHeadingStyle, borderBottom: 'none', paddingBottom: 0, marginBottom: 0 }}>
-                        4. Document Verification
+                        4. Document Verification (Caste & Income OCR)
                       </h2>
-                      {isCertVerified && (
+                      {scStatus === 'VERIFIED' && incomeStatus === 'VERIFIED' && (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '4px 12px', borderRadius: 20, border: '1px solid #a7f3d0' }}>
                           <CheckCircle2 size={16} /> Certificates Verified
                         </span>
                       )}
                     </div>
 
-                    {!isIdentityVerified ? (
-                      <div style={{ padding: 24, background: '#f1f5f9', borderRadius: 12, textAlign: 'center', color: '#64748b' }}>
-                        <p style={{ margin: 0, fontWeight: 600, fontSize: 15, color: '#334155' }}>🔒 Locked until live identity check is completed.</p>
-                        <p style={{ margin: '8px 0 0', fontSize: 14 }}>Please capture your live selfie in Step 3 above to unlock document verification.</p>
+                    <p style={{ fontSize: 14, color: '#475569', marginBottom: 24 }}>
+                      Please upload images (JPG/PNG) of your certificates containing a government QR code or official seal. 
+                      Our system performs instant OCR to verify Scheduled Caste eligibility and confirm annual family income (&le; &#8377;5,00,000).
+                    </p>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+                      
+                      {/* Caste Certificate */}
+                      <div>
+                        {scStatus === 'IDLE' ? (
+                          <CameraCapture
+                            title="SC Caste Certificate"
+                            description="Upload or capture a clear photo of your Scheduled Caste certificate. JPG/PNG accepted."
+                            onPhotoSet={handleVerifyCaste}
+                            isDocument={true}
+                          />
+                        ) : (
+                          renderCertStatus(scStatus, scMessage, 'SC Caste Certificate', () => { setScStatus('IDLE'); setScMessage(''); })
+                        )}
                       </div>
-                    ) : (
-                      <>
-                        <p style={{ fontSize: 14, color: '#475569', marginBottom: 24 }}>
-                          Please upload images (JPG/PNG) of your certificates containing a government QR code. 
-                          Our system will fetch the official digital record to verify eligibility.
-                        </p>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
-                          
-                          {/* Caste Certificate */}
-                          <div>
-                            {scStatus === 'IDLE' ? (
-                              <CameraCapture
-                                title="SC Caste Certificate"
-                                description="Upload or capture a clear photo of your Scheduled Caste certificate. JPG/PNG accepted."
-                                onPhotoSet={handleVerifyCaste}
-                                isDocument={true}
-                              />
-                            ) : (
-                              renderCertStatus(scStatus, scMessage, 'SC Caste Certificate', () => { setScStatus('IDLE'); setScMessage(''); })
-                            )}
-                          </div>
+                      {/* Income Certificate */}
+                      <div>
+                        {incomeStatus === 'IDLE' ? (
+                          <CameraCapture
+                            title="Family Income Certificate"
+                            description="Upload or capture a clear photo of your Family Income certificate. JPG/PNG accepted."
+                            onPhotoSet={handleVerifyIncome}
+                            isDocument={true}
+                          />
+                        ) : (
+                          renderCertStatus(incomeStatus, incomeMessage, 'Family Income Certificate', () => { setIncomeStatus('IDLE'); setIncomeMessage(''); })
+                        )}
+                      </div>
 
-                          {/* Income Certificate */}
-                          <div>
-                            {incomeStatus === 'IDLE' ? (
-                              <CameraCapture
-                                title="Family Income Certificate"
-                                description="Upload or capture a clear photo of your Family Income certificate. JPG/PNG accepted."
-                                onPhotoSet={handleVerifyIncome}
-                                isDocument={true}
-                              />
-                            ) : (
-                              renderCertStatus(incomeStatus, incomeMessage, 'Family Income Certificate', () => { setIncomeStatus('IDLE'); setIncomeMessage(''); })
-                            )}
-                          </div>
-
-                          <div style={{ padding: '16px 20px', borderRadius: 14, border: '1.5px solid #e2e8f0', background: '#f8fafc', marginTop: 12 }}>
-                            <label style={labelStyle}>
-                              Aadhaar Number <span style={{ color: '#94a3b8', fontWeight: 400 }}>(optional — aids faster verification)</span>
-                            </label>
-                            <input style={inputStyle} type="text" placeholder="XXXX XXXX XXXX" maxLength={14} value={aadhaar} onChange={e => {
-                              const digits = e.target.value.replace(/\D/g, '').slice(0, 12);
-                              setAadhaar(digits.replace(/(.{4})/g, '$1 ').trim());
-                            }} />
-                          </div>
-                        </div>
-                      </>
-                    )}
+                      <div style={{ padding: '16px 20px', borderRadius: 14, border: '1.5px solid #e2e8f0', background: '#f8fafc', marginTop: 12 }}>
+                        <label style={labelStyle}>
+                          Aadhaar Number <span style={{ color: '#94a3b8', fontWeight: 400 }}>(optional — aids faster verification)</span>
+                        </label>
+                        <input style={inputStyle} type="text" placeholder="XXXX XXXX XXXX" maxLength={14} value={aadhaar} onChange={e => {
+                          const digits = e.target.value.replace(/\D/g, '').slice(0, 12);
+                          setAadhaar(digits.replace(/(.{4})/g, '$1 ').trim());
+                        }} />
+                      </div>
+                    </div>
                   </section>
 
                   {/* ── SECTION 5: Goals & Educational Profile ── */}
