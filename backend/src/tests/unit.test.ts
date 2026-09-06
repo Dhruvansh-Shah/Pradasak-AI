@@ -5,6 +5,7 @@ import { mapSarvamSTTResponse } from '../services/STTService';
 import { resolveEffectiveLanguage } from '../services/LanguageResolver';
 import { OpenRouterError } from '../lib/openrouter';
 import { LOCALIZED_ERROR_MESSAGES, buildSystemPrompt } from '../services/ChatOrchestrator';
+import { calculateFinancialPlan } from '../services/FinancialEngine';
 import type { Scheme } from '../services/SchemeEngine';
 import type { UserEntities } from '../services/ConversationSession';
 
@@ -518,6 +519,65 @@ assert(bizPrompt.includes('Education Loan'), 'System prompt contains Education L
 // Test 10.3: Women Exclusive category system prompt includes category context
 const womenPrompt = buildSystemPrompt('kn', 'women-exclusive');
 assert(womenPrompt.includes('User selected card category: "Mahila Samriddhi Yojana (Women Exclusive)"'), 'System prompt contains Women Exclusive category context');
+
+// ── 11. Dual-Mode Financial & MSME Planning Engine (Epic 3) ──
+console.log('\n📊 Testing Dual-Mode Financial & MSME Planning Engine:');
+
+// Test 11.1: Individual mode calculates 5% promoter margin and 95% loan funding
+const indPlan = calculateFinancialPlan({
+  principal: 500000,
+  annualRatePercent: 7,
+  totalTenureMonths: 60,
+  moratoriumMonths: 0,
+  borrowerMode: 'individual',
+});
+assert(indPlan.promoterMarginPercent === 5 && indPlan.loanFundingPercent === 95, 'Individual mode enforces 5% promoter margin and 95% loan share');
+assert(indPlan.cgtmseEligible === false && indPlan.cgtmseBadge === null, 'Individual mode does not attach MSME CGTMSE guarantee');
+
+// Test 11.2: MSME mode calculates 10% promoter margin, 90% loan funding, and CGTMSE collateral-free guarantee
+const msmePlan = calculateFinancialPlan({
+  principal: 2500000,
+  annualRatePercent: 7.5,
+  totalTenureMonths: 84,
+  moratoriumMonths: 12,
+  borrowerMode: 'msme',
+});
+assert(msmePlan.promoterMarginPercent === 10 && msmePlan.loanFundingPercent === 90, 'MSME mode enforces 10% promoter margin and 90% loan share');
+assert(msmePlan.cgtmseEligible === true && Boolean(msmePlan.cgtmseBadge?.includes('CGTMSE Eligible')), 'MSME mode attaches official CGTMSE collateral-free guarantee badge');
+assert(msmePlan.totalProjectOutlay === Math.round(2500000 / 0.90), 'MSME total project outlay calculated at 100% (Loan / 0.90)');
+
+// Test 11.3: Moratorium simple interest for ₹5,00,000 at 7% over 60 months with 6-month moratorium computes exact ₹17,500
+const morPlan = calculateFinancialPlan({
+  principal: 500000,
+  annualRatePercent: 7,
+  totalTenureMonths: 60,
+  moratoriumMonths: 6,
+  borrowerMode: 'individual',
+});
+assert(morPlan.moratoriumSimpleInterest === 17500, 'Simple interest during 6-month moratorium computes exactly P * (r/100) * (6/12) = ₹17,500');
+
+// Test 11.4: Capitalized principal is exactly ₹5,17,500 and repayment period is 54 months
+assert(morPlan.capitalizedPrincipal === 517500, 'Repayment principal capitalized to P_adj = ₹5,17,500');
+assert(morPlan.repaymentMonths === 54, 'Repayment tenure computed over remaining 54 months (60 total - 6 moratorium)');
+assert(morPlan.monthlyEMI === 11200, 'Monthly EMI computed as ₹11,200/mo over 54 repayment months');
+
+// Test 11.5: Amortization schedule has 6 grace period months with ₹0 principal repayment
+const graceMonths = morPlan.schedule.filter(s => s.isMoratorium);
+const repayMonths = morPlan.schedule.filter(s => !s.isMoratorium);
+assert(graceMonths.length === 6 && graceMonths.every(m => m.emi === 0 && m.principalPaid === 0), 'Amortization schedule reflects months 1–6 with ₹0 principal repayment');
+assert(repayMonths.length === 54 && repayMonths[repayMonths.length - 1].remainingBalance === 0, 'Amortization schedule amortizes balance to exactly ₹0 at month 60');
+
+// Test 11.6: Moneylender compounding debt-trap comparison for ₹1.4L at 6.5% vs 36%
+const debtTrapPlan = calculateFinancialPlan({
+  principal: 140000,
+  annualRatePercent: 6.5,
+  totalTenureMonths: 36,
+  moratoriumMonths: 0,
+  informalRatePercent: 36,
+});
+assert(debtTrapPlan.totalInterest <= 15000, 'NSFDC concessional interest for ₹1.4L over 3 years is ~₹14,471 (<= ₹15,000)');
+assert(debtTrapPlan.informalTotalInterest >= 90000, 'Informal moneylender interest at 36% APR is ~₹90,851 (>= ₹90,000)');
+assert(debtTrapPlan.netWealthPreserved >= 75000, 'Net family wealth preserved exceeds ₹75,000 (actual: ~₹76,380 saved from debt trap)');
 
 console.log(`\n================== TEST SUMMARY: ${passed} PASSED, ${failed} FAILED ==================\n`);
 process.exit(failed > 0 ? 1 : 0);

@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { llmCall } from '../lib/openrouter';
+import { calculateFinancialPlan, BorrowerMode } from '../services/FinancialEngine';
 
 const router = Router();
 
@@ -73,31 +74,46 @@ Moratorium is 0–12 months depending on scheme.
 `.trim();
 
 // POST /api/emi/calculate
-// Direct calculation with known parameters
+// Direct calculation with known parameters, dual-mode MSME support, and debt trap shield
 router.post('/calculate', (req: Request, res: Response) => {
-  const { principalLakh, annualRatePercent, tenureMonths, moratoriumMonths = 0 } = req.body as {
-    principalLakh: number;
+  const {
+    principalLakh,
+    principal: rawPrincipal,
+    annualRatePercent,
+    tenureMonths,
+    moratoriumMonths = 0,
+    borrowerMode = 'individual',
+    informalRatePercent = 36,
+  } = req.body as {
+    principalLakh?: number;
+    principal?: number;
     annualRatePercent: number;
     tenureMonths: number;
     moratoriumMonths?: number;
+    borrowerMode?: BorrowerMode;
+    informalRatePercent?: number;
   };
 
-  if (!principalLakh || !annualRatePercent || !tenureMonths) {
-    res.status(400).json({ error: 'principalLakh, annualRatePercent, and tenureMonths are required' });
+  const computedPrincipal = rawPrincipal || (principalLakh ? principalLakh * 100000 : 0);
+
+  if (!computedPrincipal || !annualRatePercent || !tenureMonths) {
+    res.status(400).json({ error: 'principal (or principalLakh), annualRatePercent, and tenureMonths are required' });
     return;
   }
 
-  const principal = principalLakh * 100000;
-  const emi = calculateEMI(principal, annualRatePercent, tenureMonths);
-  const totalPayable = emi * tenureMonths;
-  const totalInterest = totalPayable - principal;
-  const schedule = buildAmortization(principal, annualRatePercent, tenureMonths, moratoriumMonths);
+  const plan = calculateFinancialPlan({
+    principal: computedPrincipal,
+    annualRatePercent,
+    totalTenureMonths: tenureMonths,
+    moratoriumMonths,
+    borrowerMode,
+    informalRatePercent,
+  });
 
   res.json({
-    emi: parseFloat(emi.toFixed(2)),
-    totalPayable: parseFloat(totalPayable.toFixed(2)),
-    totalInterest: parseFloat(totalInterest.toFixed(2)),
-    schedule,
+    ...plan,
+    emi: plan.monthlyEMI,
+    totalPayable: plan.totalRepayment,
   });
 });
 
