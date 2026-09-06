@@ -28,9 +28,9 @@ const mockSchemes: Scheme[] = [
     category: 'micro_finance',
     description: 'Small loans for micro business',
     min_income_lakh: 0,
-    max_income_lakh: 3.0,
+    max_income_lakh: 5.0,
     min_loan_lakh: 0.1,
-    max_loan_lakh: 1.25,
+    max_loan_lakh: 1.40,
     interest_rate_min: 6.5,
     interest_rate_max: 6.5,
     moratorium_months_min: 3,
@@ -47,9 +47,9 @@ const mockSchemes: Scheme[] = [
     category: 'micro_finance',
     description: 'Exclusive micro-credit for women',
     min_income_lakh: 0,
-    max_income_lakh: 3.0,
+    max_income_lakh: 5.0,
     min_loan_lakh: 0.05,
-    max_loan_lakh: 1.25,
+    max_loan_lakh: 1.40,
     interest_rate_min: 4.0,
     interest_rate_max: 4.0,
     moratorium_months_min: 3,
@@ -66,9 +66,9 @@ const mockSchemes: Scheme[] = [
     category: 'micro_finance',
     description: 'Agriculture loans for women',
     min_income_lakh: 0,
-    max_income_lakh: 3.0,
+    max_income_lakh: 5.0,
     min_loan_lakh: 0.05,
-    max_loan_lakh: 1.25,
+    max_loan_lakh: 1.40,
     interest_rate_min: 5.0,
     interest_rate_max: 5.0,
     moratorium_months_min: 3,
@@ -86,8 +86,8 @@ const mockSchemes: Scheme[] = [
     description: 'Flagship enterprise loan',
     min_income_lakh: 0,
     max_income_lakh: 5.0,
-    min_loan_lakh: 0.1,
-    max_loan_lakh: 27.0,
+    min_loan_lakh: 0.5,
+    max_loan_lakh: 50.0,
     interest_rate_min: 6.0,
     interest_rate_max: 8.0,
     moratorium_months_min: 6,
@@ -104,7 +104,7 @@ const mockSchemes: Scheme[] = [
     category: 'term_loan',
     description: 'Sanitation enterprise loan',
     min_income_lakh: 0,
-    max_income_lakh: 3.0,
+    max_income_lakh: 5.0,
     min_loan_lakh: 0.1,
     max_loan_lakh: 13.5,
     interest_rate_min: 3.0,
@@ -142,17 +142,17 @@ const mockSchemes: Scheme[] = [
     category: 'education_loan',
     description: 'Skill development loans',
     min_income_lakh: 0,
-    max_income_lakh: 3.0,
+    max_income_lakh: 5.0,
     min_loan_lakh: 0.05,
     max_loan_lakh: 4.0,
     interest_rate_min: 4.0,
     interest_rate_max: 4.0,
     moratorium_months_min: 6,
-    moratorium_months_max: 6,
+    moratorium_months_max: 12,
     max_tenure_months: 84,
     coverage_percent: 90,
-    eligible_project_types: ['vocational', 'skill_training', 'iti'],
-    education_required: false,
+    eligible_project_types: ['vocational_training', 'skill_development', 'iti_courses'],
+    education_required: true,
     gender_eligibility: 'all',
   },
 ];
@@ -244,6 +244,31 @@ assert(
   kannadaEduResults[0]?.name.includes('Education Loan Scheme') && !kannadaEduResults[0]?.name.includes('Green Business Scheme'),
   'Kannada education loan query matches Education Loan Scheme (not Green Business Scheme)'
 );
+
+// Test 1.8: ₹1.35 Lakh loan request fits within MCF ₹1.40L ceiling without limit warnings (SIH PS 26092)
+const mcfQuery: UserEntities = { purpose: 'tailoring shop', loan_amount_rs: 135000, family_income_rs: 350000 };
+const mcfResults = scoreSchemes(mockSchemes, mcfQuery);
+const mcfScheme = mcfResults.find(s => s.id === 1);
+assert(
+  mcfScheme !== undefined && !mcfScheme.warnings.some(w => w.includes('exceeds this scheme\'s maximum limit')),
+  '₹1.35L loan request qualifies under MCF ₹1.40L ceiling with zero ceiling warnings'
+);
+
+// Test 1.9: ₹4.00 Lakh family income qualifies under universal ₹5.00L cap without warning
+assert(
+  mcfScheme !== undefined && !mcfScheme.warnings.some(w => w.includes('exceeds the standard NSFDC concessional limit')),
+  '₹4.0L family income qualifies under universal ₹5.0L cap with zero income warnings'
+);
+
+// Test 1.10: ₹55.00 Lakh loan request triggers ceiling limit warning against Term Loan (₹50.0L cap)
+const tlOverQuery: UserEntities = { purpose: 'manufacturing enterprise', loan_amount_rs: 5500000 };
+const tlOverResults = scoreSchemes(mockSchemes, tlOverQuery);
+const tlScheme = tlOverResults.find(s => s.id === 6);
+assert(
+  tlScheme !== undefined && tlScheme.warnings.some(w => w.includes('exceeds this scheme\'s maximum limit')),
+  '₹55L loan request correctly triggers ceiling warning against Term Loan ₹50L cap'
+);
+
 
 // ── 2. Language Detection Tests ──
 console.log('\n🧠 Testing Language Detection (All 11 Supported Languages):');
