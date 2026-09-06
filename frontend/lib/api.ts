@@ -15,6 +15,7 @@ export interface ChatResponse {
   disclaimer?: string;
   detectedLanguage: string;
   intent: string;
+  speechText?: string;
 }
 
 export interface UserProfile {
@@ -43,6 +44,30 @@ export interface ChatMessage {
   quick_actions: { label: string; labelHi: string; message: string }[] | null;
   disclaimer: string | null;
   created_at: string;
+  speechText?: string;
+  speech_text?: string;
+}
+
+export interface Scheme {
+  id: number;
+  name: string;
+  category?: string;
+  max_loan_lakh?: number;
+  interest_rate?: number;
+  tenure_months?: number;
+  moratorium_months?: number;
+  eligibility_summary?: string;
+  mandatory_documents?: string[];
+  conditional_documents?: string[];
+  [key: string]: unknown;
+}
+
+export interface SchemeActionPayload {
+  action: 'KNOW_MORE' | 'DOCUMENTS' | 'EMI' | 'COMPARE';
+  schemeId?: number;
+  schemeName?: string;
+  schemeIds?: number[];
+  schemeNames?: string[];
 }
 
 // ── Auth helpers ──────────────────────────────────────────────────────────────
@@ -63,7 +88,8 @@ export async function sendChat(
   language?: string,
   detectedLanguageCode?: string | null,
   languageProbability?: number | null,
-  category?: string | null
+  category?: string | null,
+  schemeAction?: SchemeActionPayload
 ): Promise<ChatResponse> {
   const res = await fetch(`${BASE}/chat`, {
     method: 'POST',
@@ -76,6 +102,7 @@ export async function sendChat(
       detectedLanguageCode,
       languageProbability,
       category,
+      schemeAction,
     }),
   });
   if (!res.ok) {
@@ -87,11 +114,12 @@ export async function sendChat(
 
 // ── Text-to-Speech (TTS) ──────────────────────────────────────────────────────
 
-export async function fetchTTS(text: string, language: string): Promise<Blob> {
+export async function fetchTTS(text: string, language: string, signal?: AbortSignal): Promise<Blob> {
   const res = await fetch(`${BASE}/tts`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text, language }),
+    signal,
   });
   if (!res.ok) {
     const err = (await res.json().catch(() => ({ error: 'TTS request failed' }))) as { error?: string; detail?: string };
@@ -162,6 +190,67 @@ export async function userLogin(email: string, password: string): Promise<{ toke
     throw new Error(err.error);
   }
   return res.json() as Promise<{ token: string; user: UserProfile }>;
+}
+
+export async function forgotPasswordSendOtp(email: string): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${BASE}/users/forgot-password/send-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  const data = await res.json().catch(() => ({ error: 'Failed to send OTP' }));
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to send OTP');
+  }
+  return data;
+}
+
+export async function forgotPasswordVerifyOtp(email: string, otp: string): Promise<{ success: boolean; resetToken: string; message: string }> {
+  const res = await fetch(`${BASE}/users/forgot-password/verify-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, otp }),
+  });
+  const data = await res.json().catch(() => ({ error: 'OTP verification failed' }));
+  if (!res.ok) {
+    throw new Error(data.error || 'OTP verification failed');
+  }
+  return data;
+}
+
+export async function resetPassword(
+  resetToken: string,
+  newPassword: string,
+  confirmPassword?: string
+): Promise<{ success: boolean; message: string; token: string; user: UserProfile }> {
+  const res = await fetch(`${BASE}/users/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ resetToken, newPassword, confirmPassword }),
+  });
+  const data = await res.json().catch(() => ({ error: 'Failed to reset password' }));
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to reset password');
+  }
+  return data;
+}
+
+export async function fetchSchemes(): Promise<any[]> {
+  const res = await fetch(`${BASE}/schemes`);
+  if (!res.ok) throw new Error('Failed to fetch schemes');
+  return res.json();
+}
+
+export async function fetchSchemeById(id: number): Promise<any> {
+  const res = await fetch(`${BASE}/schemes/${id}`);
+  if (!res.ok) throw new Error('Failed to fetch scheme');
+  return res.json();
+}
+
+export async function compareSchemesApi(ids: number[]): Promise<any[]> {
+  const res = await fetch(`${BASE}/schemes/compare?ids=${ids.join(',')}`);
+  if (!res.ok) throw new Error('Failed to compare schemes');
+  return res.json();
 }
 
 export async function getUserProfile(token: string): Promise<UserProfile> {

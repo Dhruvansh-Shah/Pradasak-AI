@@ -567,7 +567,22 @@ function RegisterContent() {
 
           {error && (
             <div style={{ padding: '14px 20px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12, color: '#b91c1c', fontSize: 14, fontWeight: 600, marginBottom: 28 }}>
-              ⚠ {error}
+              <div>⚠ {error}</div>
+              {error.includes('already exists') && (
+                <div style={{ marginTop: 8 }}>
+                  <a
+                    href="/auth"
+                    style={{
+                      color: '#0369a1',
+                      fontWeight: 700,
+                      textDecoration: 'underline',
+                      fontSize: 13,
+                    }}
+                  >
+                    Click here to Sign In to your existing account →
+                  </a>
+                </div>
+              )}
             </div>
           )}
 

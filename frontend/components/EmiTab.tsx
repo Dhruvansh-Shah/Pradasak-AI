@@ -110,6 +110,7 @@ export default function EmiTab({ onSchemeSelect }: { onSchemeSelect?: (schemeNam
   const [tenure, setTenure] = useState<number>(60);
   const [moratorium, setMoratorium] = useState<number>(6);
   const [userSalary, setUserSalary] = useState<number | null>(null);
+  const [familySize, setFamilySize] = useState<number>(1); // includes self
   const [showSchedule, setShowSchedule] = useState<boolean>(false);
 
   useMemo(() => {
@@ -643,6 +644,65 @@ export default function EmiTab({ onSchemeSelect }: { onSchemeSelect?: (schemeNam
             </div>
           </div>
 
+          {/* ── Family Size / Dependents Input ──────────────────────────── */}
+          <div
+            style={{
+              background: '#fafafa',
+              border: '1px solid #e2e8f0',
+              borderRadius: 14,
+              padding: '14px 16px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 10,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: '#334155' }}>
+                👨‍👩‍👧‍👦 Family Size (including self)
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+                <button
+                  onClick={() => setFamilySize(Math.max(1, familySize - 1))}
+                  style={{
+                    width: 30, height: 30,
+                    borderRadius: '8px 0 0 8px',
+                    border: '1px solid #e2e8f0',
+                    background: '#ffffff',
+                    fontSize: 18, fontWeight: 700,
+                    color: '#0b1f3a',
+                    cursor: familySize > 1 ? 'pointer' : 'not-allowed',
+                    opacity: familySize > 1 ? 1 : 0.35,
+                  }}
+                >−</button>
+                <div
+                  style={{
+                    width: 42, height: 30,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    border: '1px solid #e2e8f0', borderLeft: 'none', borderRight: 'none',
+                    background: '#f1f5f9',
+                    fontSize: 15, fontWeight: 800, color: '#0b1f3a',
+                  }}
+                >{familySize}</div>
+                <button
+                  onClick={() => setFamilySize(Math.min(8, familySize + 1))}
+                  style={{
+                    width: 30, height: 30,
+                    borderRadius: '0 8px 8px 0',
+                    border: '1px solid #e2e8f0',
+                    background: '#ffffff',
+                    fontSize: 18, fontWeight: 700,
+                    color: '#0b1f3a',
+                    cursor: familySize < 8 ? 'pointer' : 'not-allowed',
+                    opacity: familySize < 8 ? 1 : 0.35,
+                  }}
+                >+</button>
+              </div>
+            </div>
+            <div style={{ fontSize: 11.5, color: '#64748b', lineHeight: 1.45 }}>
+              Estimated living cost: <strong>₹3,000/month × {familySize} member{familySize > 1 ? 's' : ''} = ₹{(3000 * familySize).toLocaleString('en-IN')}/month</strong>. This is deducted from your income to compute disposable income for repayment.
+            </div>
+          </div>
+
           {/* 4. Moratorium Grace Period (Story 3.2) */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -777,42 +837,64 @@ export default function EmiTab({ onSchemeSelect }: { onSchemeSelect?: (schemeNam
               </div>
             </div>
 
-            {/* Verified Income Affordability */}
-            {userSalary != null && (
-              <div
-                style={{
-                  background: 'rgba(251, 191, 36, 0.1)',
-                  border: '1px solid rgba(251, 191, 36, 0.3)',
-                  borderRadius: 14,
-                  padding: '12px 14px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 4,
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: '#fbbf24', letterSpacing: '0.04em' }}>
-                    Income Affordability
-                  </span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: '#ffffff' }}>
-                    {formatINR(userSalary)}/yr
-                  </span>
-                </div>
-                {(() => {
-                  const monthlyIncome = Math.round(userSalary / 12);
-                  const burdenRatio = Math.round((calculation.monthlyEMI / (monthlyIncome || 1)) * 100);
-                  const isAffordable = burdenRatio <= 50;
-                  return (
-                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', lineHeight: 1.45 }}>
-                      Monthly Income: <strong>{formatINR(monthlyIncome)}</strong> • EMI is <strong>{burdenRatio}%</strong> of income.{' '}
-                      <span style={{ color: isAffordable ? '#86efac' : '#fca5a5', fontWeight: 700 }}>
-                        {isAffordable ? '✓ Within repayment norms (≤ 50%)' : '⚠ High debt-to-income ratio (> 50%)'}
-                      </span>
+            {/* ── Family-Aware Income Affordability ────────────────────────── */}
+            {userSalary != null && (() => {
+              const monthlyIncome = Math.round(userSalary / 12);
+              const livingCostPerMonth = 3000 * familySize;
+              const disposableIncome = Math.max(0, monthlyIncome - livingCostPerMonth);
+              const dtiRatio = disposableIncome > 0
+                ? Math.round((calculation.monthlyEMI / disposableIncome) * 100)
+                : 999;
+              const verdict =
+                dtiRatio <= 40
+                  ? { label: '✓ Comfortable — EMI fits within disposable income', color: '#86efac', bg: 'rgba(134,239,172,0.12)', border: 'rgba(134,239,172,0.3)' }
+                  : dtiRatio <= 60
+                  ? { label: '⚠ Stretched — reduce amount or extend tenure', color: '#fbbf24', bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.35)' }
+                  : { label: '✗ Unaffordable — EMI exceeds disposable income', color: '#fca5a5', bg: 'rgba(252,165,165,0.12)', border: 'rgba(252,165,165,0.35)' };
+              return (
+                <div
+                  style={{
+                    background: verdict.bg,
+                    border: `1px solid ${verdict.border}`,
+                    borderRadius: 14,
+                    padding: '13px 14px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 8,
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', color: '#fbbf24', letterSpacing: '0.05em' }}>
+                      Affordability · Family of {familySize}
+                    </span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>
+                      {formatINR(userSalary)}/yr
+                    </span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                    <div style={{ background: 'rgba(255,255,255,0.06)', padding: '7px 10px', borderRadius: 9 }}>
+                      <div style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.55)', marginBottom: 2 }}>Monthly Income</div>
+                      <strong style={{ fontSize: 12, color: '#ffffff' }}>{formatINR(monthlyIncome)}</strong>
                     </div>
-                  );
-                })()}
-              </div>
-            )}
+                    <div style={{ background: 'rgba(255,255,255,0.06)', padding: '7px 10px', borderRadius: 9 }}>
+                      <div style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.55)', marginBottom: 2 }}>Living Costs ({familySize} person{familySize > 1 ? 's' : ''})</div>
+                      <strong style={{ fontSize: 12, color: '#fca5a5' }}>− {formatINR(livingCostPerMonth)}</strong>
+                    </div>
+                    <div style={{ background: 'rgba(255,255,255,0.06)', padding: '7px 10px', borderRadius: 9 }}>
+                      <div style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.55)', marginBottom: 2 }}>Disposable Income</div>
+                      <strong style={{ fontSize: 12, color: '#86efac' }}>{formatINR(disposableIncome)}</strong>
+                    </div>
+                    <div style={{ background: 'rgba(255,255,255,0.06)', padding: '7px 10px', borderRadius: 9 }}>
+                      <div style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.55)', marginBottom: 2 }}>EMI Burden (DTI)</div>
+                      <strong style={{ fontSize: 12, color: verdict.color }}>{dtiRatio > 200 ? '>200' : dtiRatio}%</strong>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 11.5, fontWeight: 700, color: verdict.color, lineHeight: 1.4 }}>
+                    {verdict.label}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Action Triggers */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 4 }}>

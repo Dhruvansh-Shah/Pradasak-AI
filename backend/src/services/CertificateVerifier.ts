@@ -117,12 +117,18 @@ async function decodeWithJsQr(filePath: string): Promise<string[]> {
 
 function callPythonQrDecoder(filePath: string): Promise<any> {
   return new Promise((resolve) => {
-    const pythonPath = 'python';
+    const pythonPath = process.platform === 'win32' ? 'python' : 'python3';
     const scriptPath = path.join(__dirname, '../scripts/qr_decoder.py');
 
     console.log(`[Python QR] Running Python QR decoder for: ${filePath}`);
 
     execFile(pythonPath, [scriptPath, filePath], { timeout: 45000 }, (error, stdout, stderr) => {
+      if (error && !stdout) {
+        // Python or dependencies (cv2, pyzbar) not available, let jsQR handle it
+        resolve({ success: false, error: error.message });
+        return;
+      }
+
       if (stderr) {
         for (const line of stderr.split('\n').filter(l => l.trim())) {
           console.log(`  [PyStderr] ${line.trim()}`);
@@ -133,7 +139,6 @@ function callPythonQrDecoder(filePath: string): Promise<any> {
         const parsed = JSON.parse(stdout.trim());
         resolve(parsed);
       } catch {
-        console.warn(`[Python QR] Failed to parse stdout JSON. stdout: "${stdout}"`);
         resolve({ success: false, error: 'Python QR script returned invalid JSON' });
       }
     });

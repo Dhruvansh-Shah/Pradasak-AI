@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { process as orchestrate } from '../services/ChatOrchestrator';
+import { process as orchestrate, SchemeActionPayload } from '../services/ChatOrchestrator';
 import { pool } from '../db/pool';
 import { optionalUser, UserAuthRequest } from '../middleware/userAuthMiddleware';
 import { generateChatId, autoTitle } from './chats';
@@ -18,6 +18,7 @@ router.post('/', async (req: UserAuthRequest, res: Response) => {
     detectedLanguageCode,
     languageProbability,
     category,
+    schemeAction,
   } = req.body as {
     message?: string;
     chatId?: string;
@@ -26,9 +27,22 @@ router.post('/', async (req: UserAuthRequest, res: Response) => {
     detectedLanguageCode?: string;
     languageProbability?: number;
     category?: string;
+    schemeAction?: SchemeActionPayload;
   };
 
-  if (!message?.trim()) {
+  const effectiveMessage = (message && message.trim()) || (
+    schemeAction?.action === 'KNOW_MORE'
+      ? `Learn more about ${schemeAction.schemeName || 'selected scheme'}`
+      : schemeAction?.action === 'DOCUMENTS'
+      ? `Required documents for ${schemeAction.schemeName || 'selected scheme'}`
+      : schemeAction?.action === 'EMI'
+      ? `Calculate EMI for ${schemeAction.schemeName || 'selected scheme'}`
+      : schemeAction?.action === 'COMPARE'
+      ? 'Compare selected schemes'
+      : ''
+  );
+
+  if (!effectiveMessage) {
     res.status(400).json({ error: 'message is required' });
     return;
   }
@@ -45,7 +59,7 @@ router.post('/', async (req: UserAuthRequest, res: Response) => {
         chatId = generateChatId();
         await pool.query(
           'INSERT INTO chats (id, user_id, title) VALUES ($1, $2, $3)',
-          [chatId, userId, autoTitle(message.trim())]
+          [chatId, userId, autoTitle(effectiveMessage)]
         );
       } else {
         // Verify ownership
@@ -57,14 +71,14 @@ router.post('/', async (req: UserAuthRequest, res: Response) => {
         // Auto-title if still "New Chat"
         const { rows: chatRows } = await pool.query('SELECT title FROM chats WHERE id = $1', [chatId]);
         if (chatRows[0]?.title === 'New Chat') {
-          await pool.query('UPDATE chats SET title = $1 WHERE id = $2', [autoTitle(message.trim()), chatId]);
+          await pool.query('UPDATE chats SET title = $1 WHERE id = $2', [autoTitle(effectiveMessage), chatId]);
         }
       }
 
       // Save user message to DB
       await pool.query(
         'INSERT INTO chat_messages (chat_id, role, content, type) VALUES ($1, $2, $3, $4)',
-        [chatId, 'user', message.trim(), 'text']
+        [chatId, 'user', effectiveMessage, 'text']
       );
     }
     // Fetch complete user profile info if authenticated (Unified Context Bus)
@@ -106,13 +120,14 @@ router.post('/', async (req: UserAuthRequest, res: Response) => {
 
     // Use activeSessionId (chatId or incomingSessionId) for multi-turn session continuity
     const response = await orchestrate(
-      message.trim(),
+      effectiveMessage,
       activeSessionId,
       language,
       detectedLanguageCode,
       languageProbability,
       category,
-      userContext
+      userContext,
+      schemeAction
     );
 
     if (userId && chatId) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import NavBar from '@/components/NavBar';
 import Sidebar from '@/components/Sidebar';
@@ -103,29 +103,18 @@ function ChatPage() {
     }
   }
 
-  function handleNewChat() {
-    setChatId(null);
-    setInitialMessages([]);
-    setJourneyDone({});
-    setRefreshSignal((n) => n + 1);
-    setSidebarOpen(false);
-    setResetKey((k) => k + 1);
-    router.replace('/chat');
-  }
-
-  function handleChatSelect(id: string) {
-    loadChat(id, token);
-  }
-
-  function handleChatCreated(id: string) {
-    setChatId(id);
-    setRefreshSignal((n) => n + 1);
-    handleStepComplete('eligibility');
-    router.replace(`/chat?chatId=${id}`);
-  }
-
-  function handleStepComplete(stepKey: 'eligibility' | 'scheme' | 'emi' | 'partner') {
+  const handleStepComplete = useCallback((stepKey: 'eligibility' | 'scheme' | 'emi' | 'partner') => {
     setJourneyDone((prev) => {
+      const alreadyElig = !!prev.eligibility;
+      const alreadyScheme = !!prev.scheme;
+      const alreadyEmi = !!prev.emi;
+      const alreadyPartner = !!prev.partner;
+
+      if (stepKey === 'eligibility' && alreadyElig) return prev;
+      if (stepKey === 'scheme' && alreadyElig && alreadyScheme) return prev;
+      if (stepKey === 'emi' && alreadyElig && alreadyScheme && alreadyEmi) return prev;
+      if (stepKey === 'partner' && alreadyElig && alreadyScheme && alreadyEmi && alreadyPartner) return prev;
+
       const next = { ...prev };
       if (stepKey === 'eligibility') {
         next.eligibility = true;
@@ -144,7 +133,28 @@ function ChatPage() {
       }
       return next;
     });
-  }
+  }, []);
+
+  const handleNewChat = useCallback(() => {
+    setChatId(null);
+    setInitialMessages([]);
+    setJourneyDone({});
+    setRefreshSignal((n) => n + 1);
+    setSidebarOpen(false);
+    setResetKey((k) => k + 1);
+    router.replace('/chat');
+  }, [router]);
+
+  const handleChatSelect = useCallback((id: string) => {
+    loadChat(id, token);
+  }, [token]);
+
+  const handleChatCreated = useCallback((id: string) => {
+    setChatId(id);
+    setRefreshSignal((n) => n + 1);
+    handleStepComplete('eligibility');
+    router.replace(`/chat?chatId=${id}`);
+  }, [handleStepComplete, router]);
 
   function markStep(key: string) {
     setJourneyDone((prev) => {
@@ -168,7 +178,6 @@ function ChatPage() {
 
       {/* ── Segmented Navigation Subheader ─────────────────────────────────── */}
       <div
-        className="chat-subheader"
         style={{
           background: '#ffffff',
           borderBottom: '1px solid #e2e8f0',
@@ -183,7 +192,7 @@ function ChatPage() {
         }}
       >
         {/* Left: Section Segment Control */}
-        <div className="chat-subheader-left" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {tab === 'chat' && (
             <button
               onClick={() => setSidebarOpen((v) => !v)}
@@ -208,7 +217,7 @@ function ChatPage() {
             </button>
           )}
 
-          <div className="chat-tabs" style={{ display: 'flex', alignItems: 'center', background: '#f1f5f9', padding: '3px', borderRadius: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', background: '#f1f5f9', padding: '3px', borderRadius: 10 }}>
             {TABS.map(({ id, label, Icon }) => {
               const active = tab === id;
               return (
@@ -246,7 +255,7 @@ function ChatPage() {
         </div>
 
         {/* Right: Actions */}
-        <div className="chat-subheader-actions" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {tab === 'chat' && (
             <>
               <button
@@ -356,7 +365,6 @@ function ChatPage() {
         {/* Sliding Right Journey Drawer */}
         {tab === 'chat' && journeyOpen && (
           <aside
-            className="journey-drawer animate-slide-right"
             style={{
               position: 'absolute',
               insetBlock: 0,
@@ -369,6 +377,7 @@ function ChatPage() {
               flexDirection: 'column',
               boxShadow: '-4px 0 24px rgba(11, 31, 58, 0.1)',
             }}
+            className="animate-slide-right"
           >
             {/* Header */}
             <div

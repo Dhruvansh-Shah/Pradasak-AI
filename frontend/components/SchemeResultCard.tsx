@@ -1,7 +1,8 @@
 'use client';
 
-import { CheckCircle2, AlertTriangle, Calculator, MapPin, Sparkles } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Calculator, Sparkles, BookOpen, FileText } from 'lucide-react';
 import Interactive3DCard from './Interactive3DCard';
+import VoiceButton from './VoiceButton';
 
 interface Scheme {
   id: number;
@@ -17,10 +18,9 @@ interface Scheme {
   moratorium_months_min: number;
   moratorium_months_max: number;
   max_tenure_months: number;
+  coverage_percent?: number;
   gender_eligibility?: string;
   score?: number;
-  tier?: 'ELIGIBLE_OPTIMAL' | 'ELIGIBLE_SUBOPTIMAL' | 'HARD_DISQUALIFIED';
-  disqualificationReason?: string;
   matchReasons?: string[];
   warnings?: string[];
 }
@@ -52,12 +52,30 @@ function fmt(rs: number | null | undefined) {
 
 interface Props {
   scheme: Scheme;
+  onKnowMore?: (scheme: Scheme) => void;
+  onGetDocuments?: (scheme: Scheme) => void;
   onCalculateEMI?: (scheme: Scheme) => void;
   onFindPartners?: () => void;
   rank?: number;
+  speechText?: string;
+  onPlayVoice?: () => void;
+  onStopVoice?: () => void;
+  isVoicePlaying?: boolean;
+  isVoiceLoading?: boolean;
 }
 
-export default function SchemeResultCard({ scheme, onCalculateEMI, onFindPartners, rank }: Props) {
+export default function SchemeResultCard({
+  scheme,
+  onKnowMore,
+  onGetDocuments,
+  onCalculateEMI,
+  rank,
+  speechText,
+  onPlayVoice,
+  onStopVoice,
+  isVoicePlaying,
+  isVoiceLoading,
+}: Props) {
   const meta = CATEGORY_COLORS[scheme.category] || CATEGORY_COLORS.default;
   const label = CATEGORY_LABELS[scheme.category] || scheme.category;
 
@@ -65,14 +83,15 @@ export default function SchemeResultCard({ scheme, onCalculateEMI, onFindPartner
     <Interactive3DCard
       maxTilt={5}
       style={{
-        background: '#ffffff',
-        border: '1px solid #e4e2e1',
+        background: 'var(--surface, #ffffff)',
+        border: '1px solid var(--border, #e4e2e1)',
         borderRadius: 14,
         padding: '22px 24px',
         display: 'flex',
         flexDirection: 'column',
         gap: 16,
         width: '100%',
+        color: 'var(--text)',
       }}
     >
       {/* Header */}
@@ -111,63 +130,6 @@ export default function SchemeResultCard({ scheme, onCalculateEMI, onFindPartner
             >
               {label}
             </span>
-
-            {scheme.tier === 'ELIGIBLE_OPTIMAL' && (
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  padding: '3px 8px',
-                  borderRadius: 6,
-                  background: '#dcfce7',
-                  color: '#15803d',
-                  border: '1px solid #86efac',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 4,
-                }}
-              >
-                <CheckCircle2 size={12} />
-                Optimal Fit
-              </span>
-            )}
-            {scheme.tier === 'ELIGIBLE_SUBOPTIMAL' && (
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  padding: '3px 8px',
-                  borderRadius: 6,
-                  background: '#fef3c7',
-                  color: '#b45309',
-                  border: '1px solid #fde68a',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 4,
-                }}
-              >
-                Eligible Alternative
-              </span>
-            )}
-            {scheme.tier === 'HARD_DISQUALIFIED' && (
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  padding: '3px 8px',
-                  borderRadius: 6,
-                  background: '#fee2e2',
-                  color: '#b91c1c',
-                  border: '1px solid #fca5a5',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 4,
-                }}
-              >
-                <AlertTriangle size={12} />
-                Ceiling Exceeded
-              </span>
-            )}
           </div>
 
           <h3 style={{ fontSize: 17, fontWeight: 700, color: '#001e40', margin: 0, lineHeight: 1.3 }}>
@@ -188,21 +150,21 @@ export default function SchemeResultCard({ scheme, onCalculateEMI, onFindPartner
               style={{
                 fontSize: 13.5,
                 fontWeight: 800,
-                color: scheme.tier === 'HARD_DISQUALIFIED' ? '#b91c1c' : scheme.tier === 'ELIGIBLE_SUBOPTIMAL' ? '#b45309' : '#15803d',
-                background: scheme.tier === 'HARD_DISQUALIFIED' ? '#fef2f2' : scheme.tier === 'ELIGIBLE_SUBOPTIMAL' ? '#fffbeb' : '#f0fdf4',
-                border: `1px solid ${scheme.tier === 'HARD_DISQUALIFIED' ? '#fca5a5' : scheme.tier === 'ELIGIBLE_SUBOPTIMAL' ? '#fde68a' : '#bbf7d0'}`,
+                color: '#15803d',
+                background: '#f0fdf4',
+                border: '1px solid #bbf7d0',
                 padding: '3px 10px',
                 borderRadius: 6,
               }}
             >
-              {scheme.tier === 'HARD_DISQUALIFIED' ? 'Ineligible' : `${Math.max(0, Math.min(100, Math.round(scheme.score)))}% Match`}
+              {Math.max(0, Math.min(100, Math.round(scheme.score)))}% Match
             </span>
           </div>
         )}
       </div>
 
       {/* 3 Metric Tiles */}
-      <div className="scheme-result-metrics" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
         <div style={{ background: '#fbf9f8', border: '1px solid #e4e2e1', borderRadius: 8, padding: '10px 8px', textAlign: 'center' }}>
           <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', color: '#64748b', display: 'block', marginBottom: 2 }}>
             Max Loan
@@ -301,73 +263,135 @@ export default function SchemeResultCard({ scheme, onCalculateEMI, onFindPartner
         )}
       </div>
 
-      {/* Actions */}
-      {(onCalculateEMI || onFindPartners) && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 6, borderTop: '1px solid #f0eded' }}>
-          {onCalculateEMI && (
-            <button
-              onClick={() => onCalculateEMI(scheme)}
-              style={{
-                flex: 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-                padding: '10px 14px',
-                borderRadius: 8,
-                border: '1px solid #c3c6d1',
-                background: '#ffffff',
-                color: '#001e40',
-                fontSize: 13,
-                fontWeight: 700,
-                cursor: 'pointer',
-                transition: 'all 150ms ease',
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.borderColor = '#001e40';
-                (e.currentTarget as HTMLElement).style.background = '#f6f3f2';
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.borderColor = '#c3c6d1';
-                (e.currentTarget as HTMLElement).style.background = '#ffffff';
-              }}
-            >
-              <Calculator size={14} color="#e87722" />
-              <span>Calculate EMI</span>
-            </button>
-          )}
+      {/* Visually Attached Scheme Action Area */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+          gap: 8,
+          paddingTop: 12,
+          borderTop: '1.5px solid #e2e8f0',
+          marginTop: 2,
+        }}
+      >
+        {onKnowMore && (
+          <button
+            type="button"
+            onClick={() => onKnowMore(scheme)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              padding: '9px 12px',
+              borderRadius: 8,
+              border: '1.5px solid #0284c7',
+              background: '#f0f9ff',
+              color: '#0369a1',
+              fontSize: 12.5,
+              fontWeight: 700,
+              cursor: 'pointer',
+              transition: 'all 150ms ease',
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.background = '#0284c7';
+              (e.currentTarget as HTMLElement).style.color = '#ffffff';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.background = '#f0f9ff';
+              (e.currentTarget as HTMLElement).style.color = '#0369a1';
+            }}
+          >
+            <BookOpen size={14} />
+            <span>Know More</span>
+          </button>
+        )}
 
-          {onFindPartners && (
-            <button
-              onClick={onFindPartners}
-              style={{
-                flex: 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-                padding: '10px 14px',
-                borderRadius: 8,
-                border: 'none',
-                background: '#001e40',
-                color: '#ffffff',
-                fontSize: 13,
-                fontWeight: 700,
-                cursor: 'pointer',
-                boxShadow: '0 2px 6px rgba(0,30,64,0.2)',
-                transition: 'all 150ms ease',
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.background = '#003366';
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.background = '#001e40';
-              }}
-            >
-              <MapPin size={14} color="#fbbf24" />
-              <span>Find Partners</span>
-            </button>
-          )}
+        {onGetDocuments && (
+          <button
+            type="button"
+            onClick={() => onGetDocuments(scheme)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              padding: '9px 12px',
+              borderRadius: 8,
+              border: '1.5px solid #059669',
+              background: '#ecfdf5',
+              color: '#065f46',
+              fontSize: 12.5,
+              fontWeight: 700,
+              cursor: 'pointer',
+              transition: 'all 150ms ease',
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.background = '#059669';
+              (e.currentTarget as HTMLElement).style.color = '#ffffff';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.background = '#ecfdf5';
+              (e.currentTarget as HTMLElement).style.color = '#065f46';
+            }}
+          >
+            <FileText size={14} />
+            <span>Required Documents</span>
+          </button>
+        )}
+
+        {onCalculateEMI && (
+          <button
+            type="button"
+            onClick={() => onCalculateEMI(scheme)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              padding: '9px 12px',
+              borderRadius: 8,
+              border: '1.5px solid #ea580c',
+              background: '#fff7ed',
+              color: '#9a3412',
+              fontSize: 12.5,
+              fontWeight: 700,
+              cursor: 'pointer',
+              transition: 'all 150ms ease',
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.background = '#ea580c';
+              (e.currentTarget as HTMLElement).style.color = '#ffffff';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.background = '#fff7ed';
+              (e.currentTarget as HTMLElement).style.color = '#9a3412';
+            }}
+          >
+            <Calculator size={14} />
+            <span>Calculate EMI</span>
+          </button>
+        )}
+      </div>
+
+      {/* Voice / Listen Action */}
+      {onPlayVoice && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-start',
+            paddingTop: 8,
+            borderTop: '1px solid var(--border, #f1f5f9)',
+          }}
+        >
+          <VoiceButton
+            isPlaying={!!isVoicePlaying}
+            isLoading={!!isVoiceLoading}
+            onPlay={onPlayVoice}
+            onStop={onStopVoice || (() => {})}
+            title={`Listen to ${scheme.name} details`}
+          />
         </div>
       )}
     </Interactive3DCard>
