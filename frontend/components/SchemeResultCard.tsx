@@ -17,9 +17,10 @@ interface Scheme {
   moratorium_months_min: number;
   moratorium_months_max: number;
   max_tenure_months: number;
-  coverage_percent?: number;
   gender_eligibility?: string;
   score?: number;
+  tier?: 'ELIGIBLE_OPTIMAL' | 'ELIGIBLE_SUBOPTIMAL' | 'HARD_DISQUALIFIED';
+  disqualificationReason?: string;
   matchReasons?: string[];
   warnings?: string[];
 }
@@ -110,6 +111,63 @@ export default function SchemeResultCard({ scheme, onCalculateEMI, onFindPartner
             >
               {label}
             </span>
+
+            {scheme.tier === 'ELIGIBLE_OPTIMAL' && (
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: '3px 8px',
+                  borderRadius: 6,
+                  background: '#dcfce7',
+                  color: '#15803d',
+                  border: '1px solid #86efac',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+              >
+                <CheckCircle2 size={12} />
+                Optimal Fit
+              </span>
+            )}
+            {scheme.tier === 'ELIGIBLE_SUBOPTIMAL' && (
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: '3px 8px',
+                  borderRadius: 6,
+                  background: '#fef3c7',
+                  color: '#b45309',
+                  border: '1px solid #fde68a',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+              >
+                Eligible Alternative
+              </span>
+            )}
+            {scheme.tier === 'HARD_DISQUALIFIED' && (
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: '3px 8px',
+                  borderRadius: 6,
+                  background: '#fee2e2',
+                  color: '#b91c1c',
+                  border: '1px solid #fca5a5',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+              >
+                <AlertTriangle size={12} />
+                Ceiling Exceeded
+              </span>
+            )}
           </div>
 
           <h3 style={{ fontSize: 17, fontWeight: 700, color: '#001e40', margin: 0, lineHeight: 1.3 }}>
@@ -130,14 +188,14 @@ export default function SchemeResultCard({ scheme, onCalculateEMI, onFindPartner
               style={{
                 fontSize: 13.5,
                 fontWeight: 800,
-                color: '#15803d',
-                background: '#f0fdf4',
-                border: '1px solid #bbf7d0',
+                color: scheme.tier === 'HARD_DISQUALIFIED' ? '#b91c1c' : scheme.tier === 'ELIGIBLE_SUBOPTIMAL' ? '#b45309' : '#15803d',
+                background: scheme.tier === 'HARD_DISQUALIFIED' ? '#fef2f2' : scheme.tier === 'ELIGIBLE_SUBOPTIMAL' ? '#fffbeb' : '#f0fdf4',
+                border: `1px solid ${scheme.tier === 'HARD_DISQUALIFIED' ? '#fca5a5' : scheme.tier === 'ELIGIBLE_SUBOPTIMAL' ? '#fde68a' : '#bbf7d0'}`,
                 padding: '3px 10px',
                 borderRadius: 6,
               }}
             >
-              {Math.max(0, Math.min(100, Math.round(scheme.score)))}% Match
+              {scheme.tier === 'HARD_DISQUALIFIED' ? 'Ineligible' : `${Math.max(0, Math.min(100, Math.round(scheme.score)))}% Match`}
             </span>
           </div>
         )}

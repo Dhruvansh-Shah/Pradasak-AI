@@ -269,6 +269,36 @@ assert(
   '₹55L loan request correctly triggers ceiling warning against Term Loan ₹50L cap'
 );
 
+// Test 1.11: Tailoring with ₹1.35L and ₹3.5L income scores as ELIGIBLE_OPTIMAL (score >= 85) for MCF
+assert(
+  mcfScheme !== undefined && mcfScheme.score >= 85 && mcfScheme.tier === 'ELIGIBLE_OPTIMAL',
+  `MCF scores as ELIGIBLE_OPTIMAL (score: ${mcfScheme?.score} >= 85) for ₹1.35L tailoring business`
+);
+
+// Test 1.12: Tailoring with ₹1.35L for female applicant scores as ELIGIBLE_OPTIMAL (score >= 85) for MSY
+const femaleMsyQuery: UserEntities = { purpose: 'tailoring shop', loan_amount_rs: 135000, family_income_rs: 350000, gender: 'female' };
+const femaleMsyResults = scoreSchemes(mockSchemes, femaleMsyQuery);
+const msyScheme = femaleMsyResults.find(s => s.id === 2);
+assert(
+  msyScheme !== undefined && msyScheme.score >= 85 && msyScheme.tier === 'ELIGIBLE_OPTIMAL',
+  `MSY scores as ELIGIBLE_OPTIMAL (score: ${msyScheme?.score} >= 85) for female applicant`
+);
+
+// Test 1.13: ₹55.00 Lakh loan request classifies Term Loan as HARD_DISQUALIFIED with explicit ceiling advisory
+assert(
+  tlScheme !== undefined && tlScheme.tier === 'HARD_DISQUALIFIED' && !!tlScheme.disqualificationReason,
+  `Term Loan classified as HARD_DISQUALIFIED with explicit advisory: "${tlScheme?.disqualificationReason}"`
+);
+
+// Test 1.14: Deterministic scoring latency is under 50ms
+const t0 = Date.now();
+scoreSchemes(mockSchemes, mcfQuery);
+const scoringDuration = Date.now() - t0;
+assert(
+  scoringDuration < 50,
+  `Deterministic scheme scoring executes in under 50ms (actual: ${scoringDuration}ms)`
+);
+
 
 // ── 2. Language Detection Tests ──
 console.log('\n🧠 Testing Language Detection (All 11 Supported Languages):');

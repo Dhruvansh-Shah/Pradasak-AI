@@ -35,10 +35,14 @@ export interface Scheme {
   channel_partner_applicable?: boolean;
 }
 
+export type SchemeTier = 'ELIGIBLE_OPTIMAL' | 'ELIGIBLE_SUBOPTIMAL' | 'HARD_DISQUALIFIED';
+
 export interface ScoredScheme extends Scheme {
   score: number;
+  tier: SchemeTier;
   matchReasons: string[];
   warnings: string[];
+  disqualificationReason?: string;
 }
 
 export function normalizeSchemeText(str: string): string {
@@ -311,10 +315,60 @@ export function scoreSchemes(schemes: Scheme[], entities: UserEntities, category
 
       score += Math.max(0, (10 - Number(scheme.interest_rate_min || 6)) * 2);
 
-      return { ...scheme, score, matchReasons, warnings };
+      // --- 3-TIER DETERMINISTIC CLASSIFICATION (SIH PS 26092) ---
+      let tier: SchemeTier = 'ELIGIBLE_SUBOPTIMAL';
+      let disqualificationReason: string | undefined = undefined;
+
+      const loanLakh = entities.loan_amount_rs ? entities.loan_amount_rs / 100000 : null;
+      const incomeLakh = entities.family_income_rs ? entities.family_income_rs / 100000 : null;
+      const isWomenOnly = scheme.gender_eligibility === 'women_only' || scheme.name.toLowerCase().includes('mahila');
+
+      // Boundary check 1: Loan ceiling exceeded (e.g. ₹55L > ₹50L Term Loan cap)
+      if (loanLakh && scheme.max_loan_lakh && loanLakh > scheme.max_loan_lakh) {
+        tier = 'HARD_DISQUALIFIED';
+        disqualificationReason = `Requested loan amount (₹${loanLakh.toFixed(1)}L) exceeds the maximum statutory ceiling of ₹${scheme.max_loan_lakh.toFixed(1)}L for ${scheme.name}.`;
+      }
+      // Boundary check 2: Family income exceeded (e.g. > ₹5.00L universal cap)
+      else if (incomeLakh && scheme.max_income_lakh && incomeLakh > scheme.max_income_lakh) {
+        tier = 'HARD_DISQUALIFIED';
+        disqualificationReason = `Annual family income (₹${incomeLakh.toFixed(1)}L) exceeds the statutory eligibility cap of ₹${scheme.max_income_lakh.toFixed(1)}L/yr for NSFDC concessional loans.`;
+      }
+      // Boundary check 3: Gender exclusivity
+      else if (isWomenOnly && entities.gender && entities.gender !== 'female' && !isDirectMatch) {
+        tier = 'HARD_DISQUALIFIED';
+        disqualificationReason = `This scheme is exclusively reserved for women entrepreneurs.`;
+      }
+      // Boundary check 4: Education requirement when completely non-educational
+      else if (scheme.education_required && !isEducation && !isDirectMatch) {
+        tier = 'HARD_DISQUALIFIED';
+        disqualificationReason = `This scheme requires enrollment in an eligible technical, vocational, or professional course.`;
+      }
+      // Qualified schemes: Segment into OPTIMAL (score >= 80) vs SUBOPTIMAL (score 50–79)
+      else if (score >= 80) {
+        tier = 'ELIGIBLE_OPTIMAL';
+      } else {
+        tier = 'ELIGIBLE_SUBOPTIMAL';
+      }
+
+      if (tier === 'HARD_DISQUALIFIED') {
+        if (disqualificationReason && !warnings.includes(disqualificationReason)) {
+          warnings.unshift(disqualificationReason);
+        }
+        if (!isDirectMatch && score > 40) {
+          score = 40;
+        }
+      }
+
+      return { ...scheme, score, tier, matchReasons, warnings, disqualificationReason };
     })
     .filter((s) => s.score > -30)
-    .sort((a, b) => b.score - a.score);
+    .sort((a, b) => {
+      // Prioritize by tier first: OPTIMAL (1) > SUBOPTIMAL (2) > HARD_DISQUALIFIED (3)
+      const tierRank = (t: SchemeTier) => (t === 'ELIGIBLE_OPTIMAL' ? 1 : t === 'ELIGIBLE_SUBOPTIMAL' ? 2 : 3);
+      const rankDiff = tierRank(a.tier) - tierRank(b.tier);
+      if (rankDiff !== 0) return rankDiff;
+      return b.score - a.score;
+    });
 
   return scored;
 }
@@ -323,7 +377,13 @@ export async function recommendSchemes(entities: UserEntities, categoryHint?: st
   const all = await fetchActiveSchemes(categoryHint);
   const scored = scoreSchemes(all, entities, categoryHint);
   if (scored.length === 0) {
-    return all.slice(0, 3).map((s) => ({ ...s, score: 50, matchReasons: ['Official NSFDC Concessional Scheme'], warnings: [] }));
+    return all.slice(0, 3).map((s) => ({
+      ...s,
+      score: 50,
+      tier: 'ELIGIBLE_SUBOPTIMAL' as SchemeTier,
+      matchReasons: ['Official NSFDC Concessional Scheme'],
+      warnings: [],
+    }));
   }
   return scored.slice(0, 3);
 }
