@@ -57,7 +57,7 @@ export default function Footer() {
                 <EmblemOfIndia size={34} />
               </div>
               <span style={{ fontSize: 17, fontWeight: 800, color: '#ffffff', letterSpacing: '-0.02em' }}>
-                {t('brand.name', 'Pradarshak AI')}
+                {t('brand.name', 'PradarshakAI')}
               </span>
             </div>
 
@@ -193,7 +193,7 @@ export default function Footer() {
           }}
         >
           <span>
-            © {new Date().getFullYear()} National SC Financial Assistance Portal • Pradarshak AI. All Rights Reserved.
+            © {new Date().getFullYear()} National SC Financial Assistance Portal • PradarshakAI. All Rights Reserved.
           </span>
           <div style={{ display: 'flex', gap: 16 }}>
             <span>Privacy Policy</span>

@@ -28,11 +28,11 @@ export const TOOL_DEFS: ToolDef[] = [
     function: {
       name: 'recommend_schemes',
       description:
-        "Look up and score real NSFDC concessional loan schemes from the database that match the applicant's situation. Use this whenever the user describes a business/education plan, asks which scheme fits them, or asks about eligibility. Never guess scheme names, rates, or limits yourself — always call this to get real data. Only call once you know at least the purpose OR a loan amount; if you have neither and nothing useful from earlier in the conversation, ask the user what the loan is for instead of calling this tool.",
+        "Look up and score real NSFDC concessional loan schemes from the database that match the applicant's situation or single-scheme detail queries (e.g. 'Tell me more about SUY', 'What is GBS', 'Explain MCF'). Use this whenever the user describes a business/education plan, asks which scheme fits them, or asks for details on a specific scheme. Never guess scheme names, rates, or limits yourself — always call this to get real data.",
       parameters: {
         type: 'object',
         properties: {
-          purpose: { type: 'string', description: 'What the loan/education is for, e.g. "tailoring shop", "MS in Computer Science"' },
+          purpose: { type: 'string', description: 'What the loan/education is for OR the specific scheme name/acronym requested by the user, e.g. "tailoring shop", "GBS", "Green Business Scheme"' },
           loan_amount_rs: { type: 'number', description: 'Desired loan amount in rupees' },
           family_income_rs: { type: 'number', description: 'Annual family income in rupees' },
           education_level: { type: 'string', enum: ['school', 'diploma', 'undergraduate', 'postgraduate'] },
@@ -96,7 +96,7 @@ export const TOOL_DEFS: ToolDef[] = [
     type: 'function',
     function: {
       name: 'compare_schemes',
-      description: 'Fetch two or more named schemes side by side for comparison. If the user did not name specific schemes, this returns the top two active schemes.',
+      description: 'Fetch exactly two or more distinct named schemes side by side for comparison. ONLY call this tool when the user explicitly requests to compare two or more schemes (e.g. "Compare SUY and VETLS", "Difference between MCF and Term Loan"). Do NOT call this tool for single-scheme detail requests.',
       parameters: {
         type: 'object',
         properties: {
@@ -136,9 +136,13 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
         }
       }
 
+      // Direct single-scheme lookup returns ONLY 1 scheme; generic queries return top 3
+      const isDirectMatch = schemes[0] && schemes[0].score >= 100;
+      const returnedSchemes = isDirectMatch ? schemes.slice(0, 1) : schemes.slice(0, 3);
+
       return {
         toolName: name,
-        data: { schemes: schemes.slice(0, 3), nearestPartner },
+        data: { schemes: returnedSchemes, nearestPartner },
       };
     }
 
@@ -214,13 +218,14 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
 
     case 'compare_schemes': {
       const names = (args.scheme_names as string[] | undefined) || [];
-      let schemeA: Scheme | null = null;
-      let schemeB: Scheme | null = null;
-
-      if (names.length >= 2) {
-        schemeA = await fetchSchemeByName(names[0]);
-        schemeB = await fetchSchemeByName(names[1]);
+      if (names.length < 2) {
+        // Single scheme passed to compare — fall back to recommend_schemes so response type is 'schemes' (never 'comparison')
+        return executeTool('recommend_schemes', { purpose: names[0] || '' });
       }
+
+      let schemeA: Scheme | null = await fetchSchemeByName(names[0]);
+      let schemeB: Scheme | null = await fetchSchemeByName(names[1]);
+
       if (!schemeA || !schemeB) {
         const all = await fetchActiveSchemes();
         schemeA = schemeA || all[0];

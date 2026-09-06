@@ -6,7 +6,6 @@ import type { ChatSummary } from '@/lib/api';
 import {
   MessageSquare,
   Trash2,
-  Plus,
   LogIn,
   Sparkles,
   History,
@@ -132,49 +131,25 @@ export default function Sidebar({
           </span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        {onClose && (
           <button
-            onClick={onNewChat}
+            onClick={onClose}
             style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#64748b',
+              padding: '6px',
+              borderRadius: 8,
+              cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: 4,
-              background: '#0b1f3a',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: 8,
-              padding: '6px 10px',
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: 'pointer',
-              boxShadow: '0 1px 4px rgba(11,31,58,0.15)',
+              justifyContent: 'center',
             }}
-            title="Start new conversation"
+            title="Close sidebar"
           >
-            <Plus size={13} color="#fbbf24" />
-            <span>New</span>
+            <X size={16} />
           </button>
-
-          {onClose && (
-            <button
-              onClick={onClose}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#64748b',
-                padding: '6px',
-                borderRadius: 8,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-              title="Close sidebar"
-            >
-              <X size={16} />
-            </button>
-          )}
-        </div>
+        )}
       </div>
 
       {/* ── Chat List Stream ──────────────────────────────────────────────── */}
@@ -212,10 +187,10 @@ export default function Sidebar({
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               <strong style={{ fontSize: 13.5, color: '#0f172a' }}>
-                Sign In to Save History
+                {t('chat.sign_in_history', 'Sign In to Save History')}
               </strong>
               <p style={{ fontSize: 12, color: '#64748b', margin: 0, lineHeight: 1.5 }}>
-                Sync and revisit your past loan inquiries and matched schemes across sessions.
+                {t('chat.sync_history_desc', 'Sync and revisit your past loan inquiries and matched schemes across sessions.')}
               </p>
             </div>
 
@@ -243,7 +218,7 @@ export default function Sidebar({
           </div>
         ) : chats.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '48px 16px', color: '#94a3b8', fontSize: 13 }}>
-            No previous conversations yet.
+            {t('chat.no_chats', 'No previous conversations yet.')}
           </div>
         ) : (
           Object.entries(groups).map(([group, items]) =>

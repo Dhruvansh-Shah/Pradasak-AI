@@ -2,13 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   Globe,
   ChevronDown,
   Menu,
   X,
-  Landmark,
   Bot,
   Layers,
   MapPin,
@@ -19,19 +18,14 @@ import {
 } from 'lucide-react';
 import type { UserProfile } from '@/lib/api';
 import { useLanguage } from '@/context/LanguageContext';
-import type { Language } from '@/lib/translations';
+import { SUPPORTED_LANGUAGES, getLanguageConfig } from '@/lib/languages';
 import EmblemOfIndia from './EmblemOfIndia';
-
-const LANGS: { code: Language; label: string; name: string }[] = [
-  { code: 'en', label: 'English', name: 'English' },
-  { code: 'hi', label: 'हिंदी', name: 'हिंदी' },
-  { code: 'mr', label: 'मराठी', name: 'मराठी' },
-];
 
 export default function NavBar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { lang, setLang, t } = useLanguage();
+  const searchParams = useSearchParams();
+  const { lang, selectedMode, isAuto, setLang, t } = useLanguage();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
@@ -60,13 +54,20 @@ export default function NavBar() {
     router.push('/');
   }
 
-  const isActive = (href: string) =>
-    pathname === href || (href !== '/' && pathname.startsWith(href));
+  const isActive = (href: string) => {
+    if (href === '/chat?tab=emi') {
+      return pathname === '/chat' && searchParams.get('tab') === 'emi';
+    }
+    if (href === '/chat') {
+      return pathname === '/chat' && searchParams.get('tab') !== 'emi';
+    }
+    return pathname === href || (href !== '/' && pathname.startsWith(href));
+  };
 
-  const currentLangObj = LANGS.find((l) => l.code === lang) || LANGS[0];
+  const currentLangObj = getLanguageConfig(lang) || SUPPORTED_LANGUAGES[0];
 
   const navLinks = [
-    { label: t('nav.schemes', 'Schemes Catalog'), href: '/schemes', icon: Layers },
+    { label: t('nav.schemes', 'Explore Schemes'), href: '/schemes', icon: Layers },
     { label: t('nav.chat', 'AI Assistant'), href: '/chat', icon: Bot },
     { label: t('nav.emi', 'EMI Calculator'), href: '/chat?tab=emi', icon: Calculator },
     { label: t('nav.partners', 'Partner Locator'), href: '/partners', icon: MapPin },
@@ -96,22 +97,22 @@ export default function NavBar() {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <span style={{ fontWeight: 700, color: '#f8fafc', letterSpacing: '0.02em' }}>
-              भारत सरकार | Government of India
+              {t('nav.gov_of_india', 'Government of India')}
             </span>
             <span style={{ opacity: 0.4 }}>•</span>
             <span className="hidden md:inline" style={{ color: '#94a3b8' }}>
-              Ministry of Social Justice & Empowerment (MoSJE)
+              {t('nav.ministry', 'Ministry of Social Justice & Empowerment')}
             </span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <div className="hidden sm:flex items-center gap-1.5" style={{ color: '#fed7aa' }}>
               <PhoneCall size={12} color="#fe9832" />
-              <span style={{ fontSize: 11 }}>Toll-Free Helpline: <strong>1800-11-2001</strong></span>
+              <span style={{ fontSize: 11 }}>{t('nav.helpline', 'Toll-Free Helpline')}: <strong>1800-11-2001</strong></span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
               <ShieldCheck size={13} color="#8dfc75" />
-              <span style={{ fontSize: 11, color: '#e6eef8' }}>NSFDC Verified Portal</span>
+              <span style={{ fontSize: 11, color: '#e6eef8' }}>{t('nav.verified_portal', 'NSFDC Verified Portal')}</span>
             </div>
           </div>
         </div>
@@ -174,7 +175,7 @@ export default function NavBar() {
                     lineHeight: 1.2,
                   }}
                 >
-                  {t('brand.name', 'Pradarshak AI')}
+                  {t('brand.name', 'PradarshakAI')}
                 </span>
               </div>
               <span
@@ -184,7 +185,7 @@ export default function NavBar() {
                   fontWeight: 500,
                 }}
               >
-                National SC Financial Assistance Portal
+                {t('brand.subtitle', 'Channel Finance & Concessional Loans')}
               </span>
             </div>
           </Link>
@@ -232,9 +233,9 @@ export default function NavBar() {
             })}
           </nav>
 
-          {/* ── Right Controls: Language Selector & User Auth ───────────────── */}
+          {/* ── Right Controls: Single Global Top-Navbar Language Selector & User Auth ───────────────── */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            {/* Language Selector Dropdown */}
+            {/* Single Global Language Selector Dropdown */}
             <div style={{ position: 'relative' }}>
               <button
                 type="button"
@@ -257,7 +258,7 @@ export default function NavBar() {
                 }}
               >
                 <Globe size={14} color="#ffdcc2" />
-                <span>{currentLangObj.name}</span>
+                <span>{isAuto ? `Auto (${currentLangObj.nativeName})` : currentLangObj.nativeName}</span>
                 <ChevronDown size={13} style={{ transform: langOpen ? 'rotate(180deg)' : 'none', transition: 'transform 150ms' }} />
               </button>
 
@@ -267,7 +268,9 @@ export default function NavBar() {
                     position: 'absolute',
                     top: 'calc(100% + 6px)',
                     right: 0,
-                    width: 160,
+                    width: 190,
+                    maxHeight: 360,
+                    overflowY: 'auto',
                     background: '#001e40',
                     border: '1px solid rgba(255, 255, 255, 0.2)',
                     borderRadius: 4,
@@ -281,23 +284,52 @@ export default function NavBar() {
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div style={{ fontSize: 10.5, fontWeight: 700, color: '#94a3b8', padding: '4px 8px', textTransform: 'uppercase' }}>
-                    Language
+                    {t('nav.select_lang', 'Select Language')}
                   </div>
-                  {LANGS.map((item) => {
-                    const isSelected = item.code === lang;
+
+                  {/* Auto (Detect) Option */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLang('auto');
+                      setLangOpen(false);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '7px 10px',
+                      borderRadius: 3,
+                      fontSize: 12.5,
+                      fontWeight: isAuto ? 700 : 500,
+                      color: isAuto ? '#ffffff' : '#cbd5e1',
+                      background: isAuto ? '#003366' : 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <span>Auto (Detect)</span>
+                    {isAuto && <span style={{ color: '#ffdcc2', fontSize: 12 }}>✓</span>}
+                  </button>
+
+                  <div style={{ height: 1, background: 'rgba(255, 255, 255, 0.1)', margin: '2px 0' }} />
+
+                  {SUPPORTED_LANGUAGES.map((item) => {
+                    const isSelected = !isAuto && selectedMode === item.id;
                     return (
                       <button
-                        key={item.code}
+                        key={item.id}
                         type="button"
                         onClick={() => {
-                          setLang(item.code);
+                          setLang(item.id);
                           setLangOpen(false);
                         }}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
-                          padding: '7px 8px',
+                          padding: '7px 10px',
                           borderRadius: 3,
                           fontSize: 12.5,
                           fontWeight: isSelected ? 700 : 500,
@@ -308,7 +340,7 @@ export default function NavBar() {
                           textAlign: 'left',
                         }}
                       >
-                        <span>{item.label}</span>
+                        <span>{item.nativeName}</span>
                         {isSelected && <span style={{ color: '#ffdcc2', fontSize: 12 }}>✓</span>}
                       </button>
                     );
@@ -353,23 +385,49 @@ export default function NavBar() {
                     cursor: 'pointer',
                   }}
                 >
-                  Logout
+                  {t('nav.signout', 'Sign Out')}
                 </button>
               </div>
             ) : (
-              <Link
-                href="/auth"
-                className="btn btn-amber btn-bounce"
-                style={{
-                  fontSize: 13.5,
-                  padding: '7px 16px',
-                  borderRadius: 4,
-                  fontWeight: 700,
-                }}
-              >
-                <User size={14} />
-                <span>{t('nav.login', 'Citizen Login')}</span>
-              </Link>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Link
+                  href="/auth"
+                  className="btn-bounce"
+                  style={{
+                    fontSize: 13,
+                    padding: '7px 13px',
+                    borderRadius: 4,
+                    fontWeight: 600,
+                    color: '#e2e8f0',
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    textDecoration: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                  }}
+                >
+                  <User size={13} color="#ffdcc2" />
+                  <span>{t('nav.signin', 'Sign In')}</span>
+                </Link>
+                <Link
+                  href="/register"
+                  className="btn btn-amber btn-bounce"
+                  style={{
+                    fontSize: 13,
+                    padding: '7px 14px',
+                    borderRadius: 4,
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <ShieldCheck size={14} />
+                  <span>{t('nav.register', 'Register')}</span>
+                </Link>
+              </div>
             )}
 
             {/* Mobile Hamburger Menu */}
@@ -431,6 +489,46 @@ export default function NavBar() {
               </Link>
             );
           })}
+
+          {!user && (
+            <div style={{ display: 'flex', gap: 8, marginTop: 8, paddingTop: 10, borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+              <Link
+                href="/auth"
+                onClick={() => setMobileOpen(false)}
+                style={{
+                  flex: 1,
+                  padding: '9px 12px',
+                  borderRadius: 4,
+                  textAlign: 'center',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: '#ffffff',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  textDecoration: 'none',
+                }}
+              >
+                {t('nav.signin', 'Sign In')}
+              </Link>
+              <Link
+                href="/register"
+                onClick={() => setMobileOpen(false)}
+                style={{
+                  flex: 1,
+                  padding: '9px 12px',
+                  borderRadius: 4,
+                  textAlign: 'center',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: '#001e40',
+                  background: '#fe9832',
+                  textDecoration: 'none',
+                }}
+              >
+                {t('nav.register', 'Register')}
+              </Link>
+            </div>
+          )}
         </div>
       )}
     </header>

@@ -1,47 +1,71 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
-import { userLogin, userRegister } from '@/lib/api';
+import { userLogin } from '@/lib/api';
 import {
   Landmark,
   Eye,
   EyeOff,
   CheckCircle2,
-  ArrowRight,
-  ShieldCheck,
   Mail,
-  Lock,
+  ArrowRight,
   User,
-  Phone
+  Lock,
+  ShieldCheck,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function AuthPage() {
+  return (
+    <Suspense
+      fallback={
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
+          <div style={{ fontSize: 14, color: '#64748b', fontWeight: 600 }}>Loading…</div>
+        </div>
+      }
+    >
+      <AuthContent />
+    </Suspense>
+  );
+}
+
+function AuthContent() {
   const router = useRouter();
-  const [mode, setMode] = useState<'login' | 'register'>('login');
-  const [name, setName] = useState('');
+  const searchParams = useSearchParams();
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (searchParams.get('mode') === 'register') {
+      router.replace('/register');
+    }
+  }, [searchParams, router]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
+
+    const cleanEmail = email.trim();
+    if (!cleanEmail) {
+      setError('Email is required');
+      return;
+    }
+    if (!password) {
+      setError('Password is required');
+      return;
+    }
+
     setLoading(true);
     try {
-      let result: { token: string; user: { name: string | null; email: string } };
-      if (mode === 'login') {
-        result = await userLogin(email, password);
-      } else {
-        if (!phone.trim()) throw new Error('Phone number is required');
-        result = await userRegister({ name: name || undefined, email, phone, password });
-      }
+      const result = await userLogin(cleanEmail, password);
       localStorage.setItem('auth_token', result.token);
       localStorage.setItem('auth_user', JSON.stringify(result.user));
       router.push('/');
@@ -103,8 +127,8 @@ export default function AuthPage() {
                   <Landmark size={20} />
                 </div>
                 <div>
-                  <div style={{ fontSize: 17, fontWeight: 900, color: '#ffffff' }}>Pradarshak AI</div>
-                  <div style={{ fontSize: 11, color: '#94a3b8' }}>National SC Finance &amp; Dev. Corp.</div>
+                  <div style={{ fontSize: 17, fontWeight: 900, color: '#ffffff' }}>{t('brand.name', 'PradarshakAI')}</div>
+                  <div style={{ fontSize: 11, color: '#94a3b8' }}>{t('brand.org', 'National SC Finance & Dev. Corp.')}</div>
                 </div>
               </div>
 
@@ -127,11 +151,11 @@ export default function AuthPage() {
                 </span>
 
                 <h1 style={{ fontSize: 28, fontWeight: 900, color: '#ffffff', lineHeight: 1.25, margin: 0 }}>
-                  Access Concessional Finance with Complete Clarity
+                  {t('auth.title', 'Citizen Portal Sign In')}
                 </h1>
 
                 <p style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 1.6, margin: 0 }}>
-                  Sign in to save your recommended schemes, view real-time eligibility status, and keep your inquiry history across sessions.
+                  {t('auth.desc', 'Access your saved loan inquiries, scheme recommendations, and partner applications.')}
                 </p>
               </div>
 
@@ -140,7 +164,7 @@ export default function AuthPage() {
                   'Instant scheme matching for family income ≤ ₹5L',
                   'Deterministic moratorium & repayment schedules',
                   'Direct channel partner branch routing & contacts',
-                  'Full multilingual assistance in Hindi & Marathi',
+                  'Full 11-language assistance',
                 ].map((text, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: '#e2e8f0' }}>
                     <CheckCircle2 size={16} color="#34d399" style={{ flexShrink: 0 }} />
@@ -155,7 +179,7 @@ export default function AuthPage() {
             </div>
           </div>
 
-          {/* ── Right Form Column ───────────────────────────────────────────── */}
+            {/* ── Right Form Column ───────────────────────────────────────────── */}
           <div
             className="auth-form-panel"
             style={{
@@ -163,188 +187,137 @@ export default function AuthPage() {
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'center',
-              gap: 24,
+              gap: 22,
             }}
           >
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               <h2 style={{ fontSize: 24, fontWeight: 900, color: '#0b1f3a', margin: 0, letterSpacing: '-0.02em' }}>
-                {mode === 'login' ? 'Welcome Back' : 'Create Beneficiary Account'}
+                {t('auth.welcome_back', 'Citizen Portal Sign In')}
               </h2>
               <p style={{ fontSize: 13.5, color: '#64748b', margin: 0 }}>
-                {mode === 'login'
-                  ? 'Sign in to access your chat history and saved schemes.'
-                  : 'Register to save your conversations and track applications.'}
+                {t('auth.subtitle', 'Sign in to access your chat history and saved schemes.')}
               </p>
             </div>
 
-            {/* Mode Switch Tabs */}
+            {/* Mode Switch / Action Tabs */}
             <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: 12 }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setMode('login');
-                  setError('');
-                }}
+              <div
                 style={{
                   flex: 1,
                   padding: '9px',
                   borderRadius: 9,
                   fontSize: 13,
-                  fontWeight: mode === 'login' ? 700 : 500,
-                  border: 'none',
-                  background: mode === 'login' ? '#ffffff' : 'transparent',
-                  color: mode === 'login' ? '#0b1f3a' : '#64748b',
-                  boxShadow: mode === 'login' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
-                  cursor: 'pointer',
-                  transition: 'all 150ms ease',
+                  fontWeight: 700,
+                  textAlign: 'center',
+                  background: '#ffffff',
+                  color: '#0b1f3a',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
                 }}
               >
-                Sign In
-              </button>
+                {t('nav.signin', 'Sign In')}
+              </div>
               <button
                 type="button"
-                onClick={() => {
-                  setMode('register');
-                  setError('');
-                }}
+                onClick={() => router.push('/register')}
                 style={{
                   flex: 1,
                   padding: '9px',
                   borderRadius: 9,
                   fontSize: 13,
-                  fontWeight: mode === 'register' ? 700 : 500,
+                  fontWeight: 600,
                   border: 'none',
-                  background: mode === 'register' ? '#ffffff' : 'transparent',
-                  color: mode === 'register' ? '#0b1f3a' : '#64748b',
-                  boxShadow: mode === 'register' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+                  background: 'transparent',
+                  color: '#fe9832',
                   cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
                   transition: 'all 150ms ease',
                 }}
               >
-                Register
+                <ShieldCheck size={14} color="#fe9832" />
+                <span>Register (Verified)</span>
               </button>
             </div>
 
-            {/* Form Fields */}
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {mode === 'register' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <label style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#475569' }}>
-                    Full Name
-                  </label>
-                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    <User size={16} color="#94a3b8" style={{ position: 'absolute', left: 14 }} />
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g. Ramesh Kumar"
-                      style={{
-                        width: '100%',
-                        padding: '11px 14px 11px 40px',
-                        borderRadius: 12,
-                        border: '1.5px solid #cbd5e1',
-                        background: '#f8fafc',
-                        fontSize: 13.5,
-                        color: '#0f172a',
-                        outline: 'none',
-                      }}
-                    />
-                  </div>
+              {error && (
+                <div style={{ padding: '12px 16px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12, color: '#b91c1c', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#ef4444' }} />
+                  {error}
                 </div>
               )}
 
-              {/* Email */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <label style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#475569' }}>
-                  Email Address
+                  {t('auth.email_label', 'Email Address')}
                 </label>
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                   <Mail size={16} color="#94a3b8" style={{ position: 'absolute', left: 14 }} />
                   <input
                     type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@example.com"
                     required
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="Enter your email"
                     style={{
                       width: '100%',
-                      padding: '11px 14px 11px 40px',
+                      padding: '12px 16px 12px 42px',
                       borderRadius: 12,
-                      border: '1.5px solid #cbd5e1',
-                      background: '#f8fafc',
-                      fontSize: 13.5,
+                      border: '1.5px solid #e2e8f0',
+                      fontSize: 14.5,
                       color: '#0f172a',
+                      background: '#f8fafc',
                       outline: 'none',
+                      transition: 'all 0.2s'
                     }}
+                    onFocus={e => e.target.style.borderColor = '#fbbf24'}
+                    onBlur={e => e.target.style.borderColor = '#e2e8f0'}
                   />
                 </div>
               </div>
 
-              {/* Mobile Phone (for Register) */}
-              {mode === 'register' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <label style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#475569' }}>
-                    Mobile Number
-                  </label>
-                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    <Phone size={16} color="#94a3b8" style={{ position: 'absolute', left: 14 }} />
-                    <input
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="10-digit mobile number"
-                      required
-                      style={{
-                        width: '100%',
-                        padding: '11px 14px 11px 40px',
-                        borderRadius: 12,
-                        border: '1.5px solid #cbd5e1',
-                        background: '#f8fafc',
-                        fontSize: 13.5,
-                        color: '#0f172a',
-                        outline: 'none',
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
-
               {/* Password */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <label style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#475569' }}>
-                  Password
+                  {t('auth.password_label', 'Password')}
                 </label>
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                   <Lock size={16} color="#94a3b8" style={{ position: 'absolute', left: 14 }} />
                   <input
                     type={showPw ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter password"
                     required
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="••••••••"
                     style={{
                       width: '100%',
-                      padding: '11px 40px 11px 40px',
+                      padding: '12px 42px',
                       borderRadius: 12,
-                      border: '1.5px solid #cbd5e1',
-                      background: '#f8fafc',
-                      fontSize: 13.5,
+                      border: '1.5px solid #e2e8f0',
+                      fontSize: 14.5,
                       color: '#0f172a',
+                      background: '#f8fafc',
                       outline: 'none',
+                      transition: 'all 0.2s'
                     }}
+                    onFocus={e => e.target.style.borderColor = '#fbbf24'}
+                    onBlur={e => e.target.style.borderColor = '#e2e8f0'}
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPw((v) => !v)}
+                    onClick={() => setShowPw(!showPw)}
                     style={{
                       position: 'absolute',
-                      right: 12,
-                      background: 'transparent',
+                      right: 14,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
                       border: 'none',
                       color: '#94a3b8',
                       cursor: 'pointer',
-                      padding: 4,
+                      padding: 4
                     }}
                   >
                     {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -352,42 +325,85 @@ export default function AuthPage() {
                 </div>
               </div>
 
-              {error && (
-                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 12.5, padding: '10px 14px', borderRadius: 10 }}>
-                  {error}
-                </div>
-              )}
-
               <button
                 type="submit"
                 disabled={loading}
                 style={{
-                  width: '100%',
-                  padding: '13px',
+                  padding: '14px',
                   borderRadius: 12,
                   background: '#0b1f3a',
                   color: '#ffffff',
-                  border: 'none',
-                  fontSize: 14,
+                  fontSize: 14.5,
                   fontWeight: 700,
+                  border: 'none',
                   cursor: loading ? 'not-allowed' : 'pointer',
-                  boxShadow: '0 2px 8px rgba(11,31,58,0.18)',
+                  opacity: loading ? 0.7 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
                   marginTop: 4,
-                  transition: 'all 150ms ease',
+                  boxShadow: '0 4px 12px rgba(11, 31, 58, 0.15)',
+                  transition: 'transform 0.1s'
                 }}
+                onMouseDown={e => e.currentTarget.style.transform = 'scale(0.98)'}
+                onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+                onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
               >
-                {loading ? 'Please wait…' : mode === 'login' ? 'Sign In to Portal' : 'Create My Account'}
+                {loading ? 'Signing in…' : t('auth.login_btn', 'Sign In to Portal')}
               </button>
             </form>
 
-            <div style={{ textAlign: 'center', paddingTop: 4 }}>
+            {/* Official Registration CTA Box */}
+            <div
+              style={{
+                background: '#f8fafc',
+                border: '1.5px solid #e2e8f0',
+                borderRadius: 16,
+                padding: '18px 20px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <ShieldCheck size={18} color="#059669" />
+                <span style={{ fontSize: 13.5, fontWeight: 800, color: '#0b1f3a' }}>
+                  New Beneficiary? Start Verified Registration
+                </span>
+              </div>
+              <p style={{ fontSize: 12.5, color: '#64748b', margin: 0, lineHeight: 1.5 }}>
+                Official verification with <strong>Caste Certificate OCR</strong>, <strong>Income Verification</strong>, and <strong>Live Camera Face Matching</strong> to confirm eligibility for NSFDC concessional loans.
+              </p>
+              <Link
+                href="/register"
+                className="btn btn-amber btn-bounce"
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: 10,
+                  fontWeight: 700,
+                  fontSize: 13,
+                  textDecoration: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                }}
+              >
+                <span>Proceed to Verified Registration</span>
+                <ArrowRight size={14} />
+              </Link>
+            </div>
+
+            <div style={{ textAlign: 'center', paddingTop: 2 }}>
               <Link
                 href="/"
                 style={{ fontSize: 12.5, color: '#64748b', textDecoration: 'none', fontWeight: 600 }}
               >
-                ← Back to homepage
+                {t('auth.back_home', '← Back to homepage')}
               </Link>
             </div>
+
           </div>
         </div>
       </main>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
 import { useRouter } from 'next/navigation';
@@ -8,13 +8,8 @@ import {
   Search,
   X,
   Layers,
-  Sparkles,
   ArrowRight,
   MessageCircle,
-  IndianRupee,
-  Percent,
-  Calendar,
-  ShieldCheck,
   RotateCcw
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
@@ -38,17 +33,24 @@ interface Scheme {
   max_tenure_months: number;
   gender_eligibility: string;
   active?: boolean;
+  scheme_type?: string;
+  official_source?: string | null;
+  official_source_url?: string | null;
+  aliases?: string[] | null;
+  current_official_name?: string | null;
+  channel_partner_applicable?: boolean;
 }
 
 const CATEGORY_META: Record<
   string,
   { label: string; bg: string; text: string; border: string }
 > = {
-  micro_finance:     { label: 'Micro Finance',    bg: '#ecfdf5', text: '#065f46', border: '#a7f3d0' },
-  term_loan:         { label: 'Term Loan Scheme', bg: '#eff6ff', text: '#1e40af', border: '#bfdbfe' },
-  education_loan:    { label: 'Education Loan',   bg: '#faf5ff', text: '#6b21a8', border: '#e9d5ff' },
-  entrepreneurship:  { label: 'Entrepreneurship', bg: '#fff7ed', text: '#9a3412', border: '#fed7aa' },
-  skill_development: { label: 'Skill Dev',        bg: '#fdf2f8', text: '#9d174d', border: '#fbcfe8' },
+  micro_finance:     { label: 'Micro Finance',         bg: '#ecfdf5', text: '#065f46', border: '#a7f3d0' },
+  term_loan:         { label: 'Term Loan Scheme',      bg: '#eff6ff', text: '#1e40af', border: '#bfdbfe' },
+  education_loan:    { label: 'Education Loan',        bg: '#faf5ff', text: '#6b21a8', border: '#e9d5ff' },
+  entrepreneurship:  { label: 'Entrepreneurship',      bg: '#fff7ed', text: '#9a3412', border: '#fed7aa' },
+  skill_development: { label: 'Skill Development',     bg: '#fdf2f8', text: '#9d174d', border: '#fbcfe8' },
+  other_programme:   { label: 'Government Programme', bg: '#f1f5f9', text: '#475569', border: '#cbd5e1' },
 };
 
 function SchemeCard({
@@ -58,6 +60,8 @@ function SchemeCard({
   scheme: Scheme;
   onChat: (name: string) => void;
 }) {
+const { t } = useLanguage();
+  const isInformational = scheme.scheme_type === 'informational' || scheme.channel_partner_applicable === false;
   const meta =
     CATEGORY_META[scheme.category] || {
       label: scheme.category.replace('_', ' '),
@@ -70,7 +74,7 @@ function SchemeCard({
     <div
       style={{
         background: '#ffffff',
-        border: '1.5px solid #e2e8f0',
+        border: isInformational ? '1.5px solid #cbd5e1' : '1.5px solid #e2e8f0',
         borderRadius: 18,
         padding: '24px',
         display: 'flex',
@@ -78,7 +82,7 @@ function SchemeCard({
         justifyContent: 'space-between',
         boxShadow: '0 2px 8px rgba(11,31,58,0.03)',
         transition: 'all 180ms ease',
-        minHeight: 380,
+        minHeight: 420,
       }}
       onMouseEnter={(e) => {
         const el = e.currentTarget as HTMLElement;
@@ -88,25 +92,66 @@ function SchemeCard({
       }}
       onMouseLeave={(e) => {
         const el = e.currentTarget as HTMLElement;
-        el.style.borderColor = '#e2e8f0';
+        el.style.borderColor = isInformational ? '#cbd5e1' : '#e2e8f0';
         el.style.transform = 'translateY(0)';
         el.style.boxShadow = '0 2px 8px rgba(11,31,58,0.03)';
       }}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {/* Category & Women Only Badges */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        
+        {/* ── Type Badge & Category ───────────────────────────────────────── */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+          
+          {isInformational ? (
+            <span
+              style={{
+                fontSize: 10.5,
+                fontWeight: 800,
+                padding: '3px 10px',
+                borderRadius: 20,
+                background: '#eff6ff',
+                color: '#1d4ed8',
+                border: '1px solid #bfdbfe',
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              <span>🔵 OTHER GOVERNMENT PROGRAMME</span>
+            </span>
+          ) : (
+            <span
+              style={{
+                fontSize: 10.5,
+                fontWeight: 800,
+                padding: '3px 10px',
+                borderRadius: 20,
+                background: '#ecfdf5',
+                color: '#047857',
+                border: '1px solid #a7f3d0',
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              <span>🟢 FINANCING SCHEME</span>
+            </span>
+          )}
+
           <span
             style={{
               fontSize: 11,
               fontWeight: 700,
-              padding: '4px 10px',
+              padding: '3px 9px',
               borderRadius: 20,
               background: meta.bg,
               color: meta.text,
               border: `1px solid ${meta.border}`,
               textTransform: 'uppercase',
-              letterSpacing: '0.04em',
             }}
           >
             {meta.label}
@@ -125,66 +170,142 @@ function SchemeCard({
                 textTransform: 'uppercase',
               }}
             >
-              Women Only
+              {t('schemes.women_only', 'Women Only')}
             </span>
           )}
         </div>
 
-        {/* Title */}
+        {/* ── Subtitle explanation ────────────────────────────────────────── */}
+        <div style={{ fontSize: 11.5, color: isInformational ? '#2563eb' : '#059669', fontWeight: 600, marginTop: -4 }}>
+          {isInformational
+            ? 'Provides information about an official government programme. It is not part of the NSFDC channel-partner routing flow.'
+            : 'May involve financing through an authorized channel partner.'}
+        </div>
+
+        {/* ── Scheme Title ────────────────────────────────────────────────── */}
         <h3 style={{ fontSize: 17, fontWeight: 800, color: '#0b1f3a', margin: 0, lineHeight: 1.35 }}>
           {scheme.name}
         </h3>
 
-        {/* Description */}
+        {/* ── Description ────────────────────────────────────────────────── */}
         <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.55, margin: 0 }}>
           {scheme.description}
         </p>
 
-        {/* Key Metrics Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, paddingTop: 4 }}>
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '10px 12px' }}>
-            <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', display: 'block', marginBottom: 2 }}>
-              Max Loan
-            </span>
-            <strong style={{ fontSize: 15, fontWeight: 800, color: '#0b1f3a' }}>
-              ₹{scheme.max_loan_lakh} Lakh
-            </strong>
-          </div>
+{/* ── Key Metrics Grid (For Financing Schemes) ─────────────────────── */}
+        {!isInformational ? (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, paddingTop: 4 }}>
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '10px 12px' }}>
+              <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', display: 'block', marginBottom: 2 }}>
+                {t('schemes.max_loan', 'Max Loan')}
+              </span>
+              <strong style={{ fontSize: 15, fontWeight: 800, color: '#0b1f3a' }}>
+                ₹{scheme.max_loan_lakh} Lakh
+              </strong>
+            </div>
 
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '10px 12px' }}>
-            <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', display: 'block', marginBottom: 2 }}>
-              Interest Rate
-            </span>
-            <strong style={{ fontSize: 15, fontWeight: 800, color: '#15803d' }}>
-              {scheme.interest_rate_min === scheme.interest_rate_max
-                ? `${scheme.interest_rate_min}% p.a.`
-                : `${scheme.interest_rate_min}–${scheme.interest_rate_max}%`}
-            </strong>
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '10px 12px' }}>
+              <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', display: 'block', marginBottom: 2 }}>
+                {t('schemes.interest_rate', 'Interest Rate')}
+              </span>
+              <strong style={{ fontSize: 15, fontWeight: 800, color: '#15803d' }}>
+                {scheme.interest_rate_min === scheme.interest_rate_max
+                  ? `${scheme.interest_rate_min}% p.a.`
+                  : `${scheme.interest_rate_min}–${scheme.interest_rate_max}% p.a.`}
+              </strong>
+            </div>
           </div>
-        </div>
+        ) : scheme.max_loan_lakh > 0 ? (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, paddingTop: 4 }}>
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '10px 12px' }}>
+              <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', display: 'block', marginBottom: 2 }}>
+                Bank Loan Range
+              </span>
+              <strong style={{ fontSize: 15, fontWeight: 800, color: '#0b1f3a' }}>
+                ₹{scheme.min_loan_lakh}L – ₹{scheme.max_loan_lakh}L
+              </strong>
+            </div>
+
+<div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '10px 12px' }}>
+              <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', display: 'block', marginBottom: 2 }}>
+                Disbursing Body
+              </span>
+              <strong style={{ fontSize: 13, fontWeight: 800, color: '#1d4ed8' }}>
+                Commercial Banks
+              </strong>
+            </div>
+          </div>
+        ) : null}
 
         {/* Parameter Details */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, fontSize: 11.5, color: '#64748b', paddingTop: 2 }}>
           <span style={{ background: '#f1f5f9', padding: '3px 8px', borderRadius: 6 }}>
-            Income limit: ≤ ₹{scheme.max_income_lakh}L/yr
+            {t('schemes.income_limit', 'Income limit:')} ≤ ₹{scheme.max_income_lakh}L/yr
           </span>
           <span style={{ background: '#f1f5f9', padding: '3px 8px', borderRadius: 6 }}>
-            Tenure: up to {scheme.max_tenure_months} mo
+            {t('schemes.tenure', 'Tenure: up to')} {scheme.max_tenure_months} mo
           </span>
           {scheme.moratorium_months_max > 0 && (
             <span style={{ background: '#f1f5f9', padding: '3px 8px', borderRadius: 6 }}>
-              Moratorium: {scheme.moratorium_months_min}–{scheme.moratorium_months_max} mo
+              {t('schemes.moratorium', 'Moratorium:')} {scheme.moratorium_months_min}–{scheme.moratorium_months_max} mo
             </span>
           )}
         </div>
+
+        {/* ── Official Source Citation ────────────────────────────────────── */}
+        {scheme.official_source && (
+          <div style={{ fontSize: 11, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
+            <span>Source:</span>
+            {scheme.official_source_url ? (
+              <a
+                href={scheme.official_source_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                style={{ color: '#0284c7', textDecoration: 'none', fontWeight: 600 }}
+              >
+                {scheme.official_source} ↗
+              </a>
+            ) : (
+              <span style={{ fontWeight: 600, color: '#64748b' }}>{scheme.official_source}</span>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Action Button */}
-      <div style={{ paddingTop: 16, marginTop: 14, borderTop: '1px solid #f1f5f9' }}>
+      {/* ── Action Buttons ──────────────────────────────────────────────── */}
+      <div style={{ paddingTop: 16, marginTop: 14, borderTop: '1px solid #f1f5f9', display: 'flex', gap: 10 }}>
+        {isInformational && scheme.official_source_url && (
+          <a
+            href={scheme.official_source_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              padding: '11px 14px',
+              borderRadius: 12,
+              background: '#f1f5f9',
+              color: '#0b1f3a',
+              border: '1px solid #cbd5e1',
+              fontSize: 12.5,
+              fontWeight: 700,
+              textDecoration: 'none',
+              transition: 'all 150ms ease',
+            }}
+          >
+            <span>Learn More ↗</span>
+          </a>
+        )}
+
         <button
           onClick={() => onChat(scheme.name)}
           style={{
-            width: '100%',
+            flex: isInformational ? 1 : '1 1 100%',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -208,7 +329,7 @@ function SchemeCard({
           }}
         >
           <MessageCircle size={15} color="#fbbf24" />
-          <span>Inquire with AI Assistant</span>
+<span>{t('schemes.inquire_btn', 'Inquire with AI Assistant')}</span>
           <ArrowRight size={14} />
         </button>
       </div>
@@ -222,6 +343,7 @@ export default function SchemesPage() {
   const [schemes, setSchemes] = useState<Scheme[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'financing' | 'informational'>('all');
   const [catFilter, setCatFilter] = useState<string[]>([]);
   const [genderFilter, setGenderFilter] = useState<'all' | 'women_only'>('all');
 
@@ -249,15 +371,44 @@ export default function SchemesPage() {
 
   const schemeList = Array.isArray(schemes) ? schemes : [];
   const filtered = schemeList.filter((s) => {
+    const isInfo = s.scheme_type === 'informational' || s.channel_partner_applicable === false;
+    if (typeFilter === 'financing' && isInfo) return false;
+    if (typeFilter === 'informational' && !isInfo) return false;
+
     if (search) {
       const q = search.toLowerCase();
+      const aliasMatch = (s.aliases || []).some((a) => a.toLowerCase().includes(q));
+      const currentNameMatch = s.current_official_name ? s.current_official_name.toLowerCase().includes(q) : false;
       const m =
         s.name.toLowerCase().includes(q) ||
         s.description.toLowerCase().includes(q) ||
-        s.category.toLowerCase().includes(q);
+        s.category.toLowerCase().includes(q) ||
+        aliasMatch ||
+        currentNameMatch;
       if (!m) return false;
     }
-    if (catFilter.length > 0 && !catFilter.includes(s.category)) return false;
+    if (catFilter.length > 0) {
+      const isMatch = catFilter.some((cat) => {
+        if (s.category === cat) return true;
+        if (cat === 'entrepreneurship') {
+          return s.category === 'entrepreneurship' || ['Term Loan (TL)', 'Udyam Nidhi Yojana (UNY)', 'Green Business Scheme (GBS)', 'Swachhta Udyami Yojana (SUY)', 'Mahila Adhikarita Yojana (MAY)', 'Stand-Up India Scheme'].includes(s.name);
+        }
+        if (cat === 'term_loan') {
+          return s.category === 'term_loan' || ['Term Loan (TL)', 'Udyam Nidhi Yojana (UNY)', 'Green Business Scheme (GBS)', 'Swachhta Udyami Yojana (SUY)', 'Mahila Adhikarita Yojana (MAY)', 'Shilpi Samriddhi Yojana (SSY)'].includes(s.name);
+        }
+        if (cat === 'micro_finance') {
+          return s.category === 'micro_finance' || ['Micro Credit Finance (MCF)', 'Mahila Samriddhi Yojana (MSY)', 'Aajeevika Microfinance Yojana (AMY)', 'Mahila Adhikarita Yojana (MAY)', 'Shilpi Samriddhi Yojana (SSY)'].includes(s.name);
+        }
+        if (cat === 'skill_development') {
+          return s.category === 'skill_development' || s.name.includes('Vocational');
+        }
+        if (cat === 'other_programme') {
+          return s.scheme_type === 'informational' || s.category === 'other_programme';
+        }
+        return false;
+      });
+      if (!isMatch) return false;
+    }
     if (genderFilter === 'women_only' && s.gender_eligibility !== 'women_only') return false;
     return true;
   });
@@ -269,12 +420,13 @@ export default function SchemesPage() {
   }
 
   function resetFilters() {
+    setTypeFilter('all');
     setCatFilter([]);
     setGenderFilter('all');
     setSearch('');
   }
 
-  const hasActiveFilters = catFilter.length > 0 || genderFilter !== 'all' || search;
+  const hasActiveFilters = typeFilter !== 'all' || catFilter.length > 0 || genderFilter !== 'all' || search;
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f8fafc' }}>
@@ -286,16 +438,68 @@ export default function SchemesPage() {
         <div style={{ marginBottom: 28, display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, width: 'fit-content', background: '#fff7ed', border: '1px solid #fed7aa', color: '#c2410c', fontSize: 11, fontWeight: 800, padding: '4px 12px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             <Layers size={14} />
-            <span>{t('schemes.badge', 'Official Schemes Catalog')}</span>
+            <span>{t('schemes.badge', 'Official Government Schemes & Programmes Catalogue')}</span>
           </div>
 
           <h1 style={{ fontSize: 32, fontWeight: 900, color: '#0b1f3a', margin: 0, letterSpacing: '-0.02em' }}>
-            {t('schemes.title', 'Government Concessional Loan Schemes')}
+            {t('schemes.title', 'NSFDC Concessional Loan Schemes & Government Programmes')}
           </h1>
 
-          <p style={{ fontSize: 15, color: '#64748b', maxWidth: 740, lineHeight: 1.6, margin: 0 }}>
-            {t('schemes.desc', 'Explore official financial assistance programs tailored for Scheduled Caste beneficiaries with family income up to ₹5.00 Lakh per annum.')}
+          <p style={{ fontSize: 15, color: '#64748b', maxWidth: 780, lineHeight: 1.6, margin: 0 }}>
+            {t('schemes.desc', 'Explore official financial assistance loan schemes and government welfare programmes for Scheduled Caste beneficiaries.')}
           </p>
+
+          {/* Type Filter Segment Selector */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12 }}>
+            <button
+              onClick={() => setTypeFilter('all')}
+              style={{
+                fontSize: 13,
+                fontWeight: typeFilter === 'all' ? 800 : 600,
+                padding: '8px 18px',
+                borderRadius: 12,
+                border: typeFilter === 'all' ? '2px solid #0b1f3a' : '1.5px solid #cbd5e1',
+                background: typeFilter === 'all' ? '#0b1f3a' : '#ffffff',
+                color: typeFilter === 'all' ? '#ffffff' : '#334155',
+                cursor: 'pointer',
+                transition: 'all 150ms ease',
+              }}
+            >
+              All Programmes ({schemeList.length})
+            </button>
+            <button
+              onClick={() => setTypeFilter('financing')}
+              style={{
+                fontSize: 13,
+                fontWeight: typeFilter === 'financing' ? 800 : 600,
+                padding: '8px 18px',
+                borderRadius: 12,
+                border: typeFilter === 'financing' ? '2px solid #059669' : '1.5px solid #a7f3d0',
+                background: typeFilter === 'financing' ? '#ecfdf5' : '#ffffff',
+                color: typeFilter === 'financing' ? '#065f46' : '#059669',
+                cursor: 'pointer',
+                transition: 'all 150ms ease',
+              }}
+            >
+              🟢 Financing Schemes ({schemeList.filter(s => s.scheme_type !== 'informational' && s.channel_partner_applicable !== false).length})
+            </button>
+            <button
+              onClick={() => setTypeFilter('informational')}
+              style={{
+                fontSize: 13,
+                fontWeight: typeFilter === 'informational' ? 800 : 600,
+                padding: '8px 18px',
+                borderRadius: 12,
+                border: typeFilter === 'informational' ? '2px solid #2563eb' : '1.5px solid #bfdbfe',
+                background: typeFilter === 'informational' ? '#eff6ff' : '#ffffff',
+                color: typeFilter === 'informational' ? '#1d4ed8' : '#2563eb',
+                cursor: 'pointer',
+                transition: 'all 150ms ease',
+              }}
+            >
+              🔵 Informational Programmes ({schemeList.filter(s => s.scheme_type === 'informational' || s.channel_partner_applicable === false).length})
+            </button>
+          </div>
         </div>
 
         {/* ── Search & Filter Toolbar ─────────────────────────────────────── */}
@@ -467,10 +671,10 @@ export default function SchemesPage() {
           >
             <Layers size={40} color="#cbd5e1" />
             <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: 0 }}>
-              No matching schemes found
+              {t('schemes.empty_title', 'No matching schemes found')}
             </h3>
             <p style={{ fontSize: 14, color: '#64748b', maxWidth: 400, margin: 0 }}>
-              Try searching with a broader keyword or clear your active category filters.
+              {t('schemes.empty_desc', 'Try searching with a broader keyword or clear your active category filters.')}
             </p>
             <button
               onClick={resetFilters}
@@ -486,7 +690,7 @@ export default function SchemesPage() {
                 marginTop: 8,
               }}
             >
-              Show All Schemes
+              {t('schemes.empty_btn', 'Show All Schemes')}
             </button>
           </div>
         ) : (

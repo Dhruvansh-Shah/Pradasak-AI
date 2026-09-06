@@ -13,12 +13,24 @@ function issueToken(userId: number, email: string) {
 
 // POST /api/users/register
 router.post('/register', async (req: Request, res: Response) => {
-  const { name, email, phone, password } = req.body as {
-    name?: string; email?: string; phone?: string; password?: string;
+  const { name, email, phone, password, salary } = req.body as {
+    name?: string; email?: string; phone?: string; password?: string; salary?: number;
   };
 
-  if (!email || !phone || !password) {
+  const emailStr = email ? email.toLowerCase().trim() : '';
+  const phoneStr = phone ? phone.trim() : '';
+  const resolvedSalary = salary ? Number(salary) : null;
+
+  if (!emailStr || !phoneStr || !password) {
     res.status(400).json({ error: 'email, phone, and password are required' });
+    return;
+  }
+  if (!/^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(emailStr)) {
+    res.status(400).json({ error: 'Only @gmail.com email addresses are allowed for signup' });
+    return;
+  }
+  if (!/^\d{10}$/.test(phoneStr)) {
+    res.status(400).json({ error: 'Invalid phone number. Please enter a 10-digit mobile number.' });
     return;
   }
   if (password.length < 6) {
@@ -29,12 +41,12 @@ router.post('/register', async (req: Request, res: Response) => {
   try {
     const passwordHash = await bcrypt.hash(password, 10);
     const { rows } = await pool.query(
-      'INSERT INTO users (name, email, phone, password_hash) VALUES ($1, $2, $3, $4) RETURNING id, name, email, phone',
-      [name || null, email.toLowerCase().trim(), phone.trim(), passwordHash]
+      'INSERT INTO users (name, email, phone, password_hash, salary) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, email, phone, salary',
+      [name || null, emailStr, phoneStr, passwordHash, resolvedSalary]
     );
-    const user = rows[0] as { id: number; name: string; email: string; phone: string };
+    const user = rows[0] as { id: number; name: string; email: string; phone: string; salary: number | null };
     const token = issueToken(user.id, user.email);
-    res.status(201).json({ token, user: { id: user.id, name: user.name, email: user.email, phone: user.phone } });
+    res.status(201).json({ token, user: { id: user.id, name: user.name, email: user.email, phone: user.phone, salary: user.salary } });
   } catch (err) {
     const msg = (err as Error).message;
     if (msg.includes('unique')) {
@@ -53,17 +65,17 @@ router.post('/login', async (req: Request, res: Response) => {
   const { rows } = await pool.query('SELECT * FROM users WHERE email = $1', [email.toLowerCase().trim()]);
   if (rows.length === 0) { res.status(401).json({ error: 'Invalid email or password' }); return; }
 
-  const user = rows[0] as { id: number; name: string; email: string; phone: string; password_hash: string };
+  const user = rows[0] as { id: number; name: string; email: string; phone: string; password_hash: string; salary: number | null };
   const valid = await bcrypt.compare(password, user.password_hash);
   if (!valid) { res.status(401).json({ error: 'Invalid email or password' }); return; }
 
   const token = issueToken(user.id, user.email);
-  res.json({ token, user: { id: user.id, name: user.name, email: user.email, phone: user.phone } });
+  res.json({ token, user: { id: user.id, name: user.name, email: user.email, phone: user.phone, salary: user.salary } });
 });
 
 // GET /api/users/me
 router.get('/me', requireUser, async (req: UserAuthRequest, res: Response) => {
-  const { rows } = await pool.query('SELECT id, name, email, phone, created_at FROM users WHERE id = $1', [req.userId]);
+  const { rows } = await pool.query('SELECT id, name, email, phone, salary, created_at FROM users WHERE id = $1', [req.userId]);
   if (rows.length === 0) { res.status(404).json({ error: 'User not found' }); return; }
   res.json(rows[0]);
 });

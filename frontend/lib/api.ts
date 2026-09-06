@@ -1,5 +1,6 @@
 import { API_BASE } from './apiBase';
 
+export const API_URL = API_BASE;
 const BASE = API_BASE;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -21,6 +22,7 @@ export interface UserProfile {
   name: string | null;
   email: string;
   phone: string;
+  salary?: number | null;
   created_at: string;
 }
 
@@ -57,12 +59,24 @@ export async function sendChat(
   message: string,
   sessionId?: string,
   chatId?: string,
-  token?: string | null
+  token?: string | null,
+  language?: string,
+  detectedLanguageCode?: string | null,
+  languageProbability?: number | null,
+  category?: string | null
 ): Promise<ChatResponse> {
   const res = await fetch(`${BASE}/chat`, {
     method: 'POST',
     headers: userHeaders(token),
-    body: JSON.stringify({ message, sessionId, chatId }),
+    body: JSON.stringify({
+      message,
+      sessionId,
+      chatId,
+      language,
+      detectedLanguageCode,
+      languageProbability,
+      category,
+    }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Network error' })) as { error?: string; detail?: string };
@@ -71,10 +85,59 @@ export async function sendChat(
   return res.json() as Promise<ChatResponse>;
 }
 
+// ── Text-to-Speech (TTS) ──────────────────────────────────────────────────────
+
+export async function fetchTTS(text: string, language: string): Promise<Blob> {
+  const res = await fetch(`${BASE}/tts`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, language }),
+  });
+  if (!res.ok) {
+    const err = (await res.json().catch(() => ({ error: 'TTS request failed' }))) as { error?: string; detail?: string };
+    throw new Error(err.detail || err.error || 'TTS request failed');
+  }
+  return res.blob();
+}
+
+// ── Speech-to-Text (STT) ──────────────────────────────────────────────────────
+
+export async function transcribeAudio(
+  audioBlob: Blob,
+  language: string = 'unknown'
+): Promise<{
+  transcript: string;
+  detectedLanguageCode: string | null;
+  languageProbability: number | null;
+}> {
+  const formData = new FormData();
+  formData.append('audio', audioBlob, 'recording.webm');
+  formData.append('language', language);
+
+  const res = await fetch(`${BASE}/stt`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const err = (await res.json().catch(() => ({ error: 'STT request failed' }))) as {
+      error?: string;
+      detail?: string;
+    };
+    throw new Error(err.detail || err.error || 'STT request failed');
+  }
+
+  return res.json() as Promise<{
+    transcript: string;
+    detectedLanguageCode: string | null;
+    languageProbability: number | null;
+  }>;
+}
+
 // ── User auth ─────────────────────────────────────────────────────────────────
 
 export async function userRegister(data: {
-  name?: string; email: string; phone: string; password: string;
+  name?: string; email: string; phone: string; password: string; salary?: number;
 }): Promise<{ token: string; user: UserProfile }> {
   const res = await fetch(`${BASE}/users/register`, {
     method: 'POST',

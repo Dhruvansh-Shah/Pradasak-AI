@@ -9,10 +9,22 @@ router.use(optionalUser);
 
 // POST /api/chat
 router.post('/', async (req: UserAuthRequest, res: Response) => {
-  const { message, chatId: incomingChatId, sessionId: incomingSessionId } = req.body as {
+  const {
+    message,
+    chatId: incomingChatId,
+    sessionId: incomingSessionId,
+    language,
+    detectedLanguageCode,
+    languageProbability,
+    category,
+  } = req.body as {
     message?: string;
     chatId?: string;
     sessionId?: string;
+    language?: string;
+    detectedLanguageCode?: string;
+    languageProbability?: number;
+    category?: string;
   };
 
   if (!message?.trim()) {
@@ -55,8 +67,31 @@ router.post('/', async (req: UserAuthRequest, res: Response) => {
       );
     }
 
+    // Fetch user profile info (name and verified salary) if authenticated
+    let userContext: { name?: string | null; salary?: number | null } | undefined;
+    if (userId) {
+      const { rows: userRows } = await pool.query<{ name: string | null; salary: string | number | null }>(
+        'SELECT name, salary FROM users WHERE id = $1',
+        [userId]
+      );
+      if (userRows.length > 0) {
+        userContext = {
+          name: userRows[0].name,
+          salary: userRows[0].salary != null ? Number(userRows[0].salary) : null,
+        };
+      }
+    }
+
     // Use activeSessionId (chatId or incomingSessionId) for multi-turn session continuity
-    const response = await orchestrate(message.trim(), activeSessionId);
+    const response = await orchestrate(
+      message.trim(),
+      activeSessionId,
+      language,
+      detectedLanguageCode,
+      languageProbability,
+      category,
+      userContext
+    );
 
     if (userId && chatId) {
       // Save assistant response to DB

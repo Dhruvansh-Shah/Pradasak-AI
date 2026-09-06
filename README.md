@@ -1,5 +1,9 @@
-# 🏛️ Pradarshak AI (प्रदर्शक AI)
-### Intelligent Channel Finance & Concessional Loan Discovery Platform for SC Beneficiaries
+# Pradarsak AI (प्रदर्शक AI)
+
+**Smart India Hackathon 2026 — Problem Statement ID 26092**
+AI-Driven Scheme Matching for Marginalized Entrepreneurs · Theme: FinTech · Category: Software
+
+A multilingual, chat-first platform that guides Scheduled Caste (SC) beneficiaries from a natural-language loan query to scheme discovery, financial planning, and verified channel-partner access.
 
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-61dafb?style=flat-square&logo=react)](https://react.dev/)
@@ -11,47 +15,28 @@
 
 ---
 
-## 📌 Executive Summary
+## The Problem
 
-Government channel finance schemes provide concessional loans to Scheduled Caste (SC) beneficiaries (annual family income ≤ ₹5 Lakh) covering up to 90%–95% of project or educational costs at subsidized interest rates (6.5% – 8%). However, beneficiaries cannot apply directly at the central level; funds are routed through **100+ Channel Partners** (State Channelizing Agencies, Public Sector Banks, Regional Rural Banks, and NBFC-MFIs).
+Government channel finance schemes offer concessional loans to SC beneficiaries (annual family income ≤ ₹5 Lakh), covering up to 90–95% of project or education costs at subsidized rates (6.5–8%). Beneficiaries can't apply directly at the central level — every application is routed through 100+ Channel Partners (State Channelizing Agencies, Public Sector Banks, Regional Rural Banks, and NBFC-MFIs). That routing creates three recurring problems:
 
-This structure introduces three critical friction points:
-1. **Scheme Discovery & Eligibility Confusion:** Applicants cannot easily determine whether they qualify for Micro Finance (≤ ₹1.4L), Mahila Samriddhi, Term Loans (≤ ₹50L), or Education Loans.
-2. **EMI & Moratorium Uncertainty:** Calculating accurate monthly commitments across varying interest brackets, caps, and 3–12 month moratorium terms is difficult for first-time borrowers.
-3. **Misrouting to Channel Partners:** Beneficiaries struggle to identify which nearby partner handles their specific scheme category and has active fund allocations and low NPAs.
+1. **Scheme discovery is confusing.** Applicants struggle to tell whether they qualify for Micro Finance (≤ ₹1.4L), Mahila Samriddhi, Term Loans (≤ ₹50L), or Education Loans.
+2. **EMI and moratorium math is opaque.** First-time borrowers can't easily work out monthly commitments across different interest brackets, caps, and 3–12 month moratorium periods.
+3. **Partner routing is a guessing game.** Beneficiaries can't tell which nearby partner handles their scheme category or which ones actually have funds available and healthy NPAs.
 
-**Pradarshak AI** solves this through a **chat-first, multilingual platform** that pairs grounded Large Language Models (LLMs) with mathematical computing and spatial indexing—recommending tailored schemes, calculating real EMIs, and routing citizens to the nearest healthy Channel Partner.
-
----
-
-## 🌟 Key Features
-
-### 1. 🤖 Grounded AI Scheme Recommender
-- **Natural Language Interaction:** Users speak or type queries in plain language (e.g., *"I want to set up a tailoring unit in Jaipur, family income ₹3 Lakh"*).
-- **Single Agentic Pipeline (Tool-Calling):** One LLM conversation reads the full chat context and decides for itself what's needed — no keyword/intent classifier and no separate entity-extraction pass. When it needs real numbers it calls a tool (scheme lookup, EMI math, partner search, document checklist) backed by the database or deterministic code, then explains the result using only that real data. If information is missing, the model asks its own natural counter-question instead of guessing.
-- **Multilingual Support:** Conversational intelligence across English, Hindi, and regional languages.
-
-### 2. 🧮 Precision Financial & EMI Calculator
-- **Deterministic Mathematics:** Interest rates, loan subsidies, and EMI schedules are computed using real financial formulas in code, never guessed by generative AI.
-- **Moratorium-Aware:** Handles grace periods (3–12 months) where interest can accrue or be deferred.
-- **Custom Scenarios:** Interactive sliders for loan amount, tenure, and down-payment with visual amortisation breakdowns.
-
-### 3. 🗺️ Geo-Spatial Channel Partner Locator
-- **PostGIS Spatial Search:** Identifies active channel partners within the applicant’s radius using geo-spatial indexing (`ST_DWithin` / `ST_Distance`).
-- **Partner Health Filtering:** Filters out partners with high Non-Performing Assets (NPAs) or exhausted fund allocations.
-- **Interactive Mapping:** Built with Leaflet & OpenStreetMap, displaying partner addresses, eligible categories, and contact details.
-
-### 4. 📋 Document & Eligibility Checker
-- Interactive checklist generation for required documentation (Caste Certificate, Income Certificate, Project Report, Quotations).
-- Step-by-step guidance on how to submit documents to the identified channel partner.
-
-### 5. 🛡️ Administrative & Verification Dashboard
-- Dedicated portal for administrative oversight of schemes, partner allocations, and applicant verification queues.
-- Real-time management of channel partner statuses and scheme parameters.
+**Pradarshak AI** addresses all three with a single chat-first, multilingual interface that pairs a grounded LLM with deterministic financial computation and geospatial search — recommending the right scheme, computing a real EMI, and pointing the user to the nearest healthy channel partner.
 
 ---
 
-## 🏗️ Architecture & Data Flow
+## How It Works
+
+The conversational flow is built around four steps:
+
+1. **Tell us your need** — the user describes their situation in plain language (e.g. *"I want to set up a tailoring unit in Jaipur, family income ₹3 Lakh"*).
+2. **Understand your profile** — the system builds a profile from what's said (location, income, purpose) and asks natural follow-up questions for anything missing.
+3. **Match the right scheme** — eligible schemes are ranked and shortlisted, with EMI and affordability calculated deterministically in code, never guessed by the LLM.
+4. **Find a verified partner** — nearby channel partners are checked against fund availability and NPA health before being recommended.
+
+### Architecture
 
 ```
 ┌──────────────────────────────────────────────────────────┐
@@ -82,215 +67,249 @@ This structure introduces three critical friction points:
 
 ---
 
-## 💻 Tech Stack
+## Key Features
 
-### Frontend
-- **Framework:** Next.js 16.3 (App Router)
-- **UI Library:** React 19
-- **Styling:** Tailwind CSS v4, Vanilla CSS Design System
-- **Icons:** Lucide React
-- **Mapping:** Leaflet & React-Leaflet
-- **State & Storage:** React Hooks & Local Storage for session management
+### 1. Grounded AI Scheme Recommender
+- Natural-language interaction — users speak or type queries conversationally.
+- Intent + entity extraction routes each turn to the right backend service; the LLM never fabricates numbers, it explains results pulled from the database.
+- Conversational memory (user profile, idea context, chat history) persists across turns so the system doesn't re-ask what it already knows.
+- Multilingual support across English, Hindi, and regional languages.
 
-### Backend
-- **Runtime:** Node.js & TypeScript
-- **Framework:** Express.js 5
-- **Database:** PostgreSQL with PostGIS extension (hosted on Neon or local Postgres)
-- **Database Client:** `pg` with connection pooling
-- **AI / LLM Integration:** OpenRouter API (Gemini 1.5 Flash for query generation, Claude 3.5 Haiku for grounded explanations)
-- **Security & Auth:** JWT (JSON Web Tokens), `bcryptjs`, CORS middleware
+### 2. Precision Financial & EMI Calculator
+- Interest rates, subsidies, and EMI schedules are computed with real financial formulas in code — never estimated by the LLM.
+- Moratorium-aware: handles 3–12 month grace periods where interest can accrue or be deferred.
+- Interactive sliders for loan amount, tenure, and down payment, with visual amortisation breakdowns.
+
+### 3. Geo-Spatial Channel Partner Locator
+- PostGIS spatial search (`ST_DWithin` / `ST_Distance`) finds active partners within the applicant's radius.
+- Filters out partners with high NPAs or exhausted fund allocations.
+- Interactive map (Leaflet + OpenStreetMap) showing partner addresses, eligible categories, and contact details.
+
+### 4. Document & Eligibility Checklist
+- Auto-generates the required documentation list (Caste Certificate, Income Certificate, Project Report, Quotations).
+- Step-by-step guidance on submitting documents to the identified partner.
+
+### 5. Admin & Verification Dashboard
+- Oversight portal for schemes, partner fund allocations, and applicant verification queues.
+- Real-time management of partner status and scheme parameters.
 
 ---
 
-## 📁 Repository Structure
+## Why It Matters
+
+| | |
+|---|---|
+| **For citizens** | Reduces confusion and information gaps — access to relevant schemes with more clarity and confidence. |
+| **For the ecosystem** | Connects citizens, government schemes, financial services, and verified partners through one discovery and guidance layer. |
+| **For the future** | A scalable, multilingual approach that can expand across regions and scheme categories. |
+
+**Key differentiators over the conventional approach:**
+
+| Capability | Conventional approach | Pradarshak AI |
+|---|---|---|
+| Scheme discovery | Manual search | Personalized match |
+| Eligibility check | Manual check | Profile-based |
+| Scheme comparison | Scattered info | Ranked schemes |
+| Financial planning | Separate calculation | EMI + affordability, combined |
+| Partner discovery | Local / intermediary-dependent | Location-aware |
+| Language access | Limited | Multilingual chat + voice |
+| Application guidance | Self-guided | Guided next steps |
+| Information source | Scattered sources | Grounded, verified data |
+| Financial calculations | Manual estimates | Deterministic engine |
+| Updates & monitoring | Fragmented | Centralized |
+
+---
+
+## Feasibility & Viability
+
+**Feasibility**
+- *Technical:* Proven stack — LLM, PostgreSQL, REST APIs, modular backend services.
+- *Innovation:* Context-aware AI combining intent detection, entity extraction, and memory for personalized responses.
+- *Operational:* Modular routing — Scheme, EMI, and Partner requests are each handled independently.
+- *Economic:* Built on existing cloud infrastructure and open-source technology, keeping setup costs low.
+
+**Viability**
+- *Market:* Growing demand for AI-driven financial assistance and accessible scheme discovery.
+- *Revenue:* Potential partnerships with financial institutions, government programs, and service providers.
+- *Investment & ROI:* Low infrastructure cost with strong long-term returns.
+- *Scalability:* Easily extends to new schemes, financial services, and partners.
+
+**Risks & mitigations**
+
+| Risk | Mitigation |
+|---|---|
+| LLM may provide inaccurate financial guidance | Verified scheme/partner data, deterministic backend calculations, and validation checks |
+| Users may hesitate to trust AI with financial decisions or personal data | Transparent responses, verified information, minimal unnecessary data collection |
+| Real-time NPA / partner-fund data may be limited | Clearly labelled prototype values, planned integration with live sources |
+| Scheme rates and eligibility rules may change | Centralized, admin-managed updates to schemes and partner data |
+
+---
+
+## Tech Stack
+
+**Frontend**
+- Next.js 16.3 (App Router), React 19
+- Tailwind CSS v4 + a custom design system
+- Lucide React icons
+- Leaflet & React-Leaflet for mapping
+- React Hooks + Local Storage for session state
+
+**Backend**
+- Node.js + TypeScript, Express.js 5
+- PostgreSQL with PostGIS (Neon or local)
+- `pg` with connection pooling
+- OpenRouter API — Gemini 1.5 Flash for query/intent processing, Claude 3.5 Haiku for grounded explanations
+- JWT + `bcryptjs` for auth, CORS middleware
+
+---
+
+## Repository Structure
 
 ```
 .
-├── backend/                    # Express.js REST API & Database Layer
+├── backend/                     # Express.js REST API & database layer
 │   ├── src/
-│   │   ├── admin-static/       # Embedded static administrative portal
-│   │   ├── db/                 # Database connection pool, schemas & migrations
-│   │   │   ├── pool.ts         # PostgreSQL connection pool configuration
-│   │   │   ├── schema.sql      # Core schema definitions
-│   │   │   ├── seed.sql        # Seed data (Schemes, Channel Partners, Locations)
-│   │   │   └── migrate.ts      # Migration execution scripts
-│   │   ├── middleware/         # Auth & validation middleware
-│   │   ├── routes/             # API Route handlers
-│   │   │   ├── chat.ts         # Conversational chat endpoint
-│   │   │   ├── recommend.ts    # Scheme recommendation endpoint
-│   │   │   ├── emi.ts          # EMI calculation endpoint
-│   │   │   ├── partners.ts     # Spatial partner locator endpoint
-│   │   │   ├── userAuth.ts     # User authentication routes
-│   │   │   └── admin.ts        # Admin management routes
-│   │   ├── services/           # Business logic & AI tool-calling agent
-│   │   │   ├── ChatOrchestrator.ts   # Single agentic loop (tool-calling)
-│   │   │   ├── Tools.ts              # Tool schemas + deterministic executors
-│   │   │   ├── IntentClassifier.ts   # Lightweight language-detection helper only
-│   │   │   ├── SchemeEngine.ts
-│   │   │   └── LocationService.ts
-│   │   └── index.ts            # Main application entry point
-│   ├── .env.example            # Backend environment template
-│   ├── package.json
-│   └── tsconfig.json
+│   │   ├── admin-static/        # Embedded static admin portal
+│   │   ├── db/                  # Connection pool, schema, seed data, migrations
+│   │   ├── middleware/          # Auth & validation
+│   │   ├── routes/              # chat, recommend, emi, partners, userAuth, admin
+│   │   ├── services/            # ChatOrchestrator, IntentClassifier, SchemeEngine, LocationService
+│   │   └── index.ts
+│   ├── .env.example
+│   └── package.json
 │
-├── frontend/                   # Next.js 16 App Router UI
-│   ├── app/
-│   │   ├── page.tsx            # Main landing page & interactive tools
-│   │   ├── chat/               # Dedicated conversational AI page
-│   │   ├── schemes/            # Schemes catalog & filter page
-│   │   ├── partners/           # Geo-spatial interactive partner finder
-│   │   ├── admin/              # Next.js Admin interface
-│   │   ├── auth/               # User Sign In / Register
-│   │   ├── globals.css         # Custom tokens, gradients, animations
-│   │   └── layout.tsx          # Root HTML layout & fonts
-│   ├── components/             # Reusable UI Components
-│   │   ├── ChatInterface.tsx   # Complete chat conversation engine
-│   │   ├── EmiCalculator.tsx   # Visual EMI calculation component
-│   │   ├── PartnerLocator.tsx  # Map & partner search component
-│   │   ├── SchemeCard.tsx      # Detailed scheme display card
-│   │   ├── Map.tsx             # Dynamic Leaflet map wrapper
-│   │   ├── NavBar.tsx          # Header navigation
-│   │   └── Footer.tsx          # Global footer
-│   ├── .env.local.example      # Frontend environment template
-│   ├── package.json
-│   └── tsconfig.json
+├── frontend/                    # Next.js 16 App Router UI
+│   ├── app/                     # page, chat, schemes, partners, admin, auth
+│   ├── components/              # ChatInterface, EmiCalculator, PartnerLocator, SchemeCard, Map, NavBar, Footer
+│   ├── .env.local.example
+│   └── package.json
 │
-├── presentation-brief.md       # Solution pitch, architecture brief & presentation notes
-├── .gitignore                  # Git ignore rules
-└── README.md                   # Project documentation
+├── presentation-brief.md
+└── README.md
 ```
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
-- **Node.js**: v18.0.0 or higher
-- **npm** or **yarn** / **pnpm**
-- **PostgreSQL** instance (Neon, Supabase, or local PostgreSQL with `postgis` extension enabled)
-- **OpenRouter API Key** (from [openrouter.ai](https://openrouter.ai/keys))
+- Node.js v18+
+- npm / yarn / pnpm
+- PostgreSQL with the `postgis` extension (Neon, Supabase, or local)
+- An [OpenRouter API key](https://openrouter.ai/keys)
 
----
-
-### 1. Clone the Repository
+### 1. Clone
 
 ```bash
-git clone https://github.com/arnav-2205/Pradasak-AI.git
-cd Pradasak-AI
+git clone https://github.com/palakchiraniya03/PradarsakAI.git
+cd PradarsakAI
 ```
 
----
+### 2. Backend
 
-### 2. Backend Setup
+```bash
+cd backend
+npm install
+cp .env.example .env
+```
 
-1. **Navigate to the backend folder:**
-   ```bash
-   cd backend
-   ```
+Fill in `.env`:
 
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
+```env
+DATABASE_URL=postgresql://user:password@host.neon.tech/neondb?sslmode=require
+DATABASE_READONLY_URL=postgresql://sih_readonly:password@host.neon.tech/neondb?sslmode=require
 
-3. **Configure Environment Variables:**
-   Create a `.env` file in the `backend/` directory:
-   ```bash
-   cp .env.example .env
-   ```
+OPENROUTER_API_KEY=sk-or-v1-your-key-here
+OPENROUTER_DEFAULT_MODEL=google/gemini-flash-1.5
+OPENROUTER_STRONG_MODEL=anthropic/claude-3-5-haiku
 
-   Fill in your configuration:
-   ```env
-   # PostgreSQL Connection (Neon or local)
-   DATABASE_URL=postgresql://user:password@host.neon.tech/neondb?sslmode=require
-   DATABASE_READONLY_URL=postgresql://sih_readonly:password@host.neon.tech/neondb?sslmode=require
+PORT=4000
+ADMIN_PORT=3001
+```
 
-   # OpenRouter AI Credentials
-   OPENROUTER_API_KEY=sk-or-v1-your-key-here
-   OPENROUTER_DEFAULT_MODEL=google/gemini-flash-1.5
-   OPENROUTER_STRONG_MODEL=anthropic/claude-3-5-haiku
+```bash
+npm run db:migrate
+npm run db:migrate-v2
+npm run dev
+```
 
-   # Server Port
-   PORT=4000
-   ADMIN_PORT=3001
-   ```
+API runs at `http://localhost:4000`, admin panel at `http://localhost:3001`.
 
-4. **Run Database Migrations & Seed Data:**
-   ```bash
-   npm run db:migrate
-   npm run db:migrate-v2
-   ```
+### 3. Frontend
 
-5. **Start the Backend Server:**
-   ```bash
-   npm run dev
-   ```
-   *The API will be available at `http://localhost:4000` and the Admin static panel at `http://localhost:3001`.*
+```bash
+cd frontend
+npm install
+cp .env.local.example .env.local
+```
 
----
+```env
+NEXT_PUBLIC_API_URL=http://localhost:4000/api
+```
 
-### 3. Frontend Setup
+```bash
+npm run dev
+```
 
-1. **Open a new terminal and navigate to `frontend/`:**
-   ```bash
-   cd frontend
-   ```
-
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-
-3. **Configure Environment Variables:**
-   Create a `.env.local` file:
-   ```bash
-   cp .env.local.example .env.local
-   ```
-
-   Add the backend API URL:
-   ```env
-   NEXT_PUBLIC_API_URL=http://localhost:4000/api
-   ```
-
-4. **Start the Frontend Dev Server:**
-   ```bash
-   npm run dev
-   ```
-   *The application will be live at `http://localhost:3000`.*
+App runs at `http://localhost:3000`.
 
 ---
 
-## 📡 API Reference Overview
+## API Reference
 
 | Method | Endpoint | Description |
 |---|---|---|
 | `POST` | `/api/chat` | Main conversational AI orchestration endpoint |
 | `POST` | `/api/recommend` | Filters and ranks schemes based on applicant criteria |
-| `POST` | `/api/emi/calculate` | Calculates accurate monthly EMI, interest, and moratorium schedule |
-| `GET` | `/api/schemes` | Returns active concessional schemes catalog |
+| `POST` | `/api/emi/calculate` | Calculates EMI, interest, and moratorium schedule |
+| `GET` | `/api/schemes` | Returns the active concessional schemes catalog |
 | `GET` | `/api/partners/nearby` | Geo-spatial lookup of healthy channel partners (`?lat=...&lng=...&category=...`) |
 | `POST` | `/api/users/register` | Beneficiary registration |
 | `POST` | `/api/users/login` | Beneficiary authentication |
 | `GET` | `/api/admin/metrics` | System-wide partner metrics and application volume |
-| `GET` | `/api/health` | Service health check status |
+| `GET` | `/api/health` | Service health check |
 
 ---
 
-## 🔒 Security & Best Practices
+## Security
 
-- **Strict Separation of Secrets:** No database credentials or LLM API keys are exposed to the client; all queries are mediated by the backend server.
-- **Read-Only Database Role for LLM SQL Generation:** Dynamic queries generated during conversational extraction are executed on a restricted read-only role (`sih_readonly`).
-- **Grounded Verification:** System prompts enforce that all numerical quotes (rates, caps, subsidy percentages) match the verified database records verbatim.
-
----
-
-## 👥 Authors & Team
-
-Developed for the **Smart India Hackathon (SIH)**.
-- **Repository:** [arnav-2205/Pradasak-AI](https://github.com/arnav-2205/Pradasak-AI)
+- No database credentials or LLM API keys are exposed to the client — all queries go through the backend.
+- Conversational SQL generation runs on a restricted read-only database role (`sih_readonly`).
+- System prompts require that all numerical claims (rates, caps, subsidy percentages) match verified database records verbatim.
 
 ---
 
-## 📄 License
+## Research & References
 
-This project is licensed under the [ISC License](LICENSE).
+**Domain & official sources**
+- [NSFDC](https://nsfdc.nic.in/) — scheme eligibility, loan limits, and interest rates
+- Ministry of Social Justice & Empowerment — financial inclusion framework
+
+**Technical references**
+- PostgreSQL + PostGIS — database and geospatial routing
+- OpenStreetMap — map data and location visualization
+- OpenRouter — LLM access for conversational AI
+- BHASHINI — Indian-language translation and speech
+- Neon — serverless PostgreSQL hosting
+
+## Future Scope
+
+| # | Direction | Detail |
+|---|---|---|
+| 1 | Real-time partner status | Integrate live fund availability, NPA, and operational status updates |
+| 2 | End-to-end application | Enable digital application submission and document verification |
+| 3 | Continuous scheme updates | Automate updates for rates, rules, and eligibility criteria |
+| 4 | Advanced financial planning | Repayment scenarios, affordability analysis, personalized planning |
+| 5 | Production deployment | Strengthen security, monitoring, and scalable infrastructure |
+
+---
+
+## Team
+
+Developed for the **Smart India Hackathon (SIH) 2026** — Team Pradarsak.
+
+**Repository:** [palakchiraniya03/PradarsakAI](https://github.com/palakchiraniya03/PradarsakAI)
+
+## License
+
+Licensed under the [ISC License](LICENSE).

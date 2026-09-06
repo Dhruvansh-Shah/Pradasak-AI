@@ -1,9 +1,9 @@
 import { pool } from '../db/pool';
 
-// Curated lat/lng for major Indian cities
+// Curated lat/lng for major Indian cities and partner locations
 const CITY_COORDS: Record<string, [number, number]> = {
-  'delhi': [28.6139, 77.2090], 'new delhi': [28.6139, 77.2090],
-  'mumbai': [19.0760, 72.8777], 'bombay': [19.0760, 72.8777],
+  'delhi': [28.6139, 77.2090], 'new delhi': [28.6139, 77.2090], 'central delhi': [28.6139, 77.2090],
+  'mumbai': [19.0760, 72.8777], 'bombay': [19.0760, 72.8777], 'navi mumbai': [19.0368, 73.0158],
   'kolkata': [22.5726, 88.3639], 'calcutta': [22.5726, 88.3639],
   'chennai': [13.0827, 80.2707], 'madras': [13.0827, 80.2707],
   'bangalore': [12.9716, 77.5946], 'bengaluru': [12.9716, 77.5946],
@@ -43,7 +43,6 @@ const CITY_COORDS: Record<string, [number, number]> = {
   'srinagar': [34.0837, 74.7973],
   'dhanbad': [23.7957, 86.4304],
   'amritsar': [31.6340, 74.8723],
-  'navi mumbai': [19.0368, 73.0158],
   'allahabad': [25.4358, 81.8463], 'prayagraj': [25.4358, 81.8463],
   'ranchi': [23.3441, 85.3096],
   'howrah': [22.5958, 88.2636],
@@ -53,7 +52,7 @@ const CITY_COORDS: Record<string, [number, number]> = {
   'vijayawada': [16.5062, 80.6480],
   'jodhpur': [26.2389, 73.0243],
   'madurai': [9.9252, 78.1198],
-  'raipur': [21.2514, 81.6296],
+  'raipur': [21.2514, 81.6296], 'nava raipur': [21.2514, 81.6296],
   'kota': [25.2138, 75.8648],
   'chandigarh': [30.7333, 76.7794],
   'guwahati': [26.1445, 91.7362],
@@ -62,6 +61,30 @@ const CITY_COORDS: Record<string, [number, number]> = {
   'thiruvananthapuram': [8.5241, 76.9366], 'trivandrum': [8.5241, 76.9366],
   'noida': [28.5355, 77.3910],
   'gurugram': [28.4595, 77.0266], 'gurgaon': [28.4595, 77.0266],
+  'tirupati': [13.6288, 79.4192],
+  'gandhinagar': [23.2156, 72.6369],
+  'panchkula': [30.6942, 76.8507],
+  'shimla': [31.1048, 77.1734],
+  'jammu': [32.7266, 74.8570],
+  'imphal': [24.8170, 93.9368],
+  'shillong': [25.5788, 91.8933],
+  'aizawl': [23.7271, 92.7176],
+  'dimapur': [25.9060, 93.7270],
+  'mohali': [30.7046, 76.7179],
+  'gangtok': [27.3389, 88.6138],
+  'agartala': [23.8315, 91.2868],
+  'dehradun': [30.3165, 78.0322],
+  'port blair': [11.6234, 92.7265],
+  'silvassa': [20.2763, 73.0078],
+  'puducherry': [11.9416, 79.8083], 'pondicherry': [11.9416, 79.8083],
+  'panaji': [15.4909, 73.8278],
+  'malappuram': [11.0510, 76.0722],
+  'dharwad': [15.4589, 75.0078],
+  'moradabad': [28.8386, 78.7733],
+  'warangal': [17.9689, 79.5971],
+  'gorakhpur': [26.7606, 83.3731],
+  'mandi': [31.7084, 76.9316],
+  'jalandhar': [31.3200, 75.5700],
 };
 
 export interface GeoPoint { lat: number; lng: number }
@@ -71,10 +94,13 @@ export function geocodeCity(location: string): GeoPoint | null {
   const coords = CITY_COORDS[key];
   if (coords) return { lat: coords[0], lng: coords[1] };
 
-  // Partial match
-  for (const [city, coords] of Object.entries(CITY_COORDS)) {
-    if (city.includes(key) || key.includes(city)) {
-      return { lat: coords[0], lng: coords[1] };
+  // Sort keys by length in descending order so longer/more specific city names (e.g. 'navi mumbai') match before shorter substring cities (e.g. 'mumbai')
+  const sortedCities = Object.keys(CITY_COORDS).sort((a, b) => b.length - a.length);
+
+  for (const city of sortedCities) {
+    if (key.includes(city) || city.includes(key)) {
+      const c = CITY_COORDS[city];
+      return { lat: c[0], lng: c[1] };
     }
   }
   return null;
@@ -139,7 +165,14 @@ export async function findNearbyPartners(
     ]
   );
 
-  if (rows.length > 0) return rows;
+  const formatRow = (r: any): NearbyPartner => ({
+    ...r,
+    id: typeof r.id === 'string' ? parseInt(r.id, 10) : r.id,
+    distance_km: r.distance_km != null ? Number(parseFloat(r.distance_km).toFixed(1)) : 0,
+    npa_percent: r.npa_percent != null ? Number(r.npa_percent) : null,
+  });
+
+  if (rows.length > 0) return rows.map(formatRow);
 
   // Fallback: search closest partners nationally or within 600km
   const { rows: fallbackRows } = await pool.query<NearbyPartner>(
@@ -157,5 +190,5 @@ export async function findNearbyPartners(
     ]
   );
 
-  return fallbackRows;
+  return fallbackRows.map(formatRow);
 }

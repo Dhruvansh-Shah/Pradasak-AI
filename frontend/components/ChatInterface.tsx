@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { sendChat } from '@/lib/api';
+import { useRouter } from 'next/navigation';
+import { sendChat, fetchTTS, transcribeAudio } from '@/lib/api';
 import type { ChatResponse, ChatMessage } from '@/lib/api';
 import TypingIndicator from './TypingIndicator';
 import TypewriterText from './TypewriterText';
@@ -10,6 +11,7 @@ import EMIResultCard from './EMIResultCard';
 import PartnerResultCard from './PartnerResultCard';
 import ComparisonCard from './ComparisonCard';
 import DocumentCard from './DocumentCard';
+import VoiceVisualizer from './VoiceVisualizer';
 import {
   Send,
   Sparkles,
@@ -21,10 +23,12 @@ import {
   Calculator,
   HeartHandshake,
   ArrowRight,
-  Globe,
-  CornerDownLeft,
+  ArrowLeft,
   Mic,
   MicOff,
+  Volume2,
+  Square,
+  Loader2,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { renderText } from '@/lib/textFormat';
@@ -42,55 +46,8 @@ interface Message {
   animate?: boolean;
 }
 
-type Language = 'en' | 'hi' | 'mr';
-
-const LANG_LABELS: Record<Language, string> = {
-  en: 'English',
-  hi: 'हिंदी',
-  mr: 'मराठी',
-};
-
-// ── Speech-to-text setup ────────────────────────────────────────────────────
-const SPEECH_LANG_MAP: Record<Language, string> = {
-  en: 'en-IN',
-  hi: 'hi-IN',
-  mr: 'mr-IN',
-};
-
-interface SpeechRecognitionResultLike {
-  isFinal: boolean;
-  0: { transcript: string };
-}
-interface SpeechRecognitionEventLike extends Event {
-  resultIndex: number;
-  results: ArrayLike<SpeechRecognitionResultLike>;
-}
-interface SpeechRecognitionErrorEventLike extends Event {
-  error: string;
-}
-interface SpeechRecognitionLike extends EventTarget {
-  lang: string;
-  continuous: boolean;
-  interimResults: boolean;
-  maxAlternatives: number;
-  start: () => void;
-  stop: () => void;
-  abort: () => void;
-  onresult: ((ev: SpeechRecognitionEventLike) => void) | null;
-  onerror: ((ev: SpeechRecognitionErrorEventLike) => void) | null;
-  onend: (() => void) | null;
-}
-
-function getSpeechRecognitionCtor(): (new () => SpeechRecognitionLike) | null {
-  if (typeof window === 'undefined') return null;
-  const w = window as unknown as {
-    SpeechRecognition?: new () => SpeechRecognitionLike;
-    webkitSpeechRecognition?: new () => SpeechRecognitionLike;
-  };
-  return w.SpeechRecognition || w.webkitSpeechRecognition || null;
-}
-
 type SuggestionItem = {
+  id: string;
   title: string;
   desc: string;
   query: string;
@@ -100,9 +57,10 @@ type SuggestionItem = {
   bg: string;
 };
 
-const SUGGESTIONS: Record<Language, SuggestionItem[]> = {
+const SUGGESTIONS: Record<string, SuggestionItem[]> = {
   en: [
     {
+      id: 'small-business',
       title: 'Small Business & Trade Loan',
       desc: 'Concessional loans up to ₹50 Lakh for tailoring units, kirana shops, or service ventures with family income ≤ ₹5L.',
       query: 'I want to start a small tailoring shop. Family income is about ₹2.5 Lakh a year. What scheme can I get?',
@@ -112,6 +70,7 @@ const SUGGESTIONS: Record<Language, SuggestionItem[]> = {
       bg: '#eff6ff',
     },
     {
+      id: 'education',
       title: 'Higher & Technical Education Loan',
       desc: 'Subsidized 4%–6% interest loans covering tuition, hostel, and equipment for engineering, medical, or professional degrees.',
       query: 'I need an education loan for an engineering degree. How much loan can I get and at what interest rate?',
@@ -121,6 +80,7 @@ const SUGGESTIONS: Record<Language, SuggestionItem[]> = {
       bg: '#fdf4ff',
     },
     {
+      id: 'women-exclusive',
       title: 'Mahila Samriddhi Yojana',
       desc: 'Exclusive micro-credit up to ₹1.40 Lakh at concessional 4% interest designed specifically for SC women entrepreneurs.',
       query: 'Tell me about Mahila Samriddhi Yojana and schemes exclusively for SC women.',
@@ -130,6 +90,7 @@ const SUGGESTIONS: Record<Language, SuggestionItem[]> = {
       bg: '#fff7ed',
     },
     {
+      id: 'emi-calculation',
       title: 'Calculate Monthly EMI & Moratorium',
       desc: 'Deterministic monthly repayment projections accounting for scheme-specific interest rates and 3–12 month grace periods.',
       query: 'Calculate monthly EMI for ₹5 Lakh loan at 7% interest for 5 years with a 6-month moratorium.',
@@ -141,8 +102,9 @@ const SUGGESTIONS: Record<Language, SuggestionItem[]> = {
   ],
   hi: [
     {
-      title: 'छोटा व्यवसाय / दुकान ऋण',
-      desc: 'सिलाई, किराना या व्यापार इकाई के लिए ₹1.40L से ₹50L तक रियायती सरकारी ऋण (पारिवारिक आय ≤ ₹5 लाख)।',
+      id: 'small-business',
+      title: 'छोटा व्यवसाय एवं दुकान ऋण',
+      desc: 'सिलाई, किराना दुकान या सेवा व्यवसाय के लिए ₹1.40L से ₹50L तक रियायती सरकारी ऋण (पारिवारिक आय ≤ ₹5 लाख)।',
       query: 'मुझे सिलाई और कपड़ों की दुकान खोलनी है। परिवार की सालाना आय ₹2.5 लाख है। मुझे कौन सी योजना मिलेगी?',
       icon: Briefcase,
       tag: 'व्यवसाय ऋण',
@@ -150,17 +112,19 @@ const SUGGESTIONS: Record<Language, SuggestionItem[]> = {
       bg: '#eff6ff',
     },
     {
+      id: 'education',
       title: 'उच्च एवं तकनीकी शिक्षा ऋण',
-      desc: 'इंजीनियरिंग, मेडिकल व वोकेशनल पढ़ाई के लिए 4%–6% की बेहद कम ब्याज दर पर शिक्षा ऋण सहायता।',
-      query: 'मुझे बीटेक/इंजीनियरिंग के लिए एजुकेशन लोन चाहिए। ब्याज दर और अधिकतम सीमा क्या है?',
+      desc: 'इंजीनियरिंग, मेडिकल और वोकेशनल पढ़ाई के लिए 4%–6% की कम ब्याज दर पर शिक्षा ऋण सहायता।',
+      query: 'मुझे बी.टेक/इंजीनियरिंग के लिए एजुकेशन लोन चाहिए। ब्याज दर और अधिकतम सीमा क्या है?',
       icon: GraduationCap,
       tag: 'शिक्षा ऋण',
       color: '#7e22ce',
       bg: '#fdf4ff',
     },
     {
+      id: 'women-exclusive',
       title: 'महिला समृद्धि योजना',
-      desc: 'अनुसूचित जाति की महिला उद्यमियों व स्वयं सहायता समूहों के लिए 4% ब्याज पर ₹1.40 लाख तक विशेष सहायता।',
+      desc: 'अनुसूचित जाति की महिला उद्यमियों के लिए 4% ब्याज पर ₹1.40 लाख तक विशेष सहायता।',
       query: 'अनुसूचित जाति की महिलाओं के लिए महिला समृद्धि योजना के बारे में विस्तार से बताएं।',
       icon: HeartHandshake,
       tag: 'महिला विशेष',
@@ -168,8 +132,9 @@ const SUGGESTIONS: Record<Language, SuggestionItem[]> = {
       bg: '#fff7ed',
     },
     {
-      title: 'मासिक EMI एवं मोरेटोरियम गणना',
-      desc: 'ब्याज दर और 3 से 12 महीने की ग्रेस अवधि (मोरेटोरियम) के साथ सटीक मासिक किस्त की गणना करें।',
+      id: 'emi-calculation',
+      title: 'मासिक ईएमआई (EMI) एवं मोरेटोरियम गणना',
+      desc: 'ब्याज दर और 3 से 12 महीने की छूट अवधि (मोरेटोरियम) के साथ सटीक मासिक किस्त की गणना करें।',
       query: '₹5 लाख के कर्ज पर 7% ब्याज और 5 साल की अवधि के लिए मासिक EMI क्या बनेगी?',
       icon: Calculator,
       tag: 'EMI कैलकुलेटर',
@@ -177,8 +142,51 @@ const SUGGESTIONS: Record<Language, SuggestionItem[]> = {
       bg: '#f0fdf4',
     },
   ],
+  pa: [
+    {
+      id: 'small-business',
+      title: 'ਛੋਟਾ ਵਿਵਸਾਇ / ਦੁਕਾਨ ਰਿਣ',
+      desc: 'ਸਿਲਾਈ, ਕਿਰਾਣਾ ਯਾ ਵ੍ਯਾਪਾਰ ਲਈ ₹1.40L ਤੋਂ ₹50L ਤੱਕ ਰਿਆਇਤੀ ਸਰਕਾਰੀ ਰਿਣ (ਪਰਿਵਾਰਿਕ ਆਮਦਨ ≤ ₹5 ਲੱਖ)।',
+      query: 'ਮੈਨੂੰ ਸਿਲਾਈ ਅਤੇ ਕਪੜਿਆਂ ਦੀ ਦੁਕਾਨ ਖੋਲ੍ਹਣੀ ਹੈ। ਪਰਿਵਾਰ ਦੀ ਸਾਲਾਨਾ ਆਮਦਨ ₹2.5 ਲੱਖ ਹੈ। ਮੈਨੂੰ ਕਿਹੜੀ ਯੋਜਨਾ ਮਿਲੇਗੀ?',
+      icon: Briefcase,
+      tag: 'ਵ੍ਯਵਸਾਇ ਰਿਣ',
+      color: '#0b1f3a',
+      bg: '#eff6ff',
+    },
+    {
+      id: 'education',
+      title: 'ਉੱਚ ਅਤੇ ਤਕਨੀਕੀ ਸਿੱਖਿਆ ਰਿਣ',
+      desc: 'ਇੰਜੀਨੀਅਰਿੰਗ, ਮੈਡੀਕਲ ਅਤੇ ਵੋਕੇਸ਼ਨਲ ਪੜ੍ਹਾਈ ਲਈ 4%–6% ਦੀ ਘੱਟ ਵਿਆਜ ਦਰ ਤੇ ਸਿੱਖਿਆ ਰਿਣ ਸਹਾਇਤਾ।',
+      query: 'ਮੈਨੂੰ ਬੀ.ਟੈਕ/ਇੰਜੀਨੀਅਰਿੰਗ ਲਈ ਐਜੂਕੇਸ਼ਨ ਲੋਨ ਚਾਹੀਦਾ ਹੈ। ਵਿਆਜ ਦਰ ਅਤੇ ਅਧਿਕਤਮ ਸੀਮਾ ਕੀ ਹੈ?',
+      icon: GraduationCap,
+      tag: 'ਸਿੱਖਿਆ ਰਿਣ',
+      color: '#7e22ce',
+      bg: '#fdf4ff',
+    },
+    {
+      id: 'women-exclusive',
+      title: 'ਮਹਿਲਾ ਸਮ੍ਰਿਧੀ ਯੋਜਨਾ',
+      desc: 'ਅਨੁਸੂਚਿਤ ਜਾਤੀ ਦੀਆਂ ਮਹਿਲਾ ਉੱਦਮੀਆਂ ਲਈ 4% ਵਿਆਜ ਤੇ ₹1.40 ਲੱਖ ਤੱਕ ਵਿਸ਼ੇਸ਼ ਸਹਾਇਤਾ।',
+      query: 'ਅਨੁਸੂਚਿਤ ਜਾਤੀ ਦੀਆਂ ਮਹਿਲਾਵਾਂ ਲਈ ਮਹਿਲਾ ਸਮ੍ਰਿਧੀ ਯੋਜਨਾ ਬਾਰੇ ਵਿਸਥਾਰ ਨਾਲ ਦੱਸੋ।',
+      icon: HeartHandshake,
+      tag: 'ਮਹਿਲਾ ਵਿਸ਼ੇਸ਼',
+      color: '#c2410c',
+      bg: '#fff7ed',
+    },
+    {
+      id: 'emi-calculation',
+      title: 'ਮਹੀਨਾਵਾਰ EMI ਅਤੇ ਮੋਰਟੋਰੀਅਮ ਗਣਨਾ',
+      desc: 'ਵਿਆਜ ਦਰ ਅਤੇ 3 ਤੋਂ 12 ਮਹੀਨੇ ਦੀ ਗ੍ਰੇਸ ਮਿਆਦ (ਮੋਰਟੋਰੀਅਮ) ਨਾਲ ਸਟੀਕ ਮਹੀਨਾਵਾਰ ਕਿਸ਼ਤ ਦੀ ਗਣਨਾ ਕਰੋ।',
+      query: '₹5 ਲੱਖ ਦੇ ਕਰਜ਼ੇ ਤੇ 7% ਵਿਆਜ ਅਤੇ 5 ਸਾਲ ਦੀ ਮਿਆਦ ਲਈ ਮਹੀਨਾਵਾਰ EMI ਕੀ ਬਣੇਗੀ?',
+      icon: Calculator,
+      tag: 'EMI ਕੈਲਕੁਲੇਟਰ',
+      color: '#15803d',
+      bg: '#f0fdf4',
+    },
+  ],
   mr: [
     {
+      id: 'small-business',
       title: 'लहान व्यवसाय व दुकान कर्ज',
       desc: 'शिवणकाम, किराणा दुकान किंवा व्यवसायासाठी सवलतीच्या दरात ₹५० लाखांपर्यंत कर्ज सहाय्य.',
       query: 'मला शिवणकाम व कपड्यांचे दुकान सुरू करायचे आहे. कौटुंबिक उत्पन्न ₹२.५ लाख आहे. कोणती योजना मिळेल?',
@@ -188,6 +196,7 @@ const SUGGESTIONS: Record<Language, SuggestionItem[]> = {
       bg: '#eff6ff',
     },
     {
+      id: 'education',
       title: 'उच्च शिक्षण कर्ज योजना',
       desc: 'अभियांत्रिकी व वैद्यकीय शिक्षणासाठी ४%–६% सवलतीच्या व्याजदरात शैक्षणिक कर्ज.',
       query: 'अभियांत्रिकी शिक्षणासाठी मला कर्ज हवे आहे. कमाल मर्यादा आणि व्याज दर काय आहे?',
@@ -197,6 +206,7 @@ const SUGGESTIONS: Record<Language, SuggestionItem[]> = {
       bg: '#fdf4ff',
     },
     {
+      id: 'women-exclusive',
       title: 'महिला समृद्धी योजना',
       desc: 'अनुसूचित जातीच्या महिला उद्योजकांसाठी ४% व्याजदरावर ₹१.४० लाखांपर्यंत विशेष कर्ज.',
       query: 'अनुसूचित जातीच्या महिलांसाठी उपलब्ध असलेल्या विशेष योजनांची माहिती द्या.',
@@ -206,6 +216,7 @@ const SUGGESTIONS: Record<Language, SuggestionItem[]> = {
       bg: '#fff7ed',
     },
     {
+      id: 'emi-calculation',
       title: 'मासिक हप्ता (EMI) गणना',
       desc: 'सवलत कालावधीसह अचूक मासिक हप्त्याची आणि व्याजाची गणितीय गणना करा.',
       query: '५ लाख रुपयांवर ७% दराने ५ वर्षांसाठी मासिक हप्ता किती येईल?',
@@ -220,15 +231,29 @@ const SUGGESTIONS: Record<Language, SuggestionItem[]> = {
 function MessageBubble({
   msg,
   onAction,
+  onStepComplete,
   scrollRef,
+  playingMessageId,
+  loadingTTSMessageId,
+  onPlayTTS,
+  onStopTTS,
+  t,
 }: {
   msg: Message;
   onAction: (text: string) => void;
+  onStepComplete?: (stepKey: 'eligibility' | 'scheme' | 'emi' | 'partner') => void;
   scrollRef?: React.RefObject<HTMLDivElement | null>;
+  playingMessageId?: string | null;
+  loadingTTSMessageId?: string | null;
+  onPlayTTS?: (msg: Message) => void;
+  onStopTTS?: () => void;
+  t: (key: string, fallback?: string) => string;
 }) {
   const isUser = msg.role === 'user';
   const [textDone, setTextDone] = useState(!msg.animate);
   const showExtras = !msg.animate || textDone;
+  const isPlaying = playingMessageId === msg.id;
+  const isThisLoading = loadingTTSMessageId === msg.id;
 
   const schemes = msg.type === 'schemes' ? (msg.data?.schemes as unknown[]) || [] : [];
   const emiData = msg.type === 'emi' ? msg.data : null;
@@ -305,6 +330,53 @@ function MessageBubble({
               />
             )}
           </div>
+
+          {!isUser && showExtras && onPlayTTS && onStopTTS && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, paddingTop: 8, borderTop: '1px solid #f1f5f9' }}>
+              <button
+                onClick={() => {
+                  if (isPlaying) {
+                    onStopTTS();
+                  } else {
+                    onPlayTTS(msg);
+                  }
+                }}
+                disabled={Boolean(loadingTTSMessageId) && !isThisLoading}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '5px 12px',
+                  borderRadius: 16,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  background: isPlaying ? '#fee2e2' : '#f1f5f9',
+                  color: isPlaying ? '#dc2626' : '#334155',
+                  border: isPlaying ? '1.5px solid #fca5a5' : '1px solid #cbd5e1',
+                  cursor: loadingTTSMessageId && !isThisLoading ? 'default' : 'pointer',
+                  opacity: loadingTTSMessageId && !isThisLoading ? 0.6 : 1,
+                  transition: 'all 150ms ease',
+                }}
+              >
+                {isThisLoading ? (
+                  <>
+                    <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} color="#64748b" />
+                    <span>{t('chat.generating_voice', 'Generating voice...')}</span>
+                  </>
+                ) : isPlaying ? (
+                  <>
+                    <Square size={12} fill="#dc2626" color="#dc2626" />
+                    <span>{t('chat.stop_btn', 'Stop')}</span>
+                  </>
+                ) : (
+                  <>
+                    <Volume2 size={13} color="#334155" />
+                    <span>{t('chat.listen_btn', 'Listen')}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Structured Data Result Cards — held back until the reply finishes typing */}
@@ -315,10 +387,16 @@ function MessageBubble({
                 key={i}
                 scheme={s as Parameters<typeof SchemeResultCard>[0]['scheme']}
                 rank={i + 1}
-                onCalculateEMI={() =>
-                  onAction(`Calculate EMI for the ${(s as { name: string }).name} scheme`)
-                }
-                onFindPartners={() => onAction('Find nearest partner for applying')}
+                onCalculateEMI={() => {
+                  onStepComplete?.('scheme');
+                  onStepComplete?.('emi');
+                  onAction(`Calculate EMI for the ${(s as { name: string }).name} scheme`);
+                }}
+                onFindPartners={() => {
+                  onStepComplete?.('scheme');
+                  onStepComplete?.('partner');
+                  onAction('Find nearest partner for applying');
+                }}
               />
             ))}
           </div>
@@ -431,19 +509,26 @@ function MessageBubble({
 
 interface ChatInterfaceProps {
   chatId?: string | null;
+  resetKey?: number;
   token?: string | null;
   onChatCreated?: (chatId: string) => void;
+  onStepComplete?: (stepKey: 'eligibility' | 'scheme' | 'emi' | 'partner') => void;
   initialMessages?: ChatMessage[];
   initialQuery?: string | null;
+  category?: string | null;
 }
 
 export default function ChatInterface({
   chatId: propChatId,
+  resetKey,
   token,
   onChatCreated,
+  onStepComplete,
   initialMessages,
   initialQuery,
+  category,
 }: ChatInterfaceProps) {
+  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>(() => {
     if (!initialMessages || initialMessages.length === 0) return [];
     return initialMessages.map((m) => ({
@@ -457,7 +542,7 @@ export default function ChatInterface({
     }));
   });
 
-  const { lang: language, setLang: setLanguage, t } = useLanguage();
+  const { lang: language, isAuto, updateDetectedLang, setLang: setLanguage, t } = useLanguage();
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState<string | null>(null);
@@ -465,88 +550,188 @@ export default function ChatInterface({
   const [showWelcome, setShowWelcome] = useState(!initialMessages?.length);
 
   const [isListening, setIsListening] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(true);
   const [speechError, setSpeechError] = useState<string | null>(null);
-  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
-  const baseValueRef = useRef('');
+  const [activeStream, setActiveStream] = useState<MediaStream | null>(null);
+  const [sttDetectedLang, setSttDetectedLang] = useState<{
+    code: string | null;
+    probability: number | null;
+  }>({ code: null, probability: null });
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+
+  const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
+  const [loadingTTSMessageId, setLoadingTTSMessageId] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioUrlRef = useRef<string | null>(null);
+
+  const stopAudio = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    if (audioUrlRef.current) {
+      URL.revokeObjectURL(audioUrlRef.current);
+      audioUrlRef.current = null;
+    }
+    setPlayingMessageId(null);
+    setLoadingTTSMessageId(null);
+  }, []);
+
+  const handlePlayTTS = useCallback(
+    async (msg: Message) => {
+      stopAudio();
+      setLoadingTTSMessageId(msg.id);
+      setSpeechError(null);
+
+      try {
+        const blob = await fetchTTS(msg.text, language);
+        const url = URL.createObjectURL(blob);
+        audioUrlRef.current = url;
+        const audio = new Audio(url);
+        audioRef.current = audio;
+
+        audio.onended = () => {
+          stopAudio();
+        };
+        audio.onerror = () => {
+          stopAudio();
+          setSpeechError('Voice output audio playback failed.');
+        };
+
+        setLoadingTTSMessageId(null);
+        setPlayingMessageId(msg.id);
+        await audio.play();
+      } catch (err) {
+        console.error('[tts-error]', err);
+        stopAudio();
+        setSpeechError('Voice output unavailable. Please verify network or backend config.');
+      }
+    },
+    [language, stopAudio]
+  );
+
+  useEffect(() => {
+    return () => {
+      stopAudio();
+    };
+  }, [stopAudio]);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const retryPendingRef = useRef(false);
   const retryAttemptRef = useRef(0);
   const chatIdRef = useRef<string | null>(propChatId || null);
-  const initialSentRef = useRef(false);
 
   useEffect(() => {
-    setSpeechSupported(getSpeechRecognitionCtor() !== null);
+    setSpeechSupported(
+      typeof window !== 'undefined' &&
+        !!(navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function' && typeof MediaRecorder !== 'undefined')
+    );
   }, []);
 
   useEffect(() => {
     return () => {
-      recognitionRef.current?.abort();
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      }
     };
   }, []);
 
   const stopListening = useCallback(() => {
-    recognitionRef.current?.stop();
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current = null;
+    }
+    setActiveStream(null);
+    setIsListening(false);
   }, []);
 
-  const startListening = useCallback(() => {
-    const Ctor = getSpeechRecognitionCtor();
-    if (!Ctor) {
+  const startListening = useCallback(async () => {
+    setSpeechError(null);
+
+    if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function' || typeof MediaRecorder === 'undefined') {
       setSpeechSupported(false);
+      setSpeechError('Microphone recording is not supported by your browser.');
       return;
     }
 
-    setSpeechError(null);
-    baseValueRef.current = input ? input + ' ' : '';
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+      setActiveStream(stream);
+      audioChunksRef.current = [];
 
-    const recognition = new Ctor();
-    recognition.lang = SPEECH_LANG_MAP[language as Language] || 'en-IN';
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.maxAlternatives = 1;
+      let mimeType = 'audio/webm';
+      if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+        mimeType = 'audio/webm;codecs=opus';
+      } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+        mimeType = 'audio/mp4';
+      }
 
-    recognition.onresult = (event: SpeechRecognitionEventLike) => {
-      let finalTranscript = '';
-      let interimTranscript = '';
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      mediaRecorderRef.current = mediaRecorder;
 
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i];
-        const transcript = result[0].transcript;
-        if (result.isFinal) {
-          finalTranscript += transcript;
-        } else {
-          interimTranscript += transcript;
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
         }
-      }
+      };
 
-      if (finalTranscript) {
-        baseValueRef.current = baseValueRef.current + finalTranscript + ' ';
-      }
+      mediaRecorder.onstop = async () => {
+        setActiveStream(null);
+        if (audioChunksRef.current.length === 0) {
+          setIsListening(false);
+          return;
+        }
 
-      setInput((baseValueRef.current + interimTranscript).trimStart());
-    };
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        audioChunksRef.current = [];
 
-    recognition.onerror = (event: SpeechRecognitionErrorEventLike) => {
-      if (event.error === 'not-allowed' || event.error === 'permission-denied') {
+        setIsTranscribing(true);
+        try {
+          const res = await transcribeAudio(audioBlob, 'unknown');
+          if (res && res.transcript && res.transcript.trim()) {
+            setSttDetectedLang({
+              code: res.detectedLanguageCode ?? null,
+              probability: res.languageProbability ?? null,
+            });
+            if (res.detectedLanguageCode) {
+              updateDetectedLang(res.detectedLanguageCode, res.languageProbability);
+            }
+            setInput((prev) => (prev ? `${prev} ${res.transcript}` : res.transcript));
+          } else {
+            setSpeechError(t('stt.error_unclear', "Sorry, I couldn't understand that. Please try again."));
+          }
+        } catch (err) {
+          console.error('[stt-error]', err);
+          setSpeechError(t('stt.error_unclear', "Sorry, I couldn't understand that. Please try again."));
+        } finally {
+          setIsTranscribing(false);
+          setIsListening(false);
+        }
+      };
+
+      mediaRecorder.start(100);
+      setIsListening(true);
+    } catch (err: unknown) {
+      console.error('[mic-permission-error]', err);
+      const eName = (err as { name?: string })?.name;
+      if (eName === 'NotAllowedError' || eName === 'PermissionDeniedError') {
         setSpeechError('Microphone access denied. Please allow microphone permissions and try again.');
-      } else if (event.error === 'no-speech') {
-        setSpeechError("Didn't catch that — try speaking again.");
-      } else if (event.error !== 'aborted') {
-        setSpeechError('Voice input failed. Please try again or type your message.');
+      } else {
+        setSpeechError(t('stt.error_unclear', "Sorry, I couldn't understand that. Please try again."));
       }
+      setActiveStream(null);
       setIsListening(false);
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-
-    recognitionRef.current = recognition;
-    recognition.start();
-    setIsListening(true);
-  }, [language, input]);
+    }
+  }, [language, t]);
 
   const toggleListening = () => {
     if (isListening) {
@@ -560,7 +745,31 @@ export default function ChatInterface({
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
+  // Reset chat on explicit New Chat action
   useEffect(() => {
+    if (resetKey !== undefined && resetKey > 0) {
+      chatIdRef.current = null;
+      setSessionId('');
+      setMessages([]);
+      setShowWelcome(true);
+      setInput('');
+      setLoading(false);
+      setSpeechError(null);
+      lastProcessedQueryRef.current = null;
+      stopAudio();
+      stopListening();
+    }
+  }, [resetKey, stopAudio, stopListening]);
+
+  // Synchronize when switching to a different chat or loading initial messages
+  useEffect(() => {
+    if (propChatId && propChatId !== chatIdRef.current) {
+      chatIdRef.current = propChatId;
+      setSessionId(propChatId);
+      stopAudio();
+      stopListening();
+    }
+
     if (initialMessages && initialMessages.length > 0) {
       setMessages(
         initialMessages.map((m) => ({
@@ -574,8 +783,23 @@ export default function ChatInterface({
         }))
       );
       setShowWelcome(false);
+
+      const hasAssistant = initialMessages.some((m) => m.role === 'assistant');
+      if (hasAssistant) onStepComplete?.('eligibility');
+
+      const hasEmi = initialMessages.some((m) => m.type === 'emi');
+      if (hasEmi) {
+        onStepComplete?.('scheme');
+        onStepComplete?.('emi');
+      }
+
+      const hasPartner = initialMessages.some((m) => m.type === 'partners');
+      if (hasPartner) {
+        onStepComplete?.('scheme');
+        onStepComplete?.('partner');
+      }
     }
-  }, [initialMessages]);
+  }, [propChatId, initialMessages, onStepComplete, stopAudio, stopListening]);
 
   const addMessage = useCallback((msg: Omit<Message, 'id'>) => {
     setMessages((prev) => [
@@ -605,17 +829,38 @@ export default function ChatInterface({
       let retryScheduled = false;
 
       try {
+        const reqLang = isAuto ? 'auto' : language;
         const res = await sendChat(
           text,
           sessionId || undefined,
           chatIdRef.current || undefined,
-          token
+          token,
+          reqLang,
+          sttDetectedLang.code,
+          sttDetectedLang.probability,
+          category || undefined
         );
+        setSttDetectedLang({ code: null, probability: null });
+
+        if (res.detectedLanguage) {
+          updateDetectedLang(res.detectedLanguage);
+        }
+
         const newChatId = res.chatId || res.sessionId;
         setSessionId(newChatId);
         if (!chatIdRef.current && res.chatId) {
           chatIdRef.current = res.chatId;
           onChatCreated?.(res.chatId);
+        }
+
+        onStepComplete?.('eligibility');
+
+        if (res.type === 'emi' || res.data?.emi) {
+          onStepComplete?.('scheme');
+          onStepComplete?.('emi');
+        } else if (res.type === 'partners' || res.data?.partners) {
+          onStepComplete?.('scheme');
+          onStepComplete?.('partner');
         }
 
         addMessage({
@@ -627,14 +872,6 @@ export default function ChatInterface({
           disclaimer: res.disclaimer,
           animate: true,
         });
-
-        if (
-          res.detectedLanguage === 'hi' ||
-          res.detectedLanguage === 'mr' ||
-          res.detectedLanguage === 'en'
-        ) {
-          setLanguage(res.detectedLanguage);
-        }
       } catch (err) {
         const isNetworkError = err instanceof TypeError;
 
@@ -657,7 +894,7 @@ export default function ChatInterface({
         } else {
           addMessage({
             role: 'assistant',
-            text: 'Unable to process your request at the moment. Please verify your network and try again.',
+            text: t('chat.error_fallback', 'Unable to process your request right now. Please try again in a moment.'),
             animate: true,
           });
         }
@@ -671,15 +908,17 @@ export default function ChatInterface({
         }
       }
     },
-    [loading, sessionId, token, onChatCreated, addMessage, isListening, stopListening]
+    [loading, sessionId, token, onChatCreated, onStepComplete, addMessage, isListening, stopListening, language, isAuto, updateDetectedLang, category]
   );
 
+  const lastProcessedQueryRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (initialQuery && !initialSentRef.current && messages.length === 0) {
-      initialSentRef.current = true;
+    if (initialQuery && initialQuery.trim() && lastProcessedQueryRef.current !== initialQuery) {
+      lastProcessedQueryRef.current = initialQuery;
       send(initialQuery);
     }
-  }, [initialQuery, messages.length, send]);
+  }, [initialQuery, send]);
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -689,6 +928,9 @@ export default function ChatInterface({
   }
 
   const suggestionList = SUGGESTIONS[language] || SUGGESTIONS.en;
+  const activeCategoryItem = category
+    ? suggestionList.find((s) => s.id === category) || suggestionList[0]
+    : null;
 
   return (
     <div
@@ -717,7 +959,122 @@ export default function ChatInterface({
       >
         <div style={{ maxWidth: 880, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
 
-          {showWelcome && messages.length === 0 && (
+          {/* ── Category-Specific Page View Header ─────────────────────────────────── */}
+          {showWelcome && messages.length === 0 && activeCategoryItem && (
+            <div
+              style={{
+                width: '100%',
+                padding: '12px 0 28px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 20,
+              }}
+            >
+              <button
+                onClick={() => router.push('/chat')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '8px 16px',
+                  borderRadius: 10,
+                  background: '#ffffff',
+                  border: '1.5px solid #cbd5e1',
+                  color: '#0b1f3a',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  width: 'fit-content',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                  transition: 'all 150ms ease',
+                }}
+              >
+                <ArrowLeft size={16} color="#e87722" />
+                <span>{t('chat.back_to_landing', '← Back to AI Assistant')}</span>
+              </button>
+
+              <div
+                style={{
+                  background: '#ffffff',
+                  border: '1.5px solid #e2e8f0',
+                  borderRadius: 20,
+                  padding: '24px 28px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 12,
+                  boxShadow: '0 4px 16px rgba(11,31,58,0.04)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div
+                    style={{
+                      width: 42,
+                      height: 42,
+                      borderRadius: 12,
+                      background: activeCategoryItem.bg,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {(() => {
+                      const ActiveIcon = activeCategoryItem.icon;
+                      return <ActiveIcon size={20} color={activeCategoryItem.color} />;
+                    })()}
+                  </div>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      padding: '4px 12px',
+                      borderRadius: 20,
+                      background: '#f1f5f9',
+                      color: '#475569',
+                    }}
+                  >
+                    {activeCategoryItem.tag}
+                  </span>
+                </div>
+
+                <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0b1f3a', margin: 0, letterSpacing: '-0.01em' }}>
+                  {activeCategoryItem.title}
+                </h1>
+
+                <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.6, margin: 0, maxWidth: 640 }}>
+                  {activeCategoryItem.desc}
+                </p>
+
+                <button
+                  onClick={() => send(activeCategoryItem.query)}
+                  style={{
+                    marginTop: 6,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '10px 18px',
+                    borderRadius: 12,
+                    background: '#0b1f3a',
+                    color: '#ffffff',
+                    fontSize: 13.5,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    width: 'fit-content',
+                    border: 'none',
+                    boxShadow: '0 2px 8px rgba(11,31,58,0.18)',
+                  }}
+                >
+                  <Sparkles size={16} color="#fbbf24" />
+                  <span>{t('chat.start_this_query', 'Start inquiry with this template')}</span>
+                  <ArrowRight size={14} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── AI Assistant Landing Page View ───────────────────────────────────────── */}
+          {showWelcome && messages.length === 0 && !activeCategoryItem && (
             <div
               className="chat-welcome"
               style={{
@@ -754,54 +1111,12 @@ export default function ChatInterface({
                 </div>
 
                 <h1 style={{ fontSize: 30, fontWeight: 800, color: '#0b1f3a', letterSpacing: '-0.02em', margin: '4px 0 0' }}>
-                  {language === 'hi'
-                    ? 'NSFDC प्रदर्शक AI सहायक'
-                    : language === 'mr'
-                    ? 'NSFDC प्रदर्शक AI सहाय्यक'
-                    : 'Pradarshak AI Scheme Assistant'}
+                  {t('chat.welcome_title', 'PradarshakAI Scheme Assistant')}
                 </h1>
 
                 <p style={{ fontSize: 15, color: '#64748b', maxWidth: 620, lineHeight: 1.6, margin: 0 }}>
-                  {language === 'hi'
-                    ? 'अपनी जरूरत या व्यवसाय बताएं — हम सीधे आधिकारिक योजनाओं, EMI और निकटतम चैनल पार्टनर से जोड़ेंगे।'
-                    : language === 'mr'
-                    ? 'तुमची गरज किंवा व्यवसाय सांगा — आम्ही योग्य कर्ज योजना, EMI आणि जवळचे पार्टनर शोधू.'
-                    : 'Describe your business idea, annual income, or educational goal to find verified concessional loan schemes.'}
+                  {t('chat.welcome_desc', 'Describe your business idea, annual income, or educational goal to find verified concessional loan schemes.')}
                 </p>
-
-                <div
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    background: '#e2e8f0',
-                    padding: '4px',
-                    borderRadius: 12,
-                    marginTop: 8,
-                  }}
-                >
-                  <Globe size={14} color="#64748b" style={{ marginLeft: 6, marginRight: 2 }} />
-                  {(['en', 'hi', 'mr'] as Language[]).map((l) => (
-                    <button
-                      key={l}
-                      onClick={() => setLanguage(l)}
-                      style={{
-                        padding: '6px 14px',
-                        borderRadius: 9,
-                        fontSize: 12.5,
-                        fontWeight: language === l ? 700 : 500,
-                        border: 'none',
-                        background: language === l ? '#ffffff' : 'transparent',
-                        color: language === l ? '#0b1f3a' : '#475569',
-                        boxShadow: language === l ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
-                        cursor: 'pointer',
-                        transition: 'all 150ms ease',
-                      }}
-                    >
-                      {LANG_LABELS[l]}
-                    </button>
-                  ))}
-                </div>
               </div>
 
               <div
@@ -819,7 +1134,7 @@ export default function ChatInterface({
                   return (
                     <button
                       key={i}
-                      onClick={() => send(item.query)}
+                      onClick={() => router.push(`/chat?category=${item.id}`)}
                       style={{
                         background: '#ffffff',
                         border: '1.5px solid #e2e8f0',
@@ -912,7 +1227,18 @@ export default function ChatInterface({
 
           <div style={{ width: '100%' }}>
             {messages.map((msg) => (
-              <MessageBubble key={msg.id} msg={msg} onAction={send} scrollRef={bottomRef} />
+              <MessageBubble
+                key={msg.id}
+                msg={msg}
+                onAction={send}
+                onStepComplete={onStepComplete}
+                scrollRef={bottomRef}
+                playingMessageId={playingMessageId}
+                loadingTTSMessageId={loadingTTSMessageId}
+                onPlayTTS={handlePlayTTS}
+                onStopTTS={stopAudio}
+                t={t}
+              />
             ))}
 
             {loading && (
@@ -995,16 +1321,10 @@ export default function ChatInterface({
               onKeyDown={handleKeyDown}
               placeholder={
                 isListening
-                  ? language === 'hi'
-                    ? 'सुन रहा हूँ...'
-                    : language === 'mr'
-                    ? 'ऐकत आहे...'
-                    : 'Listening...'
-                  : language === 'hi'
-                  ? 'अपनी स्थिति या प्रश्न लिखें... (उदा. सिलाई दुकान के लिए कौन सा लोन मिलेगा?)'
-                  : language === 'mr'
-                  ? 'तुमची गरज किंवा प्रश्न विचारा... (उदा. व्यवसायासाठी कोणते कर्ज मिळेल?)'
-                  : 'Ask anything about schemes, eligibility rules, monthly EMI, or channel partners...'
+                  ? t('chat.listening', 'Listening...')
+                  : activeCategoryItem
+                  ? `${t('chat.ask_about', 'Ask a question about')} ${activeCategoryItem.title}...`
+                  : t('chat.input_ph', 'Ask about loans, eligibility, interest rates, or channel partners...')
               }
               rows={1}
               style={{
@@ -1030,32 +1350,43 @@ export default function ChatInterface({
             />
 
             {speechSupported && (
-              <button
-                onClick={toggleListening}
-                disabled={loading}
-                title={isListening ? 'Stop listening' : 'Speak your message'}
-                style={{
-                  width: 42,
-                  height: 42,
-                  borderRadius: 12,
-                  background: isListening ? '#dc2626' : '#e2e8f0',
-                  color: '#ffffff',
-                  border: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  cursor: loading ? 'default' : 'pointer',
-                  opacity: loading ? 0.5 : 1,
-                  transition: 'all 180ms ease',
-                }}
-              >
-                {isListening ? (
-                  <MicOff size={18} color="#ffffff" />
-                ) : (
-                  <Mic size={18} color="#0b1f3a" />
-                )}
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {isListening && <VoiceVisualizer stream={activeStream} isListening={isListening} />}
+                <button
+                  onClick={toggleListening}
+                  disabled={loading || isTranscribing}
+                  title={
+                    isTranscribing
+                      ? 'Processing voice input...'
+                      : isListening
+                      ? 'Stop listening'
+                      : 'Speak your message'
+                  }
+                  style={{
+                    width: 42,
+                    height: 42,
+                    borderRadius: 12,
+                    background: isListening ? '#dc2626' : '#e2e8f0',
+                    color: '#ffffff',
+                    border: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    cursor: loading || isTranscribing ? 'default' : 'pointer',
+                    opacity: loading || isTranscribing ? 0.6 : 1,
+                    transition: 'all 180ms ease',
+                  }}
+                >
+                  {isTranscribing ? (
+                    <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} color="#0b1f3a" />
+                  ) : isListening ? (
+                    <MicOff size={18} color="#ffffff" />
+                  ) : (
+                    <Mic size={18} color="#0b1f3a" />
+                  )}
+                </button>
+              </div>
             )}
 
             <button
@@ -1081,13 +1412,20 @@ export default function ChatInterface({
             </button>
           </div>
 
-          {isListening && (
+          {isTranscribing && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 4px', fontSize: 11.5, color: '#0b1f3a' }}>
+              <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} color="#0b1f3a" />
+              <span style={{ fontWeight: 600 }}>{t('chat.transcribing', 'Processing voice input with Sarvam AI...')}</span>
+            </div>
+          )}
+
+          {isListening && !isTranscribing && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 4px', fontSize: 11.5, color: '#0b1f3a' }}>
               <span style={{ position: 'relative', display: 'inline-flex', width: 8, height: 8 }}>
                 <span style={{ position: 'absolute', width: '100%', height: '100%', borderRadius: '50%', background: '#dc2626', opacity: 0.6, animation: 'pulse 1.5s infinite' }} />
                 <span style={{ position: 'relative', width: 8, height: 8, borderRadius: '50%', background: '#dc2626' }} />
               </span>
-              <span style={{ fontWeight: 600 }}>Listening — speak now</span>
+              <span style={{ fontWeight: 600 }}>{t('chat.listening_instructions', 'Listening — speak now, click mic again when done')}</span>
             </div>
           )}
 
@@ -1098,8 +1436,8 @@ export default function ChatInterface({
           )}
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px', fontSize: 11.5, color: '#94a3b8' }}>
-            <span>Press <kbd style={{ background: '#e2e8f0', color: '#475569', padding: '1px 5px', borderRadius: 4, fontWeight: 700 }}>Enter ↵</kbd> to send</span>
-            <span>Verified against official NSFDC scheme catalog data</span>
+            <span>{t('chat.press_enter', 'Press Enter ↵ to send')}</span>
+            <span>{t('chat.verified_data', 'Verified against official NSFDC scheme catalog data')}</span>
           </div>
         </div>
       </div>

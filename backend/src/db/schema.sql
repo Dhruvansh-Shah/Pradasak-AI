@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS partners (
   eligible_categories TEXT[],       -- which scheme categories this partner can process
   npa_percent NUMERIC,              -- NPA % (lower is healthier); NULL = unknown
   fund_utilization_percent NUMERIC, -- fund utilization % (below ~85 = has headroom); NULL = unknown
+  verification_status TEXT DEFAULT 'verified', -- 'verified' | 'additional'
   is_active BOOLEAN DEFAULT TRUE
 );
 

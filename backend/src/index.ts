@@ -10,9 +10,14 @@ import authRoutes from './routes/auth';
 import adminRoutes from './routes/admin';
 import userAuthRoutes from './routes/userAuth';
 import chatsRoutes from './routes/chats';
+import ttsRoutes from './routes/tts';
+import sttRoutes from './routes/stt';
+import registrationRoutes from './routes/registration';
 import { pool } from './db/pool';
+import fs from 'fs';
 
 dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, '../../.env'), override: true });
 
 process.on('uncaughtException', (err) => console.error('Uncaught exception:', err));
 process.on('unhandledRejection', (reason) => console.error('Unhandled rejection:', reason));
@@ -45,8 +50,18 @@ app.use(cors({
 app.use(express.json());
 
 app.use('/api/chat', chatRoutes);
+app.use('/api/tts', ttsRoutes);
+app.use('/api/stt', sttRoutes);
 app.use('/api/users', userAuthRoutes);
 app.use('/api/chats', chatsRoutes);
+app.use('/api/registration', registrationRoutes);
+
+// Serve static uploads
+const uploadsDir = path.join(__dirname, '../../uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+app.use('/uploads', express.static(uploadsDir));
 app.use('/api/auth', authRoutes);           // admin auth
 app.use('/api/admin', adminRoutes);
 app.use('/api/recommend', recommendRoutes);
