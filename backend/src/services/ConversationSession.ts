@@ -23,6 +23,20 @@ export interface UserEntities {
   moratorium_months?: number;
 }
 
+export interface UserProfileContext {
+  name?: string | null;
+  salary?: number | null;
+  gender?: string | null;
+  city?: string | null;
+  district?: string | null;
+  state?: string | null;
+  pincode?: string | null;
+  education_level?: string | null;
+  trade_category?: string | null;
+  funding_bracket?: string | null;
+  caste_category?: string | null;
+}
+
 export interface Session {
   id: string;
   language: Language;
@@ -32,7 +46,7 @@ export interface Session {
    *  previously recommended scheme) without needing the full tool-call trace. */
   lastContext?: Record<string, unknown>;
   lastIntent?: string;
-  userContext?: { name?: string | null; salary?: number | null };
+  userContext?: UserProfileContext;
   createdAt: Date;
   updatedAt: Date;
 }

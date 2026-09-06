@@ -6,6 +6,7 @@ import Footer from '@/components/Footer';
 import Interactive3DCard from '@/components/Interactive3DCard';
 import Hero3DCanvas from '@/components/Hero3DCanvas';
 import EmblemOfIndia from '@/components/EmblemOfIndia';
+import InstitutionalMatrix from '@/components/InstitutionalMatrix';
 import {
   MessageCircle,
   Calculator,
@@ -766,6 +767,22 @@ export default function HomePage() {
               </Interactive3DCard>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ── Institutional Transparency Matrix (Article 243G vs NSFDC) ───────── */}
+      <section
+        className="content-section"
+        style={{
+          background: '#f8fafc',
+          borderTop: '1px solid #e2e8f0',
+          borderBottom: '1px solid #e2e8f0',
+          padding: '64px 24px',
+          width: '100%',
+        }}
+      >
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          <InstitutionalMatrix />
         </div>
       </section>
 

@@ -1,6 +1,6 @@
 import { detectLanguage } from './IntentClassifier';
 import type { Language } from './IntentClassifier';
-import { getOrCreate, updateSession } from './ConversationSession';
+import { getOrCreate, updateSession, UserProfileContext } from './ConversationSession';
 import type { Session } from './ConversationSession';
 import { TOOL_DEFS, executeTool } from './Tools';
 import { llmChat } from '../lib/openrouter';
@@ -107,7 +107,7 @@ function getCategoryInfo(category: string): { name: string; altName: string } | 
 export function buildSystemPrompt(
   langCode: string,
   category?: string,
-  userContext?: { name?: string | null; salary?: number | null }
+  userContext?: UserProfileContext
 ): string {
   const cfg = getLanguageConfig(langCode);
   const langName = cfg ? cfg.name : 'English';
@@ -133,12 +133,30 @@ SELECTED CARD CATEGORY CONTEXT & MISMATCH ACKNOWLEDGMENT:
     : '';
 
   const salaryNum = userContext?.salary != null ? Number(userContext.salary) : null;
-  const userInfoPrompt = (salaryNum != null || userContext?.name)
+  const userProfileLines: string[] = [];
+  if (userContext?.name) userProfileLines.push(`- Beneficiary Name: ${userContext.name}`);
+  if (userContext?.caste_category) userProfileLines.push(`- Verified Social / Caste Category: ${userContext.caste_category} (Statutorily Eligible for NSFDC programs)`);
+  if (salaryNum != null) userProfileLines.push(`- Verified Annual Family Income: ₹${salaryNum.toLocaleString('en-IN')} (verified from official records; ceiling ≤ ₹5,00,000)`);
+  if (userContext?.city || userContext?.district || userContext?.state) {
+    const loc = [userContext.city, userContext.district, userContext.state].filter(Boolean).join(', ');
+    userProfileLines.push(`- Verified Residential Location: ${loc}`);
+  }
+  if (userContext?.gender) userProfileLines.push(`- Gender: ${userContext.gender}`);
+  if (userContext?.education_level) userProfileLines.push(`- Education Level: ${userContext.education_level}`);
+  if (userContext?.trade_category) userProfileLines.push(`- Registered Trade / Venture Category: ${userContext.trade_category}`);
+  if (userContext?.funding_bracket) userProfileLines.push(`- Target Funding Bracket: ${userContext.funding_bracket}`);
+
+  const verifiedLocation = userContext?.district || userContext?.city || '';
+  const userInfoPrompt = userProfileLines.length > 0
     ? `
-AUTHENTICATED BENEFICIARY PROFILE & VERIFIED FINANCIAL DATA:
-${userContext?.name ? `- Beneficiary Name: ${userContext.name}` : ''}
-${salaryNum != null ? `- Verified Annual Income / Salary: ₹${salaryNum.toLocaleString('en-IN')} (verified from government records / registration).
-- CRITICAL SALARY RULE: The beneficiary's annual salary/income is already on file and verified (₹${salaryNum.toLocaleString('en-IN')}). NEVER ask the user what their salary, earnings, or income is. Automatically use this figure when checking scheme eligibility (ceiling ≤ ₹5,00,000), assessing repayment affordability, or passing parameters to tools.` : ''}
+AUTHENTICATED BENEFICIARY PROFILE & PRE-VERIFIED GROUND TRUTH:
+${userProfileLines.join('\n')}
+
+CRITICAL ZERO-REDUNDANCY DIRECTIVES:
+- The beneficiary's profile is PRE-VERIFIED. NEVER ask the user what their salary, income, location, city, district, gender, education, or business trade is!
+${salaryNum != null ? `- Verified Annual Income is ₹${salaryNum.toLocaleString('en-IN')}. Automatically use this figure when checking scheme eligibility (ceiling ≤ ₹5,00,000) or evaluating repayment capacity.` : ''}
+${verifiedLocation ? `- Verified Location is ${verifiedLocation}. When the user asks "Where is the nearest branch?", "find partners", or "where to apply", NEVER prompt for their city/location — IMMEDIATELY call find_partners with location: "${verifiedLocation}".` : ''}
+${userContext?.trade_category ? `- Target Trade is "${userContext.trade_category}". Automatically recommend schemes matching this trade.` : ''}
 `
     : '';
 
@@ -168,6 +186,12 @@ TOOLS & GROUNDING (critical):
 - If a tool needs information you don't have anywhere in this conversation, do NOT call it with a guessed value — instead, ask the user ONE short, warm, specific question to get exactly that missing piece, in ${langName}. Do not list multiple questions at once.
 - If you already have enough from earlier in the conversation (including any "Known context" note below), go ahead and call the tool — don't re-ask for something already given.
 - Application process steps and general NSFDC background are safe to explain directly without a tool call — they aren't scheme-specific numbers.
+
+INSTITUTIONAL JURISDICTION (GRAM PANCHAYAT vs. NSFDC CHANNELS):
+- If the user asks whether they can apply through their local Gram Panchayat, Sarpanch, Mukhiya, or local agent, clarify with utmost authority:
+  * Under Article 243G of the Constitution of India, Gram Panchayats govern local civic infrastructure and village development; they have NO statutory mandate or banking regulatory licensing to sanction or disburse NSFDC concessional loans.
+  * All NSFDC subsidized loans are legally routed ONLY through accredited Channel Partners (State Channelizing Agencies - SCAs, Public Sector Banks, Regional Rural Banks, and NBFC-MFIs).
+  * Direct digital channel routing through Pradarshak AI eliminates middleman cuts (dalals), guarantees 0% commission deductions, ensures direct DBT/escrow bank disbursement, and protects beneficiaries from predatory informal moneylenders.
 
 STYLE:
 - Warmly acknowledge the user's business idea, educational goal, or situation.
@@ -247,7 +271,7 @@ export async function process(
   detectedSpeechLanguage?: string,
   speechProbability?: number,
   category?: string,
-  userContext?: { name?: string | null; salary?: number | null }
+  userContext?: UserProfileContext
 ): Promise<ChatApiResponse> {
   const session: Session = getOrCreate(sessionId);
 
@@ -306,9 +330,27 @@ export async function process(
             args = {};
           }
 
-          // Pre-populate family_income_rs from verified user salary if not explicitly set
-          if (call.function.name === 'recommend_schemes' && args.family_income_rs == null && effectiveUserContext?.salary != null) {
-            args.family_income_rs = Number(effectiveUserContext.salary);
+          // Unified Context Bus: Pre-populate missing tool arguments from verified user profile
+          if (call.function.name === 'recommend_schemes') {
+            if (args.family_income_rs == null && effectiveUserContext?.salary != null) {
+              args.family_income_rs = Number(effectiveUserContext.salary);
+            }
+            if (!args.location && (effectiveUserContext?.district || effectiveUserContext?.city)) {
+              args.location = effectiveUserContext.district || effectiveUserContext.city;
+            }
+            if (!args.gender && effectiveUserContext?.gender) {
+              args.gender = effectiveUserContext.gender.toLowerCase();
+            }
+            if (!args.education_level && effectiveUserContext?.education_level) {
+              args.education_level = effectiveUserContext.education_level;
+            }
+            if (!args.purpose && effectiveUserContext?.trade_category) {
+              args.purpose = effectiveUserContext.trade_category;
+            }
+          } else if (call.function.name === 'find_partners') {
+            if (!args.location && (effectiveUserContext?.district || effectiveUserContext?.city)) {
+              args.location = effectiveUserContext.district || effectiveUserContext.city;
+            }
           }
 
           const result = await executeTool(call.function.name, args);

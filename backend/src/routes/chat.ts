@@ -3,6 +3,7 @@ import { process as orchestrate } from '../services/ChatOrchestrator';
 import { pool } from '../db/pool';
 import { optionalUser, UserAuthRequest } from '../middleware/userAuthMiddleware';
 import { generateChatId, autoTitle } from './chats';
+import { UserProfileContext } from '../services/ConversationSession';
 
 const router = Router();
 router.use(optionalUser);
@@ -66,18 +67,39 @@ router.post('/', async (req: UserAuthRequest, res: Response) => {
         [chatId, 'user', message.trim(), 'text']
       );
     }
-
-    // Fetch user profile info (name and verified salary) if authenticated
-    let userContext: { name?: string | null; salary?: number | null } | undefined;
+    // Fetch complete user profile info if authenticated (Unified Context Bus)
+    let userContext: UserProfileContext | undefined;
     if (userId) {
-      const { rows: userRows } = await pool.query<{ name: string | null; salary: string | number | null }>(
-        'SELECT name, salary FROM users WHERE id = $1',
+      const { rows: userRows } = await pool.query<{
+        name: string | null;
+        salary: string | number | null;
+        gender: string | null;
+        city: string | null;
+        district: string | null;
+        state: string | null;
+        pincode: string | null;
+        education_level: string | null;
+        trade_category: string | null;
+        funding_bracket: string | null;
+        caste_category: string | null;
+      }>(
+        'SELECT name, salary, gender, city, district, state, pincode, education_level, trade_category, funding_bracket, caste_category FROM users WHERE id = $1',
         [userId]
       );
       if (userRows.length > 0) {
+        const u = userRows[0];
         userContext = {
-          name: userRows[0].name,
-          salary: userRows[0].salary != null ? Number(userRows[0].salary) : null,
+          name: u.name,
+          salary: u.salary != null ? Number(u.salary) : null,
+          gender: u.gender,
+          city: u.city,
+          district: u.district,
+          state: u.state,
+          pincode: u.pincode,
+          education_level: u.education_level,
+          trade_category: u.trade_category,
+          funding_bracket: u.funding_bracket,
+          caste_category: u.caste_category || 'SC',
         };
       }
     }

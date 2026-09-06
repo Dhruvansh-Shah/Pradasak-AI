@@ -579,5 +579,42 @@ assert(debtTrapPlan.totalInterest <= 15000, 'NSFDC concessional interest for ₹
 assert(debtTrapPlan.informalTotalInterest >= 90000, 'Informal moneylender interest at 36% APR is ~₹90,851 (>= ₹90,000)');
 assert(debtTrapPlan.netWealthPreserved >= 75000, 'Net family wealth preserved exceeds ₹75,000 (actual: ~₹76,380 saved from debt trap)');
 
+// ── 12. Unified Context Bus & Institutional Transparency Tests ──
+console.log('\n🏛️ Testing Unified Context Bus & Institutional Transparency:');
+
+// Test 12.1: Authenticated UserProfileContext hydrates all pre-verified beneficiary facts
+const authPrompt = buildSystemPrompt('en', undefined, {
+  name: 'Pooja Kamble',
+  salary: 280000,
+  gender: 'Female',
+  city: 'Pune',
+  district: 'Pune',
+  state: 'Maharashtra',
+  education_level: 'undergraduate',
+  trade_category: 'tailoring_garments',
+  funding_bracket: 'MICRO_UNDER_1_4L',
+  caste_category: 'SC',
+});
+
+assert(authPrompt.includes('Pooja Kamble'), 'System prompt contains verified Beneficiary Name');
+assert(authPrompt.includes('₹2,80,000'), 'System prompt contains verified Annual Family Income');
+assert(authPrompt.includes('Pune, Maharashtra'), 'System prompt contains verified Location');
+assert(authPrompt.includes('Female'), 'System prompt contains verified Gender');
+assert(authPrompt.includes('undergraduate'), 'System prompt contains verified Education Level');
+assert(authPrompt.includes('tailoring_garments'), 'System prompt contains verified Trade Category');
+assert(authPrompt.includes('CRITICAL ZERO-REDUNDANCY DIRECTIVES'), 'System prompt contains zero-redundancy directives');
+assert(authPrompt.includes('NEVER ask the user what their salary, income, location'), 'Zero-redundancy rules forbid re-asking for verified facts');
+
+// Test 12.2: Gram Panchayat vs. NSFDC Channel Jurisdiction Rules
+assert(authPrompt.includes('Article 243G'), 'System prompt articulates Article 243G constitutional boundary');
+assert(authPrompt.includes('Gram Panchayats govern local civic infrastructure'), 'System prompt explains Gram Panchayat jurisdiction');
+assert(authPrompt.includes('State Channelizing Agencies - SCAs, Public Sector Banks'), 'System prompt lists official accredited lending channels');
+assert(authPrompt.includes('eliminates middleman cuts (dalals)'), 'System prompt highlights middleman-free digital public infrastructure');
+
+// Test 12.3: Guest / Unauthenticated User safely omits profile block
+const guestPrompt = buildSystemPrompt('en');
+assert(!guestPrompt.includes('AUTHENTICATED BENEFICIARY PROFILE'), 'Guest system prompt safely omits authenticated profile section');
+assert(guestPrompt.includes('Article 243G'), 'Guest system prompt still retains institutional transparency protection');
+
 console.log(`\n================== TEST SUMMARY: ${passed} PASSED, ${failed} FAILED ==================\n`);
 process.exit(failed > 0 ? 1 : 0);

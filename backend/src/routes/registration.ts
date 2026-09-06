@@ -109,7 +109,8 @@ router.post('/complete', async (req: Request, res: Response): Promise<void> => {
     full_name, dob, gender, mobile, email,
     address_line1, address_line2, city, district, state, pincode,
     selfie_image, sc_certificate_file, income_certificate_file, aadhaar,
-    password, eligibility_status
+    password, eligibility_status,
+    education_level, trade_category, funding_bracket, caste_category
   } = req.body;
 
   if (!full_name || !mobile || !password) {
@@ -140,20 +141,23 @@ router.post('/complete', async (req: Request, res: Response): Promise<void> => {
         mobile_verified, email_verified,
         address_line1, address_line2, city, district, state, pincode,
         selfie_image, sc_certificate_file, income_certificate_file, aadhaar,
-        eligibility_status, registration_complete, salary
+        eligibility_status, registration_complete, salary,
+        education_level, trade_category, funding_bracket, caste_category
       ) VALUES (
         $1, $2, $3, $4, $5, $6,
         true, false,
         $7, $8, $9, $10, $11, $12,
         $13, $14, $15, $16,
-        $17, true, $18
-      ) RETURNING id, name, email, phone, salary, eligibility_status
+        $17, true, $18,
+        $19, $20, $21, $22
+      ) RETURNING id, name, email, phone, salary, eligibility_status, education_level, trade_category, funding_bracket, caste_category
     `, [
       full_name, mobile, emailStr, passwordHash, dob || null, gender || null,
       address_line1 || null, address_line2 || null, city || null, district || null, state || null, pincode || null,
       selfie_image || null, sc_certificate_file || null, income_certificate_file || null, aadhaar || null,
       eligibility_status || 'pending_manual_review',
-      resolvedSalary
+      resolvedSalary,
+      education_level || null, trade_category || null, funding_bracket || null, caste_category || 'SC'
     ]);
 
     const user = rows[0];

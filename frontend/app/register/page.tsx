@@ -30,6 +30,31 @@ const STATES = [
   'Ladakh','Chandigarh','Dadra & Nagar Haveli','Andaman & Nicobar Islands','Lakshadweep',
 ];
 
+const EDUCATION_LEVELS = [
+  { id: 'school', label: 'Schooling / Matriculate', desc: '10th / 12th Pass, Basic Literacy' },
+  { id: 'diploma', label: 'Vocational Diploma / ITI', desc: 'Polytechnic, ITI or Technical Cert' },
+  { id: 'undergraduate', label: 'Graduate / Bachelor’s', desc: 'B.A, B.Sc, B.Com, B.Tech, etc.' },
+  { id: 'postgraduate', label: 'Postgraduate / Professional', desc: 'M.A, M.Sc, MBA, MBBS, LLB, etc.' },
+];
+
+const TRADE_CATEGORIES = [
+  { id: 'retail_shop', icon: '🏪', label: 'Retail & Kirana Store', desc: 'Grocery, general store, provisions, daily consumer goods' },
+  { id: 'tailoring_garments', icon: '🧵', label: 'Tailoring & Garments', desc: 'Boutique, readymade apparel, garment manufacturing' },
+  { id: 'agriculture_allied', icon: '🐄', label: 'Dairy & Agri Allied', desc: 'Dairy farming, poultry, cold storage, farm value-add' },
+  { id: 'transport_logistics', icon: '🚚', label: 'Transport & Logistics', desc: 'Auto-rickshaw, commercial delivery EV, light transport' },
+  { id: 'it_technical_services', icon: '💻', label: 'IT & Tech Services', desc: 'Mobile servicing, computer hardware, electronics, DTP' },
+  { id: 'artisans_handicrafts', icon: '🎨', label: 'Artisans & Handicrafts', desc: 'Leather goods, pottery, handloom, wooden crafts' },
+  { id: 'education_training', icon: '🎓', label: 'Education & Training', desc: 'Vocational coaching, higher education, skill development' },
+  { id: 'sanitation_green_business', icon: '♻️', label: 'Sanitation & Green Biz', desc: 'Solar installation, solid waste recycling, sanitation unit' },
+];
+
+const FUNDING_BRACKETS = [
+  { id: 'MICRO_UNDER_1_4L', icon: '🪙', label: 'Micro Finance (≤ ₹1.40 Lakh)', desc: 'Micro Credit Finance (MCF), Mahila Samriddhi Yojana (MSY)' },
+  { id: 'SMALL_1_4_TO_15L', icon: '💼', label: 'Small Business (₹1.40L – ₹15 Lakh)', desc: 'Shilpi Samriddhi, Green Business Scheme (GBS), Transport' },
+  { id: 'MEDIUM_15_TO_50L', icon: '🏭', label: 'Term Loan Enterprise (₹15L – ₹50 Lakh)', desc: 'Flagship Term Loan (TL) for commercial enterprise units' },
+  { id: 'EDUCATION_VOCATIONAL', icon: '📚', label: 'Education Loan (Up to ₹20L / ₹30L)', desc: 'Concessional student loan for premier Indian & overseas courses' },
+];
+
 const inputStyle: React.CSSProperties = {
   width: '100%',
   padding: '12px 16px',
@@ -108,6 +133,11 @@ function RegisterContent() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+
+  // Onboarding Intent (SIH PS 26092 Pre-Qualification)
+  const [educationLevel, setEducationLevel] = useState('undergraduate');
+  const [tradeCategory, setTradeCategory] = useState('tailoring_garments');
+  const [fundingBracket, setFundingBracket] = useState('MICRO_UNDER_1_4L');
 
   // Verification States
   const [emailStep, setEmailStep] = useState<'idle' | 'sending' | 'sent' | 'verifying' | 'verified'>('idle');
@@ -293,6 +323,11 @@ function RegisterContent() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
+    if (!educationLevel || !tradeCategory || !fundingBracket) {
+      setError('Please select your education level, business trade category, and desired funding bracket.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     if (password.length < 8) {
       setError('Password must be at least 8 characters long.');
       return;
@@ -345,6 +380,10 @@ function RegisterContent() {
           income_certificate_file: incomeServerFileName,
           eligibility_status: 'verified',
           salary: extractedIncome || null,
+          education_level: educationLevel,
+          trade_category: tradeCategory,
+          funding_bracket: fundingBracket,
+          caste_category: 'SC',
         }),
       });
 
@@ -352,12 +391,21 @@ function RegisterContent() {
       if (!completeRes.ok) throw new Error(completeData.error || 'Registration failed');
 
       localStorage.setItem('auth_token', completeData.token);
-      localStorage.setItem('auth_user', JSON.stringify(completeData.user));
+      localStorage.setItem('auth_user', JSON.stringify({
+        ...completeData.user,
+        education_level: educationLevel,
+        trade_category: tradeCategory,
+        funding_bracket: fundingBracket,
+        caste_category: 'SC',
+      }));
       localStorage.setItem('registration_summary', JSON.stringify({
         full_name: fullName,
         mobile,
         salary: completeData.user?.salary || extractedIncome,
         eligibility_status: 'verified',
+        education_level: educationLevel,
+        trade_category: tradeCategory,
+        funding_bracket: fundingBracket,
         overall_confidence: 1, // Deterministic verification
       }));
 
@@ -775,9 +823,162 @@ function RegisterContent() {
                     )}
                   </section>
 
-                  {/* ── SECTION 5: Security ── */}
+                  {/* ── SECTION 5: Goals & Educational Profile ── */}
                   <section style={{ ...sectionStyle, opacity: isCertVerified ? 1 : 0.6, pointerEvents: isCertVerified ? 'auto' : 'none' }}>
-                    <h2 style={sectionHeadingStyle}>5. Set Your Password</h2>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '2px solid #f1f5f9', paddingBottom: 14, marginBottom: 24 }}>
+                      <h2 style={{ ...sectionHeadingStyle, borderBottom: 'none', paddingBottom: 0, marginBottom: 0 }}>
+                        5. Goals & Educational Background
+                      </h2>
+                      <span style={{ fontSize: 12.5, fontWeight: 700, color: '#0369a1', background: '#f0f9ff', padding: '4px 12px', borderRadius: 20, border: '1px solid #bae6fd' }}>
+                        🎯 Pre-Qualifies Schemes
+                      </span>
+                    </div>
+
+                    {!isCertVerified ? (
+                      <div style={{ padding: 24, background: '#f1f5f9', borderRadius: 12, textAlign: 'center', color: '#64748b' }}>
+                        <p style={{ margin: 0, fontWeight: 600, fontSize: 15, color: '#334155' }}>🔒 Locked until certificates are verified.</p>
+                        <p style={{ margin: '8px 0 0', fontSize: 14 }}>Please complete the Document Verification step above.</p>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+                        {/* 1. Education Level */}
+                        <div>
+                          <label style={{ ...labelStyle, marginBottom: 10 }}>
+                            Highest Education Level <span style={{ color: '#ef4444' }}>*</span>
+                          </label>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+                            {EDUCATION_LEVELS.map(edu => {
+                              const isSelected = educationLevel === edu.id;
+                              return (
+                                <button
+                                  key={edu.id}
+                                  type="button"
+                                  onClick={() => setEducationLevel(edu.id)}
+                                  style={{
+                                    textAlign: 'left',
+                                    padding: '14px 16px',
+                                    borderRadius: 14,
+                                    border: isSelected ? '2px solid #059669' : '1.5px solid #e2e8f0',
+                                    background: isSelected ? '#ecfdf5' : '#f8fafc',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: 4,
+                                    boxShadow: isSelected ? '0 4px 12px rgba(5, 150, 105, 0.12)' : 'none',
+                                  }}
+                                >
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <span style={{ fontSize: 14, fontWeight: 700, color: isSelected ? '#065f46' : '#0f172a' }}>
+                                      {edu.label}
+                                    </span>
+                                    {isSelected && <CheckCircle2 size={18} color="#059669" />}
+                                  </div>
+                                  <span style={{ fontSize: 12, color: isSelected ? '#047857' : '#64748b', lineHeight: 1.4 }}>
+                                    {edu.desc}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* 2. Trade / Venture Category */}
+                        <div>
+                          <label style={{ ...labelStyle, marginBottom: 10 }}>
+                            Planned Business / Trade Category <span style={{ color: '#ef4444' }}>*</span>
+                          </label>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+                            {TRADE_CATEGORIES.map(cat => {
+                              const isSelected = tradeCategory === cat.id;
+                              return (
+                                <button
+                                  key={cat.id}
+                                  type="button"
+                                  onClick={() => setTradeCategory(cat.id)}
+                                  style={{
+                                    textAlign: 'left',
+                                    padding: '14px 16px',
+                                    borderRadius: 14,
+                                    border: isSelected ? '2px solid #0284c7' : '1.5px solid #e2e8f0',
+                                    background: isSelected ? '#f0f9ff' : '#f8fafc',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: 4,
+                                    boxShadow: isSelected ? '0 4px 12px rgba(2, 132, 199, 0.12)' : 'none',
+                                  }}
+                                >
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                      <span style={{ fontSize: 18 }}>{cat.icon}</span>
+                                      <span style={{ fontSize: 14, fontWeight: 700, color: isSelected ? '#0369a1' : '#0f172a' }}>
+                                        {cat.label}
+                                      </span>
+                                    </div>
+                                    {isSelected && <CheckCircle2 size={18} color="#0284c7" />}
+                                  </div>
+                                  <span style={{ fontSize: 12, color: isSelected ? '#0284c7' : '#64748b', lineHeight: 1.4 }}>
+                                    {cat.desc}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* 3. Desired Funding Bracket */}
+                        <div>
+                          <label style={{ ...labelStyle, marginBottom: 10 }}>
+                            Desired Funding Bracket <span style={{ color: '#ef4444' }}>*</span>
+                          </label>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+                            {FUNDING_BRACKETS.map(bracket => {
+                              const isSelected = fundingBracket === bracket.id;
+                              return (
+                                <button
+                                  key={bracket.id}
+                                  type="button"
+                                  onClick={() => setFundingBracket(bracket.id)}
+                                  style={{
+                                    textAlign: 'left',
+                                    padding: '14px 16px',
+                                    borderRadius: 14,
+                                    border: isSelected ? '2px solid #d97706' : '1.5px solid #e2e8f0',
+                                    background: isSelected ? '#fffbeb' : '#f8fafc',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: 4,
+                                    boxShadow: isSelected ? '0 4px 12px rgba(217, 119, 6, 0.12)' : 'none',
+                                  }}
+                                >
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                      <span style={{ fontSize: 18 }}>{bracket.icon}</span>
+                                      <span style={{ fontSize: 14, fontWeight: 700, color: isSelected ? '#92400e' : '#0f172a' }}>
+                                        {bracket.label}
+                                      </span>
+                                    </div>
+                                    {isSelected && <CheckCircle2 size={18} color="#d97706" />}
+                                  </div>
+                                  <span style={{ fontSize: 12, color: isSelected ? '#b45309' : '#64748b', lineHeight: 1.4 }}>
+                                    {bracket.desc}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </section>
+
+                  {/* ── SECTION 6: Security ── */}
+                  <section style={{ ...sectionStyle, opacity: isCertVerified ? 1 : 0.6, pointerEvents: isCertVerified ? 'auto' : 'none' }}>
+                    <h2 style={sectionHeadingStyle}>6. Set Your Password</h2>
 
                     {!isCertVerified ? (
                        <div style={{ padding: 24, background: '#f1f5f9', borderRadius: 12, textAlign: 'center', color: '#64748b' }}>
