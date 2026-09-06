@@ -2,6 +2,8 @@
 
 import { Calculator, Calendar, Percent } from 'lucide-react';
 import VoiceButton from './VoiceButton';
+import { useLanguage } from '@/context/LanguageContext';
+import { getLocalizedSchemeName } from '@/lib/translations';
 
 export interface EMIData {
   emi?: number;
@@ -39,6 +41,7 @@ export default function EMIResultCard({
   isVoicePlaying,
   isVoiceLoading,
 }: EMIResultCardProps) {
+  const { language, t } = useLanguage();
   if (!data) return null;
 
   const emi = data.emi ?? 0;
@@ -48,6 +51,8 @@ export default function EMIResultCard({
   const rate = data.interestRatePct ?? data.rate ?? data.params?.rate ?? 0;
   const tenureMonths = data.tenureMonths ?? data.params?.tenureMonths ?? 0;
   const moratoriumMonths = data.moratoriumMonths ?? data.params?.moratoriumMonths ?? 0;
+
+  const localizedScheme = data.schemeName ? getLocalizedSchemeName(data.schemeName, language) : '';
 
   return (
     <div
@@ -87,7 +92,7 @@ export default function EMIResultCard({
           }}
         >
           <Calculator size={15} color="#ea580c" />
-          <span>{data.schemeName ? `Calculated EMI: ${data.schemeName}` : 'EMI Calculation'}</span>
+          <span>{data.schemeName ? `${t('emi.calculated_for')} ${localizedScheme}` : t('emi.calc_title')}</span>
         </div>
 
         {onPlayVoice && (
@@ -96,7 +101,7 @@ export default function EMIResultCard({
             isLoading={!!isVoiceLoading}
             onPlay={onPlayVoice}
             onStop={onStopVoice || (() => {})}
-            title="Listen to EMI projection"
+            title={t('emi.listen_title')}
           />
         )}
       </div>
@@ -116,13 +121,13 @@ export default function EMIResultCard({
         }}
       >
         <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: 500 }}>
-          Estimated Monthly Instalment
+          {t('emi.monthly_instalment')}
         </span>
         <div style={{ fontSize: 34, fontWeight: 900, color: '#fbbf24', letterSpacing: '-0.02em' }}>
           {fmt(emi)}
         </div>
         <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.6)' }}>
-          per month after moratorium grace period
+          {t('emi.per_month_grace')}
         </span>
       </div>
 
@@ -138,7 +143,7 @@ export default function EMIResultCard({
           }}
         >
           <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary, #94a3b8)', display: 'block', marginBottom: 2 }}>
-            Principal
+            {t('emi.principal_amount')}
           </span>
           <strong style={{ fontSize: 14, fontWeight: 800, color: 'var(--text, #0f172a)' }}>
             {fmt(principal)}
@@ -155,7 +160,7 @@ export default function EMIResultCard({
           }}
         >
           <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary, #94a3b8)', display: 'block', marginBottom: 2 }}>
-            Total Interest
+            {t('emi.interest_amount')}
           </span>
           <strong style={{ fontSize: 14, fontWeight: 800, color: '#c2410c' }}>
             {fmt(totalInterest)}
@@ -172,7 +177,7 @@ export default function EMIResultCard({
           }}
         >
           <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary, #94a3b8)', display: 'block', marginBottom: 2 }}>
-            Total Outflow
+            {t('emi.outflow_amount')}
           </span>
           <strong style={{ fontSize: 14, fontWeight: 800, color: '#15803d' }}>
             {fmt(totalPayable)}
@@ -198,16 +203,16 @@ export default function EMIResultCard({
       >
         <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <Percent size={13} color="#ea580c" />
-          <strong>{rate}%</strong> p.a. interest
+          <strong>{rate}%</strong> {t('emi.interest_p_a')}
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <Calendar size={13} color="#0b1f3a" />
-          <strong>{tenureMonths}</strong> Mo tenure
+          <strong>{tenureMonths}</strong> {t('emi.mo_tenure')}
         </span>
         {moratoriumMonths > 0 && (
           <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             <Calendar size={13} color="#15803d" />
-            <strong>{moratoriumMonths}</strong> Mo moratorium
+            <strong>{moratoriumMonths}</strong> {t('emi.mo_moratorium')}
           </span>
         )}
       </div>

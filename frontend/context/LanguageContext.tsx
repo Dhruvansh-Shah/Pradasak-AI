@@ -8,6 +8,7 @@ export type LanguageMode = LanguageCode | 'auto';
 
 interface LanguageContextType {
   lang: Language;
+  language: Language;
   selectedMode: LanguageMode;
   isAuto: boolean;
   setLang: (mode: LanguageMode) => void;
@@ -17,6 +18,7 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType>({
   lang: 'en',
+  language: 'en',
   selectedMode: 'auto',
   isAuto: true,
   setLang: () => {},
@@ -26,24 +28,21 @@ const LanguageContext = createContext<LanguageContextType>({
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLangState] = useState<Language>('en');
-  const [selectedMode, setSelectedMode] = useState<LanguageMode>('auto');
+  const [selectedMode, setSelectedMode] = useState<LanguageMode>('en');
 
   useEffect(() => {
     const savedMode = localStorage.getItem('app_lang_mode') as LanguageMode | null;
     const savedLang = localStorage.getItem('app_lang') as Language | null;
 
     if (savedMode && isValidLanguageCode(savedMode)) {
-      // Explicit mode explicitly saved by user (e.g. 'hi', 'kn', 'en')
       setSelectedMode(savedMode);
       setLangState(getLanguageConfig(savedMode).id);
+    } else if (savedLang && isValidLanguageCode(savedLang)) {
+      setSelectedMode(savedLang);
+      setLangState(getLanguageConfig(savedLang).id);
     } else {
-      // Default to Auto mode for all new users or when app_lang_mode is 'auto' / unset
-      setSelectedMode('auto');
-      if (savedLang && isValidLanguageCode(savedLang)) {
-        setLangState(getLanguageConfig(savedLang).id);
-      } else {
-        setLangState('en');
-      }
+      setSelectedMode('en');
+      setLangState('en');
     }
   }, []);
 
@@ -63,25 +62,23 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   const updateDetectedLang = useCallback(
     (detectedCode: string, probability?: number | null) => {
-      // Rule 1: Explicit selection MUST remain authoritative! Never override if not in Auto mode.
-      if (selectedMode !== 'auto') return;
-
-      // Rule 2: Ignore weak or ambiguous speech detection
+      // Ignore weak or ambiguous speech detection
       if (probability != null && probability < 0.6) return;
-
       if (!detectedCode || !isValidLanguageCode(detectedCode)) return;
 
       const cfg = getLanguageConfig(detectedCode);
+      setSelectedMode(cfg.id);
+      localStorage.setItem('app_lang_mode', cfg.id);
+      localStorage.setItem('app_lang', cfg.id);
       setLangState((prev) => {
         if (prev !== cfg.id) {
-          localStorage.setItem('app_lang', cfg.id);
           window.dispatchEvent(new Event('app_language_changed'));
           return cfg.id;
         }
         return prev;
       });
     },
-    [selectedMode]
+    []
   );
 
   function t(key: string, fallback?: string): string {
@@ -92,7 +89,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <LanguageContext.Provider value={{ lang, selectedMode, isAuto, setLang, updateDetectedLang, t }}>
+    <LanguageContext.Provider value={{ lang, language: lang, selectedMode, isAuto, setLang, updateDetectedLang, t }}>
       {children}
     </LanguageContext.Provider>
   );

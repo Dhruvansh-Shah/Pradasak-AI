@@ -1,6 +1,7 @@
 'use client';
 
-import { Building2, Landmark, MapPin, Phone, CheckCircle2, Navigation, ExternalLink, Globe, Mail } from 'lucide-react';
+import { Building2, Landmark, MapPin, Phone, CheckCircle2, Navigation, Globe } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
 
 export interface PartnerCardData {
   id: number;
@@ -22,27 +23,27 @@ export interface PartnerCardData {
   verification_status?: string;
 }
 
-const TYPE_META: Record<
+const TYPE_CONFIG: Record<
   string,
-  { label: string; color: string; bg: string; border: string; Icon: React.ElementType }
+  { key: string; defaultLabel: string; color: string; bg: string; border: string; Icon: React.ElementType }
 > = {
-  SCA:                 { label: 'State Agency (SCA)',        color: '#1e40af', bg: '#eff6ff', border: '#bfdbfe', Icon: Building2 },
-  PSB:                 { label: 'Public Sector Bank',        color: '#065f46', bg: '#ecfdf5', border: '#a7f3d0', Icon: Landmark },
-  RRB:                 { label: 'Regional Rural Bank',       color: '#047857', bg: '#f0fdf4', border: '#bbf7d0', Icon: Landmark },
-  NBFC_MFI:            { label: 'NBFC-MFI Partner',          color: '#6b21a8', bg: '#faf5ff', border: '#e9d5ff', Icon: Building2 },
-  Cooperative_Bank:    { label: 'Co-operative Bank',         color: '#c2410c', bg: '#fff7ed', border: '#ffedd5', Icon: Landmark },
-  Other_Agency_SIDBI:  { label: 'Other Agencies & SIDBI',    color: '#0f766e', bg: '#f0fdfa', border: '#ccfbf1', Icon: Building2 },
-  Small_Finance_Bank:  { label: 'Small Finance Bank',        color: '#4338ca', bg: '#eef2ff', border: '#c7d2fe', Icon: Landmark },
-  Cooperative_Society: { label: 'Cooperative Society',       color: '#a16207', bg: '#fefce8', border: '#fef08a', Icon: Building2 },
-  default:             { label: 'Authorized Partner',       color: '#334155', bg: '#f8fafc', border: '#e2e8f0', Icon: Building2 },
+  SCA:                 { key: 'partner.state_agency',        defaultLabel: 'State Agency (SCA)',        color: '#1e40af', bg: '#eff6ff', border: '#bfdbfe', Icon: Building2 },
+  PSB:                 { key: 'partner.public_bank',         defaultLabel: 'Public Sector Bank',        color: '#065f46', bg: '#ecfdf5', border: '#a7f3d0', Icon: Landmark },
+  RRB:                 { key: 'partner.rural_bank',          defaultLabel: 'Regional Rural Bank',       color: '#047857', bg: '#f0fdf4', border: '#bbf7d0', Icon: Landmark },
+  NBFC_MFI:            { key: 'partner.nbfc_mfi',            defaultLabel: 'NBFC-MFI Partner',          color: '#6b21a8', bg: '#faf5ff', border: '#e9d5ff', Icon: Building2 },
+  Cooperative_Bank:    { key: 'partner.cooperative_bank',    defaultLabel: 'Co-operative Bank',         color: '#c2410c', bg: '#fff7ed', border: '#ffedd5', Icon: Landmark },
+  Other_Agency_SIDBI:  { key: 'partner.other_agency',        defaultLabel: 'Other Agencies & SIDBI',    color: '#0f766e', bg: '#f0fdfa', border: '#ccfbf1', Icon: Building2 },
+  Small_Finance_Bank:  { key: 'partner.small_finance_bank',  defaultLabel: 'Small Finance Bank',        color: '#4338ca', bg: '#eef2ff', border: '#c7d2fe', Icon: Landmark },
+  Cooperative_Society: { key: 'partner.cooperative_society', defaultLabel: 'Cooperative Society',       color: '#a16207', bg: '#fefce8', border: '#fef08a', Icon: Building2 },
+  default:             { key: 'partner.authorized_partner',  defaultLabel: 'Authorized Partner',       color: '#334155', bg: '#f8fafc', border: '#e2e8f0', Icon: Building2 },
 };
 
-const CATEGORY_NAMES: Record<string, string> = {
-  micro_finance: 'Micro Credit',
-  term_loan: 'Term Loan',
-  education_loan: 'Education Loan',
-  entrepreneurship: 'Entrepreneurship',
-  skill_development: 'Skill Dev',
+const CATEGORY_KEYS: Record<string, string> = {
+  micro_finance: 'category.micro_finance',
+  term_loan: 'category.term_loan',
+  education_loan: 'category.education_loan',
+  entrepreneurship: 'category.entrepreneurship',
+  skill_development: 'category.skill_development',
 };
 
 interface PartnerResultCardProps {
@@ -53,8 +54,10 @@ interface PartnerResultCardProps {
 }
 
 export default function PartnerResultCard({ partner, isSelected, onSelect }: PartnerResultCardProps) {
-  const meta = TYPE_META[partner.partner_type] || TYPE_META.default;
+  const { t } = useLanguage();
+  const meta = TYPE_CONFIG[partner.partner_type] || TYPE_CONFIG.default;
   const Icon = meta.Icon;
+  const typeLabel = t(meta.key) !== meta.key ? t(meta.key) : meta.defaultLabel;
 
   const categories = partner.eligible_categories || partner.supported_schemes || [];
   const isVerified = !partner.verification_status || partner.verification_status === 'verified';
@@ -109,7 +112,7 @@ export default function PartnerResultCard({ partner, isSelected, onSelect }: Par
               letterSpacing: '0.03em',
             }}
           >
-            {meta.label}
+            {typeLabel}
           </span>
 
           {isVerified ? (
@@ -128,7 +131,7 @@ export default function PartnerResultCard({ partner, isSelected, onSelect }: Par
               }}
             >
               <CheckCircle2 size={12} />
-              <span>🟢 NSFDC VERIFIED</span>
+              <span>🟢 {t('partner.verified_branch')}</span>
             </span>
           ) : (
             <span
@@ -145,7 +148,7 @@ export default function PartnerResultCard({ partner, isSelected, onSelect }: Par
                 border: '1px solid #fef08a',
               }}
             >
-              <span>🟡 ADDITIONAL FINANCIAL INSTITUTION</span>
+              <span>🟡 {typeLabel}</span>
             </span>
           )}
         </div>
@@ -168,8 +171,8 @@ export default function PartnerResultCard({ partner, isSelected, onSelect }: Par
             <Navigation size={12} color="#ea580c" />
             <span>
               {Number(partner.distance_km) < 1
-                ? `${Math.round(Number(partner.distance_km) * 1000)} m away`
-                : `${Number(partner.distance_km).toFixed(1)} km away`}
+                ? `${Math.round(Number(partner.distance_km) * 1000)} m`
+                : `${Number(partner.distance_km).toFixed(1)} km`}
             </span>
           </div>
         )}
@@ -196,21 +199,25 @@ export default function PartnerResultCard({ partner, isSelected, onSelect }: Par
         
         {/* Category Tags */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-          {categories.map((c) => (
-            <span
-              key={c}
-              style={{
-                fontSize: 10.5,
-                fontWeight: 600,
-                background: '#f1f5f9',
-                color: '#475569',
-                padding: '2px 8px',
-                borderRadius: 6,
-              }}
-            >
-              {CATEGORY_NAMES[c] || c.replace('_', ' ')}
-            </span>
-          ))}
+          {categories.map((c) => {
+            const catKey = CATEGORY_KEYS[c];
+            const catLabel = catKey && t(catKey) !== catKey ? t(catKey) : c.replace('_', ' ');
+            return (
+              <span
+                key={c}
+                style={{
+                  fontSize: 10.5,
+                  fontWeight: 600,
+                  background: '#f1f5f9',
+                  color: '#475569',
+                  padding: '2px 8px',
+                  borderRadius: 6,
+                }}
+              >
+                {catLabel}
+              </span>
+            );
+          })}
         </div>
 
         {/* Action Buttons / Links */}
@@ -264,4 +271,3 @@ export default function PartnerResultCard({ partner, isSelected, onSelect }: Par
     </div>
   );
 }
-

@@ -258,7 +258,7 @@ export default function NavBar() {
                 }}
               >
                 <Globe size={14} color="#ffdcc2" />
-                <span>{isAuto ? `Auto (${currentLangObj.nativeName})` : currentLangObj.nativeName}</span>
+                <span>{currentLangObj.nativeName}</span>
                 <ChevronDown size={13} style={{ transform: langOpen ? 'rotate(180deg)' : 'none', transition: 'transform 150ms' }} />
               </button>
 

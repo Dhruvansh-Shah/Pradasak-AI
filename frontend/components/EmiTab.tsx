@@ -247,13 +247,28 @@ export default function EmiTab({ onSchemeSelect }: { onSchemeSelect?: (schemeNam
       monthlyEMI: calculation.monthlyEMI,
       totalInterest: calculation.totalInterest,
       totalOutflow: calculation.totalRepaid,
-    });
-  }, [selectedScheme, presetIndex, amount, rate, tenure, moratorium, calculation]);
+    }, lang);
+  }, [selectedScheme, presetIndex, amount, rate, tenure, moratorium, calculation, lang]);
 
   const handlePlayVoice = useCallback(
     async (textToSpeak: string) => {
       stopAudio();
       setIsLoadingVoice(true);
+      const langMap: Record<string, string> = {
+        hi: 'hi-IN',
+        mr: 'mr-IN',
+        bn: 'bn-IN',
+        gu: 'gu-IN',
+        kn: 'kn-IN',
+        ml: 'ml-IN',
+        od: 'or-IN',
+        pa: 'pa-IN',
+        ta: 'ta-IN',
+        te: 'te-IN',
+        en: 'en-IN',
+      };
+      const utteranceLang = langMap[lang] || 'en-IN';
+
       try {
         const blob = await fetchTTS(textToSpeak, lang);
         const url = URL.createObjectURL(blob);
@@ -265,6 +280,7 @@ export default function EmiTab({ onSchemeSelect }: { onSchemeSelect?: (schemeNam
           stopAudio();
           if (typeof window !== 'undefined' && window.speechSynthesis) {
             const u = new SpeechSynthesisUtterance(textToSpeak);
+            u.lang = utteranceLang;
             u.onend = () => setIsPlayingVoice(false);
             u.onerror = () => setIsPlayingVoice(false);
             setIsPlayingVoice(true);
@@ -278,6 +294,7 @@ export default function EmiTab({ onSchemeSelect }: { onSchemeSelect?: (schemeNam
         setIsLoadingVoice(false);
         if (typeof window !== 'undefined' && window.speechSynthesis) {
           const u = new SpeechSynthesisUtterance(textToSpeak);
+          u.lang = utteranceLang;
           u.onend = () => setIsPlayingVoice(false);
           u.onerror = () => setIsPlayingVoice(false);
           setIsPlayingVoice(true);
