@@ -1,5 +1,5 @@
 import type { ToolDef } from '../lib/openrouter';
-import { recommendSchemes, fetchActiveSchemes, fetchSchemeByName } from './SchemeEngine';
+import { recommendSchemes, fetchActiveSchemes, fetchSchemeByName, fetchSchemeById } from './SchemeEngine';
 import type { ScoredScheme, Scheme } from './SchemeEngine';
 import { geocode, findNearbyPartners } from './LocationService';
 import type { UserEntities } from './ConversationSession';
@@ -86,6 +86,7 @@ export const TOOL_DEFS: ToolDef[] = [
       parameters: {
         type: 'object',
         properties: {
+          scheme_id: { type: 'number', description: 'Numeric ID of the scheme, if known' },
           scheme_name: { type: 'string', description: 'Name of the scheme the user is applying for, if known' },
           is_education: { type: 'boolean', description: 'True if this is for an education loan' },
         },
@@ -96,11 +97,12 @@ export const TOOL_DEFS: ToolDef[] = [
     type: 'function',
     function: {
       name: 'compare_schemes',
-      description: 'Fetch exactly two or more distinct named schemes side by side for comparison. ONLY call this tool when the user explicitly requests to compare two or more schemes (e.g. "Compare SUY and VETLS", "Difference between MCF and Term Loan"). Do NOT call this tool for single-scheme detail requests.',
+      description: 'Fetch two or more distinct schemes side by side for comparison using scheme IDs or names.',
       parameters: {
         type: 'object',
         properties: {
-          scheme_names: { type: 'array', items: { type: 'string' } },
+          scheme_ids: { type: 'array', items: { type: 'number' }, description: 'Array of numeric scheme IDs to compare' },
+          scheme_names: { type: 'array', items: { type: 'string' }, description: 'Array of scheme names/acronyms to compare' },
         },
       },
     },
@@ -189,50 +191,90 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
 
     case 'get_required_documents': {
       let scheme: Scheme | null = null;
+      if (args.scheme_id != null) {
+        scheme = await fetchSchemeById(Number(args.scheme_id));
+      }
       const schemeName = args.scheme_name as string | undefined;
-      if (schemeName) {
+      if (!scheme && schemeName) {
         scheme = await fetchSchemeByName(schemeName);
       }
       const isEdu = Boolean(args.is_education) || scheme?.category === 'education_loan';
 
-      const documents = [
-        'Aadhaar Card (Identity & Address Proof)',
-        'Valid SC Caste Certificate issued by Competent Authority',
-        'Income Certificate (Family annual income ≤ ₹5.00 Lakh)',
-        'Bank Account Passbook / Statement (Aadhaar linked)',
-        'Recent Passport-size Photographs (2 copies)',
-        isEdu
-          ? 'Admission Letter & Fee Structure from Recognized College/University'
-          : 'Project Report / Business Quotation for Machinery or Working Capital',
+      const mandatoryDocuments = [
+        'Aadhaar Card (Proof of Identity & Address)',
+        'Valid Scheduled Caste (SC) Certificate issued by Revenue Authority (Tahsildar/SDM)',
+        'Income Certificate / Salary Slip (Annual family income ≤ ₹5.00 Lakh)',
+        'Bank Account Passbook / Statement (Aadhaar linked for DBT)',
+        'Passport-size Photographs (2 copies)',
       ];
+
+      const conditionalDocuments = isEdu
+        ? [
+            'Admission Offer Letter / Bonafide Certificate from College/University',
+            'Fee Structure Breakdown (Tuition, Hostel, Books, Exam fees)',
+            'Educational Marksheets (10th, 12th, or Graduation degree)',
+          ]
+        : [
+            'Detailed Business Plan / Project Proposal',
+            'Machinery / Equipment / Stock Quotation from Authorized Vendor',
+            'Rent Agreement or Land Ownership Document (for business premises)',
+          ];
+
+      const allDocs = scheme?.documents_required && scheme.documents_required.length > 0
+        ? Array.from(new Set([...mandatoryDocuments, ...scheme.documents_required, ...conditionalDocuments]))
+        : [...mandatoryDocuments, ...conditionalDocuments];
 
       return {
         toolName: name,
         data: {
-          documents,
-          note: 'Original certificates must be presented for in-person verification at the Channel Partner branch.',
+          schemeId: scheme?.id || null,
           schemeName: scheme?.name || schemeName || null,
+          documents: allDocs,
+          mandatoryDocuments,
+          conditionalDocuments,
+          note: 'Original certificates must be presented for in-person verification at the Channel Partner branch.',
+          scheme: scheme || null,
         },
       };
     }
 
     case 'compare_schemes': {
+      const ids = (args.scheme_ids as number[] | undefined) || [];
       const names = (args.scheme_names as string[] | undefined) || [];
-      if (names.length < 2) {
-        // Single scheme passed to compare — fall back to recommend_schemes so response type is 'schemes' (never 'comparison')
-        return executeTool('recommend_schemes', { purpose: names[0] || '' });
+
+      const fetchedSchemes: Scheme[] = [];
+
+      if (ids.length > 0) {
+        for (const id of ids) {
+          const s = await fetchSchemeById(Number(id));
+          if (s) fetchedSchemes.push(s);
+        }
+      } else if (names.length > 0) {
+        for (const nm of names) {
+          const s = await fetchSchemeByName(nm);
+          if (s && !fetchedSchemes.some((f) => f.id === s.id)) fetchedSchemes.push(s);
+        }
       }
 
-      let schemeA: Scheme | null = await fetchSchemeByName(names[0]);
-      let schemeB: Scheme | null = await fetchSchemeByName(names[1]);
-
-      if (!schemeA || !schemeB) {
-        const all = await fetchActiveSchemes();
-        schemeA = schemeA || all[0];
-        schemeB = schemeB || all[1] || all[0];
+      // If fewer than 2 schemes resolved, fill with active schemes
+      if (fetchedSchemes.length < 2) {
+        const active = await fetchActiveSchemes();
+        for (const act of active) {
+          if (!fetchedSchemes.some((f) => f.id === act.id)) {
+            fetchedSchemes.push(act);
+            if (fetchedSchemes.length >= 2) break;
+          }
+        }
       }
 
-      return { toolName: name, data: { schemeA, schemeB } };
+      return {
+        toolName: name,
+        data: {
+          schemes: fetchedSchemes,
+          schemeA: fetchedSchemes[0] || null,
+          schemeB: fetchedSchemes[1] || null,
+        },
+      };
     }
 
     default:
