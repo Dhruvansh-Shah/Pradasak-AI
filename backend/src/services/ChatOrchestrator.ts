@@ -293,7 +293,7 @@ export async function process(
 
   try {
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-      const assistantMsg = await llmChat({ messages, tools: TOOL_DEFS, maxTokens: 700 });
+      const assistantMsg = await llmChat({ messages, tools: TOOL_DEFS, maxTokens: 300 });
 
       if (assistantMsg.tool_calls && assistantMsg.tool_calls.length > 0) {
         messages.push({ role: 'assistant', content: assistantMsg.content ?? null, tool_calls: assistantMsg.tool_calls });
@@ -315,10 +315,27 @@ export async function process(
           lastToolName = result.toolName;
           lastToolData = result.data;
 
+          let compactData: unknown = result.data;
+          if (call.function.name === 'recommend_schemes' && Array.isArray((result.data as { schemes?: unknown[] }).schemes)) {
+            const rawSchemes = (result.data as { schemes: Record<string, unknown>[]; nearestPartner?: Record<string, unknown> }).schemes;
+            const nearest = (result.data as { nearestPartner?: Record<string, unknown> }).nearestPartner;
+            compactData = {
+              schemes: rawSchemes.map((s) => ({
+                name: s.name,
+                max_loan: `₹${s.max_loan_lakh} Lakh`,
+                interest_rate: `${s.interest_rate_min}–${s.interest_rate_max}%`,
+                tenure_years: s.max_tenure_months ? Math.round(Number(s.max_tenure_months) / 12) : undefined,
+                moratorium_months: s.moratorium_months_max,
+                match_score: typeof s.score === 'number' ? `${Math.round(s.score)}%` : undefined,
+              })),
+              nearest_partner: nearest ? `${nearest.name}, ${nearest.city || ''}` : undefined,
+            };
+          }
+
           messages.push({
             role: 'tool',
             tool_call_id: call.id,
-            content: JSON.stringify(result.data),
+            content: JSON.stringify(compactData),
           });
         }
         continue; // let the model produce the grounded explanation (or another tool call) next round
@@ -340,12 +357,23 @@ export async function process(
   }
 
   if (!finalText) {
-    finalText =
-      session.language === 'hi'
-        ? 'क्षमा करें, कृपया अपना प्रश्न दोबारा बताएं।'
-        : session.language === 'mr'
-        ? 'माफ करा, कृपया तुमचा प्रश्न पुन्हा सांगा.'
-        : "Sorry, could you rephrase that for me?";
+    const rawSchemes = (lastToolData as { schemes?: Record<string, unknown>[] } | undefined)?.schemes;
+    if (lastToolName === 'recommend_schemes' && Array.isArray(rawSchemes) && rawSchemes.length > 0) {
+      const top = rawSchemes[0];
+      const partner = (lastToolData as { nearestPartner?: Record<string, unknown> } | undefined)?.nearestPartner;
+      if (session.language === 'hi') {
+        finalText = `मैंने आपकी आवश्यकता के अनुसार ${top.name} योजना खोजी है। यह योजना ₹${top.max_loan_lakh} लाख तक का ऋण ${top.interest_rate_min}%–${top.interest_rate_max}% ब्याज दर पर प्रदान करती है।${partner ? ` आपके पास अधिकृत चैनल पार्टनर ${partner.name} है।` : ''} क्या आप इसके लिए आवश्यक दस्तावेज या EMI जानना चाहते हैं?`;
+      } else if (session.language === 'mr') {
+        finalText = `मी तुमच्या गरजेनुसार ${top.name} योजना शोधली आहे. ही योजना ₹${top.max_loan_lakh} लाखांपर्यंत कर्ज ${top.interest_rate_min}%–${top.interest_rate_max}% व्याजदराने उपलब्ध करते.${partner ? ` आपल्या जवळ अधिकृत चॅनेल भागीदार ${partner.name} आहे.` : ''} तुम्हाला आवश्यक कागदपत्रे किंवा EMI जाणून घ्यायची आहे का?`;
+      } else {
+        finalText = `I found matching concessional loan schemes for you. The most suitable option is ${top.name}, which provides loans up to ₹${top.max_loan_lakh} Lakh at ${top.interest_rate_min}%–${top.interest_rate_max}% annual interest.${partner ? ` The nearest authorized channel partner is ${partner.name}.` : ''} Would you like to check the required documents or calculate the monthly EMI?`;
+      }
+    } else {
+      finalText =
+        LOCALIZED_ERROR_MESSAGES[session.language] ||
+        LOCALIZED_ERROR_MESSAGES.en ||
+        "Sorry, could you rephrase that for me?";
+    }
   }
 
   finalText = stripMarkdown(finalText);
