@@ -120,6 +120,7 @@ export default function NavBar() {
 
       {/* ── Main Government Blue Navbar ──────────────────────────────────── */}
       <div
+        className="material-toolbar"
         style={{
           background: '#001e40',
           borderBottom: '1px solid rgba(255, 255, 255, 0.15)',
@@ -204,14 +205,14 @@ export default function NavBar() {
                     alignItems: 'center',
                     gap: 6,
                     padding: '8px 14px',
-                    borderRadius: 4,
+                    borderRadius: 8,
                     fontSize: 13.5,
                     fontWeight: active ? 700 : 500,
                     color: active ? '#ffffff' : '#cbd5e1',
                     background: active ? '#003366' : 'transparent',
                     border: active ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid transparent',
                     textDecoration: 'none',
-                    transition: 'all 120ms ease',
+                    transition: 'background-color 120ms ease, color 120ms ease, border-color 120ms ease',
                   }}
                   onMouseEnter={(e) => {
                     if (!active) {
@@ -243,12 +244,13 @@ export default function NavBar() {
                   e.stopPropagation();
                   setLangOpen((prev) => !prev);
                 }}
+                className="interactive-control focus-ring"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: 6,
                   padding: '7px 11px',
-                  borderRadius: 4,
+                  borderRadius: 8,
                   fontSize: 13,
                   fontWeight: 600,
                   color: '#f8fafc',
@@ -354,7 +356,7 @@ export default function NavBar() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Link
                   href="/profile"
-                  className="btn-bounce"
+                  className="btn-bounce focus-ring"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -374,7 +376,7 @@ export default function NavBar() {
                 </Link>
                 <button
                   onClick={logout}
-                  className="btn-bounce"
+                  className="btn-bounce focus-ring"
                   style={{
                     padding: '7px 9px',
                     borderRadius: 4,
@@ -392,7 +394,7 @@ export default function NavBar() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Link
                   href="/auth"
-                  className="btn-bounce"
+                  className="btn-bounce focus-ring"
                   style={{
                     fontSize: 13,
                     padding: '7px 13px',
@@ -412,7 +414,7 @@ export default function NavBar() {
                 </Link>
                 <Link
                   href="/register"
-                  className="btn btn-amber btn-bounce"
+                  className="btn btn-amber btn-bounce focus-ring"
                   style={{
                     fontSize: 13,
                     padding: '7px 14px',
@@ -433,7 +435,7 @@ export default function NavBar() {
             {/* Mobile Hamburger Menu */}
             <button
               type="button"
-              className="md:hidden"
+              className="md:hidden interactive-control focus-ring"
               onClick={() => setMobileOpen((prev) => !prev)}
               style={{
                 padding: '7px',
@@ -453,7 +455,7 @@ export default function NavBar() {
       {/* ── Mobile Menu Dropdown ───────────────────────────────────────────── */}
       {mobileOpen && (
         <div
-          className="md:hidden"
+          className="md:hidden material-sheet"
           style={{
             background: '#001e40',
             borderBottom: '2px solid rgba(255, 255, 255, 0.15)',

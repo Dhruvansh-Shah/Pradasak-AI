@@ -46,7 +46,7 @@ function createDualZoneMarkerIcon(partnerType: string, isSelected: boolean) {
           align-items:center;
           justify-content:center;
           font-size:${isSelected ? 13 : 10}px;
-          transition: all 200ms ease;
+          transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1), box-shadow 200ms ease;
           cursor: pointer;
         ">
           🏛️
@@ -77,7 +77,7 @@ function createDualZoneMarkerIcon(partnerType: string, isSelected: boolean) {
         font-size:${isSelected ? 12 : 9}px;
         color: #ffffff;
         font-weight: 800;
-        transition: all 200ms ease;
+        transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1), box-shadow 200ms ease;
         cursor: pointer;
       ">
         🏦

@@ -448,7 +448,7 @@ function MessageBubble({
                     border: 'none',
                     cursor: 'pointer',
                     boxShadow: '0 2px 8px rgba(11,31,58,0.15)',
-                    transition: 'all 150ms ease',
+                    transition: 'background-color 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease',
                   }}
                   onMouseEnter={(e) => {
                     (e.currentTarget as HTMLElement).style.background = '#1e3a8a';
@@ -485,7 +485,7 @@ function MessageBubble({
                   border: '1.5px solid #0b1f3a',
                   cursor: 'pointer',
                   boxShadow: '0 2px 6px rgba(11,31,58,0.06)',
-                  transition: 'all 150ms ease',
+                  transition: 'background-color 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease',
                 }}
                 onMouseEnter={(e) => {
                   (e.currentTarget as HTMLElement).style.background = '#f8fafc';
@@ -538,7 +538,7 @@ function MessageBubble({
                     fontSize: 12.5,
                     fontWeight: 700,
                     cursor: 'pointer',
-                    transition: 'all 150ms ease',
+                    transition: 'background-color 150ms ease, border-color 150ms ease, color 150ms ease',
                   }}
                   onMouseEnter={(e) => {
                     (e.currentTarget as HTMLElement).style.background = '#ea580c';
@@ -652,7 +652,7 @@ function MessageBubble({
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 6,
-                  transition: 'all 150ms ease',
+                  transition: 'background-color 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease',
                 }}
                 onMouseEnter={(e) => {
                   (e.currentTarget as HTMLElement).style.background = '#0b1f3a';
@@ -1330,7 +1330,7 @@ export default function ChatInterface({
                   cursor: 'pointer',
                   width: 'fit-content',
                   boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-                  transition: 'all 150ms ease',
+                  transition: 'background-color 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease',
                 }}
               >
                 <ArrowLeft size={16} color="#e87722" />
@@ -1478,6 +1478,7 @@ export default function ChatInterface({
                     <button
                       key={i}
                       onClick={() => router.push(`/chat?category=${item.id}`)}
+                      className="chat-suggestion-card interactive-control focus-ring"
                       style={{
                         background: '#ffffff',
                         border: '1.5px solid #e2e8f0',
@@ -1490,7 +1491,7 @@ export default function ChatInterface({
                         flexDirection: 'column',
                         justifyContent: 'space-between',
                         minHeight: 148,
-                        transition: 'all 180ms ease',
+                        transition: 'transform 180ms var(--ease-out), border-color 150ms ease, box-shadow 180ms var(--ease-out)',
                       }}
                       onMouseEnter={(e) => {
                         const el = e.currentTarget as HTMLElement;
@@ -1631,6 +1632,7 @@ export default function ChatInterface({
         <div style={{ maxWidth: 880, width: '100%', display: 'flex', flexDirection: 'column', gap: 8 }}>
 
           <div
+            className="chat-composer"
             style={{
               background: '#f8fafc',
               border: '1.5px solid #cbd5e1',
@@ -1640,7 +1642,7 @@ export default function ChatInterface({
               alignItems: 'center',
               gap: 12,
               boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
-              transition: 'all 180ms ease',
+              transition: 'background-color 180ms ease, border-color 180ms ease, box-shadow 180ms var(--ease-out)',
             }}
             onFocus={(e) => {
               (e.currentTarget as HTMLElement).style.borderColor = '#0b1f3a';
@@ -1714,7 +1716,7 @@ export default function ChatInterface({
                     flexShrink: 0,
                     cursor: loading || isTranscribing ? 'default' : 'pointer',
                     opacity: loading || isTranscribing ? 0.6 : 1,
-                    transition: 'all 180ms ease',
+                    transition: 'background-color 180ms ease, opacity 150ms ease, transform 180ms var(--ease-out)',
                   }}
                 >
                   {isTranscribing ? (
@@ -1743,7 +1745,7 @@ export default function ChatInterface({
                 justifyContent: 'center',
                 flexShrink: 0,
                 cursor: input.trim() && !loading ? 'pointer' : 'default',
-                transition: 'all 180ms ease',
+                transition: 'background-color 180ms ease, opacity 150ms ease, transform 180ms var(--ease-out)',
               }}
               title="Send message (Enter)"
             >

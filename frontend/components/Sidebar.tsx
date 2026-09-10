@@ -90,6 +90,7 @@ export default function Sidebar({
 
   return (
     <div
+      className="material-sheet"
       style={{
         display: 'flex',
         flexDirection: 'column',
@@ -254,7 +255,7 @@ export default function Sidebar({
                         background: isCurrent ? '#eef3f9' : 'transparent',
                         border: isCurrent ? '1.5px solid #0b1f3a' : '1px solid transparent',
                         color: isCurrent ? '#0b1f3a' : '#334155',
-                        transition: 'all 150ms ease',
+                        transition: 'background-color 150ms ease, border-color 150ms ease, color 150ms ease',
                       }}
                       onMouseEnter={(e) => {
                         if (!isCurrent) {

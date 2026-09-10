@@ -210,6 +210,7 @@ function PartnersContent() {
 
       {/* ── Subheader Segment Control ───────────────────────────────────────── */}
       <div
+        className="material-toolbar"
         style={{
           background: '#ffffff',
           borderBottom: '1px solid #e2e8f0',
@@ -224,7 +225,7 @@ function PartnersContent() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', background: '#f1f5f9', padding: '3px', borderRadius: 10 }}>
+          <div className="segmented-control" style={{ display: 'flex', alignItems: 'center' }}>
             {TABS.map(({ id, label, href, Icon }) => {
               const active = id === 'partners';
               return (
@@ -244,7 +245,7 @@ function PartnersContent() {
                     color: active ? '#0b1f3a' : '#64748b',
                     boxShadow: active ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
                     textDecoration: 'none',
-                    transition: 'all 150ms ease',
+                    transition: 'background-color 150ms ease, color 150ms ease, box-shadow 150ms ease',
                   }}
                 >
                   <Icon size={14} color={active ? '#e87722' : '#94a3b8'} />
@@ -308,7 +309,7 @@ function PartnersContent() {
 
         {/* ── Search Form & Popular Cities ──────────────────────────────────── */}
         <div
-          className="partner-search-card"
+          className="partner-search-card surface-card"
           style={{
             background: '#ffffff',
             border: '1px solid #e2e8f0',
@@ -378,7 +379,7 @@ function PartnersContent() {
                 fontSize: 13.5,
                 fontWeight: 700,
                 cursor: 'pointer',
-                transition: 'all 150ms ease',
+                transition: 'background-color 150ms ease, border-color 150ms ease, color 150ms ease',
               }}
             >
               <LocateFixed size={16} color="#e87722" />
@@ -433,7 +434,7 @@ function PartnersContent() {
                 cursor: !inputCity.trim() || loading ? 'not-allowed' : 'pointer',
                 opacity: !inputCity.trim() || loading ? 0.6 : 1,
                 boxShadow: '0 2px 8px rgba(11,31,58,0.18)',
-                transition: 'all 150ms ease',
+                transition: 'background-color 150ms ease, border-color 150ms ease, opacity 150ms ease, box-shadow 150ms ease',
               }}
             >
               <Navigation size={16} color="#fbbf24" />
@@ -464,7 +465,7 @@ function PartnersContent() {
                     border: active ? '1.5px solid #0b1f3a' : '1px solid #e2e8f0',
                     background: active ? '#0b1f3a' : '#f8fafc',
                     color: active ? '#ffffff' : '#334155',
-                    transition: 'all 150ms ease',
+                    transition: 'background-color 150ms ease, border-color 150ms ease, color 150ms ease',
                   }}
                 >
                   {c}
@@ -507,7 +508,7 @@ function PartnersContent() {
                   color: active ? '#ffffff' : '#334155',
                   cursor: 'pointer',
                   boxShadow: active ? '0 2px 8px rgba(11,31,58,0.15)' : 'none',
-                  transition: 'all 150ms ease',
+                  transition: 'background-color 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease',
                   flexShrink: 0,
                 }}
               >
@@ -631,7 +632,7 @@ function PartnersContent() {
 
           {/* Right Column: Dynamic Leaflet Map */}
           <div
-            className="partner-map"
+            className="partner-map surface-card"
             style={{
               background: '#ffffff',
               border: '1.5px solid #e2e8f0',
@@ -717,4 +718,3 @@ export default function PartnersPage() {
     </Suspense>
   );
 }
-

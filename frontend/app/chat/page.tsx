@@ -178,6 +178,7 @@ function ChatPage() {
 
       {/* ── Segmented Navigation Subheader ─────────────────────────────────── */}
       <div
+        className="material-toolbar"
         style={{
           background: '#ffffff',
           borderBottom: '1px solid #e2e8f0',
@@ -209,7 +210,7 @@ function ChatPage() {
                 fontSize: 12.5,
                 fontWeight: 700,
                 cursor: 'pointer',
-                transition: 'all 150ms ease',
+                transition: 'background-color 150ms ease, border-color 150ms ease, color 150ms ease, transform 150ms ease',
               }}
             >
               <History size={14} color={sidebarOpen ? '#fbbf24' : '#e87722'} />
@@ -217,7 +218,7 @@ function ChatPage() {
             </button>
           )}
 
-          <div style={{ display: 'flex', alignItems: 'center', background: '#f1f5f9', padding: '3px', borderRadius: 10 }}>
+          <div className="segmented-control" style={{ display: 'flex', alignItems: 'center' }}>
             {TABS.map(({ id, label, Icon }) => {
               const active = tab === id;
               return (
@@ -243,7 +244,7 @@ function ChatPage() {
                     color: active ? '#0b1f3a' : '#64748b',
                     boxShadow: active ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
                     cursor: 'pointer',
-                    transition: 'all 150ms ease',
+                    transition: 'background-color 150ms ease, color 150ms ease, box-shadow 150ms ease',
                   }}
                 >
                   <Icon size={14} color={active ? '#e87722' : '#94a3b8'} />
@@ -365,6 +366,7 @@ function ChatPage() {
         {/* Sliding Right Journey Drawer */}
         {tab === 'chat' && journeyOpen && (
           <aside
+            className="material-sheet animate-slide-right"
             style={{
               position: 'absolute',
               insetBlock: 0,
@@ -377,7 +379,6 @@ function ChatPage() {
               flexDirection: 'column',
               boxShadow: '-4px 0 24px rgba(11, 31, 58, 0.1)',
             }}
-            className="animate-slide-right"
           >
             {/* Header */}
             <div
@@ -479,7 +480,7 @@ function ChatPage() {
                         background: isDone ? '#ecfdf5' : '#f8fafc',
                         border: isDone ? '1.5px solid #a7f3d0' : '1px solid #e2e8f0',
                         color: isDone ? '#065f46' : '#334155',
-                        transition: 'all 150ms ease',
+                        transition: 'background-color 150ms ease, border-color 150ms ease, color 150ms ease',
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

@@ -70,7 +70,15 @@
   --radius: 6px;
   --radius-lg: 8px;
   --radius-xl: 12px;
+  --radius-2xl: 18px;
+  --radius-pill: 999px;
+  --material-light: rgba(255, 255, 255, 0.88);
+  --material-navy: rgba(0, 30, 64, 0.9);
   --transition: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --duration-press: 100ms;
+  --duration-ui: 180ms;
 }
 
 * {
@@ -110,12 +118,9 @@ html, body {
   will-change: transform;
 }
 
-.btn:hover, .btn-bounce:hover {
-  transform: translateY(-1.5px);
-}
-
 .btn:active, .btn-bounce:active {
-  transform: translateY(0.5px);
+  transform: scale(0.97) translateY(0);
+  transition-duration: var(--duration-press);
 }
 
 .btn svg, .btn-bounce svg {
@@ -184,16 +189,8 @@ html, body {
   transition: color 150ms ease, transform 180ms ease;
 }
 
-.text-link-hover:hover {
-  transform: translateX(2px);
-}
-
 .text-link-hover svg {
   transition: transform 180ms ease;
-}
-
-.text-link-hover:hover svg {
-  transform: translateX(3px);
 }
 
 /* ── Card Styling ─────────────────────────────────────────────────────────── */
@@ -208,10 +205,122 @@ html, body {
               border-color 200ms ease;
 }
 
-.card:hover {
-  transform: translateY(-4px);
+/* ── Shared civic material and interaction surfaces ─────────────────────── */
+.material-toolbar {
+  background: var(--material-light);
+  border: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
+  box-shadow: 0 1px 1px rgba(0, 30, 64, 0.04), 0 8px 24px rgba(0, 30, 64, 0.05);
+  backdrop-filter: blur(18px) saturate(1.1);
+  -webkit-backdrop-filter: blur(18px) saturate(1.1);
+}
+
+.material-sheet,
+.surface-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2xl);
   box-shadow: var(--shadow-md);
-  border-color: var(--border-dark);
+}
+
+.surface-card {
+  box-shadow: var(--shadow-sm);
+}
+
+.interactive-control {
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease,
+              box-shadow 180ms var(--ease-out), transform 180ms var(--ease-out), opacity 150ms ease;
+}
+
+.interactive-control:active:not(:disabled) {
+  transform: scale(0.97);
+  transition-duration: var(--duration-press);
+}
+
+.focus-ring:focus-visible {
+  outline: 3px solid rgba(232, 119, 34, 0.42);
+  outline-offset: 3px;
+}
+
+:where(button, a, input, select, textarea, [role='button']):focus-visible {
+  outline: 3px solid rgba(232, 119, 34, 0.5);
+  outline-offset: 3px;
+}
+
+.segmented-control {
+  background: color-mix(in srgb, var(--surface-container) 76%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 3px;
+}
+
+.hero-section {
+  background-image: radial-gradient(circle at 76% 18%, rgba(232, 119, 34, 0.16), transparent 27%);
+}
+
+.hero-visual > div {
+  border-radius: var(--radius-2xl) !important;
+}
+
+.partner-search-card,
+.partner-map {
+  border-radius: var(--radius-2xl) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.partners-layout > div:first-child > div > div,
+.chat-suggestion-card {
+  border-radius: var(--radius-2xl);
+}
+
+.chat-composer {
+  border-radius: var(--radius-2xl) !important;
+}
+
+@media (max-width: 800px) {
+  .hero-section { padding: 40px 20px 48px !important; }
+  .hero-grid, .partners-layout { grid-template-columns: 1fr !important; gap: 24px !important; }
+  .hero-title { font-size: clamp(2rem, 8vw, 2.5rem) !important; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; }
+  .partner-map { position: static !important; }
+}
+
+@media (max-width: 560px) {
+  .main-container { padding: 0 16px; }
+  .hero-section { padding-inline: 16px !important; }
+  .partner-search-card { padding: 16px !important; }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover, .btn-bounce:hover {
+    transform: translateY(-1.5px);
+  }
+
+  .text-link-hover:hover {
+    transform: translateX(2px);
+  }
+
+  .text-link-hover:hover svg {
+    transform: translateX(3px);
+  }
+
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-dark);
+  }
+
+  .badge:hover {
+    transform: translateY(-1px);
+  }
+
+  .interactive-control:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+
+  .surface-card.interactive-control:hover {
+    border-color: var(--border-dark);
+    box-shadow: var(--shadow-md);
+  }
 }
 
 /* ── Common Container ──────────────────────────────────────────────────────── */
@@ -262,10 +371,6 @@ p {
   border-radius: 4px;
   line-height: 1.3;
   transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.badge:hover {
-  transform: translateY(-1px) scale(1.03);
 }
 
 .badge-navy {
@@ -415,7 +520,10 @@ p {
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.35);
   cursor: pointer;
-  transition: all 180ms ease;
+  transition: transform var(--duration-ui) var(--ease-out),
+              background-color 150ms ease,
+              border-color 150ms ease,
+              color 150ms ease;
 }
 .btn-comparison-listen:hover {
   background: rgba(255, 255, 255, 0.3);
@@ -613,7 +721,10 @@ p {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  transition: all 180ms ease;
+  transition: transform var(--duration-ui) var(--ease-out),
+              background-color 150ms ease,
+              border-color 150ms ease,
+              color 150ms ease;
 }
 .btn-scheme-details:hover {
   background: #0284c7;
@@ -633,11 +744,42 @@ p {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  transition: all 180ms ease;
+  transition: transform var(--duration-ui) var(--ease-out),
+              background-color 150ms ease,
+              border-color 150ms ease,
+              box-shadow 150ms ease;
   box-shadow: 0 2px 6px rgba(234, 88, 12, 0.2);
 }
 .btn-scheme-emi:hover {
   background: #c2410c;
   border-color: #c2410c;
   transform: translateY(-1px);
+}
+
+/* ── Motion accessibility (apple-design + emil-design-eng) ─────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .btn:hover,
+  .btn-bounce:hover,
+  .btn-ghost:hover,
+  .voice-btn:hover:not(:disabled),
+  .text-link-hover:hover,
+  .btn-comparison-listen:hover,
+  .btn-scheme-details:hover,
+  .btn-scheme-emi:hover {
+    transform: none;
+  }
+
+  .btn:active,
+  .btn-bounce:active {
+    transform: none;
+  }
 }

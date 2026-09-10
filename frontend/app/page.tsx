@@ -384,7 +384,7 @@ export default function HomePage() {
                         flexDirection: 'column',
                         alignItems: 'center',
                         gap: 2,
-                        transition: 'all 150ms ease',
+                        transition: 'background-color 150ms ease, border-color 150ms ease, color 150ms ease',
                       }}
                     >
                       <span>{tab.label}</span>

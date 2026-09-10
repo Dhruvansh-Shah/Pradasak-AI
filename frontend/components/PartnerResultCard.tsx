@@ -66,6 +66,15 @@ export default function PartnerResultCard({ partner, isSelected, onSelect }: Par
 
   return (
     <div
+      className="surface-card interactive-control focus-ring"
+      tabIndex={onSelect ? 0 : undefined}
+      role={onSelect ? 'button' : undefined}
+      onKeyDown={(event) => {
+        if (onSelect && (event.key === 'Enter' || event.key === ' ')) {
+          event.preventDefault();
+          onSelect();
+        }
+      }}
       onClick={onSelect}
       style={{
         background: '#ffffff',
@@ -78,7 +87,7 @@ export default function PartnerResultCard({ partner, isSelected, onSelect }: Par
         gap: 12,
         width: '100%',
         cursor: onSelect ? 'pointer' : 'default',
-        transition: 'all 180ms ease',
+        transition: 'transform 180ms var(--ease-out), border-color 150ms ease, box-shadow 180ms var(--ease-out)',
         transform: isSelected ? 'translateY(-2px)' : 'none',
       }}
     >
