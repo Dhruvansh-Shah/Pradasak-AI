@@ -6,7 +6,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     // Brand & Global
     'brand.name': 'PradarshakAI',
     'brand.tag': 'SIH • NSFDC',
-    'brand.subtitle': 'Channel Finance & Concessional Loans',
+    'brand.subtitle': 'Ministry of Social Justice and Empowerment',
     'brand.org': 'National SC Finance & Development Corporation',
 
     // Nav
@@ -294,7 +294,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     // Brand & Global
     'brand.name': 'प्रदर्शक AI',
     'brand.tag': 'SIH • NSFDC',
-    'brand.subtitle': 'चैनल वित्त एवं रियायती ऋण पोर्टल',
+    'brand.subtitle': 'सामाजिक न्याय एवं अधिकारिता मंत्रालय',
     'brand.org': 'राष्ट्रीय अनुसूचित जाति वित्त एवं विकास निगम',
 
     // Nav
@@ -580,7 +580,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     // Brand & Global
     'brand.name': 'प्रदर्शक AI',
     'brand.tag': 'SIH • NSFDC',
-    'brand.subtitle': 'चॅनल फायनान्स व सवलतीची कर्जे',
+    'brand.subtitle': 'सामाजिक न्याय आणि अधिकारिता मंत्रालय',
     'brand.org': 'राष्ट्रीय अनुसूचित जाती वित्त आणि विकास महामंडळ',
 
     // Nav

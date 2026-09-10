@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -13,7 +13,6 @@ import {
   MapPin,
   User,
   Calculator,
-  PhoneCall,
   ShieldCheck,
 } from 'lucide-react';
 import type { UserProfile } from '@/lib/api';
@@ -21,7 +20,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { SUPPORTED_LANGUAGES, getLanguageConfig } from '@/lib/languages';
 import EmblemOfIndia from './EmblemOfIndia';
 
-export default function NavBar() {
+function NavBarContent() {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -75,67 +74,27 @@ export default function NavBar() {
 
   return (
     <header className="w-full sticky top-0 z-50">
-      {/* ── Official Government Institutional Top Strip ───────────────────── */}
-      <div
-        style={{
-          background: '#00132b',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-          color: '#cbd5e1',
-          fontSize: '11.5px',
-          padding: '5px 0',
-        }}
-      >
-        <div
-          style={{
-            maxWidth: 1200,
-            margin: '0 auto',
-            padding: '0 24px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ fontWeight: 700, color: '#f8fafc', letterSpacing: '0.02em' }}>
-              {t('nav.gov_of_india', 'Government of India')}
-            </span>
-            <span style={{ opacity: 0.4 }}>•</span>
-            <span className="hidden md:inline" style={{ color: '#94a3b8' }}>
-              {t('nav.ministry', 'Ministry of Social Justice & Empowerment')}
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div className="hidden sm:flex items-center gap-1.5" style={{ color: '#fed7aa' }}>
-              <PhoneCall size={12} color="#fe9832" />
-              <span style={{ fontSize: 11 }}>{t('nav.helpline', 'Toll-Free Helpline')}: <strong>1800-11-2001</strong></span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <ShieldCheck size={13} color="#8dfc75" />
-              <span style={{ fontSize: 11, color: '#e6eef8' }}>{t('nav.verified_portal', 'NSFDC Verified Portal')}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Main Government Blue Navbar ──────────────────────────────────── */}
+      {/* ── Main Clean Blue Navbar (Matching Footer #00132b) ─────────── */}
       <div
         className="material-toolbar"
         style={{
-          background: '#001e40',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.15)',
+          background: '#00132b',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
           width: '100%',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+          color: '#ffffff',
         }}
       >
         <div
           style={{
             maxWidth: 1200,
             margin: '0 auto',
-            padding: '0 24px',
+            padding: '0 20px',
             height: 68,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
+            gap: 20,
           }}
         >
           {/* ── Brand Emblem & Title ───────────────────────────────────────── */}
@@ -144,36 +103,37 @@ export default function NavBar() {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 12,
+              gap: 9,
               textDecoration: 'none',
+              flexShrink: 0,
             }}
           >
             <div
               style={{
-                width: 44,
-                height: 48,
-                borderRadius: 4,
-                background: '#ffffff',
-                border: '1px solid rgba(255, 255, 255, 0.4)',
+                width: 36,
+                height: 40,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: '3px',
-                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)',
+                flexShrink: 0,
+                background: '#ffffff',
+                borderRadius: 4,
+                padding: '2px',
               }}
             >
-              <EmblemOfIndia size={38} />
+              <EmblemOfIndia size={32} />
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span
                   style={{
-                    fontSize: 17,
-                    fontWeight: 700,
+                    fontSize: 16.5,
+                    fontWeight: 800,
                     color: '#ffffff',
                     letterSpacing: '-0.01em',
-                    lineHeight: 1.2,
+                    lineHeight: 1.15,
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   {t('brand.name', 'PradarshakAI')}
@@ -181,18 +141,20 @@ export default function NavBar() {
               </div>
               <span
                 style={{
-                  fontSize: 11,
+                  fontSize: 10.5,
                   color: '#cbd5e1',
                   fontWeight: 500,
+                  whiteSpace: 'nowrap',
+                  letterSpacing: '0.01em',
                 }}
               >
-                {t('brand.subtitle', 'Channel Finance & Concessional Loans')}
+                {t('brand.subtitle', 'Ministry of Social Justice and Empowerment')}
               </span>
             </div>
           </Link>
 
-          {/* ── Desktop Navigation Tabs (Clean Institutional) ──────────────── */}
-          <nav className="hidden md:flex items-center gap-1">
+          {/* ── Desktop Navigation Tabs (Light-on-Dark Theme) ──────────────── */}
+          <nav className="hidden md:flex items-center gap-1" style={{ marginLeft: 8 }}>
             {navLinks.map((link) => {
               const Icon = link.icon;
               const active = isActive(link.href);
@@ -205,14 +167,14 @@ export default function NavBar() {
                     alignItems: 'center',
                     gap: 6,
                     padding: '8px 14px',
-                    borderRadius: 8,
+                    borderRadius: 6,
                     fontSize: 13.5,
                     fontWeight: active ? 700 : 500,
                     color: active ? '#ffffff' : '#cbd5e1',
-                    background: active ? '#003366' : 'transparent',
-                    border: active ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid transparent',
+                    background: active ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
                     textDecoration: 'none',
-                    transition: 'background-color 120ms ease, color 120ms ease, border-color 120ms ease',
+                    whiteSpace: 'nowrap',
+                    transition: 'background-color 120ms ease, color 120ms ease',
                   }}
                   onMouseEnter={(e) => {
                     if (!active) {
@@ -227,15 +189,15 @@ export default function NavBar() {
                     }
                   }}
                 >
-                  <Icon size={15} color={active ? '#ffdcc2' : '#94a3b8'} />
+                  <Icon size={16} color={active ? '#ffffff' : '#94a3b8'} />
                   <span>{link.label}</span>
                 </Link>
               );
             })}
           </nav>
 
-          {/* ── Right Controls: Single Global Top-Navbar Language Selector & User Auth ───────────────── */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {/* ── Right Controls: Language Selector & User Auth ───────────────── */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
             {/* Single Global Language Selector Dropdown */}
             <div style={{ position: 'relative' }}>
               <button
@@ -250,13 +212,14 @@ export default function NavBar() {
                   alignItems: 'center',
                   gap: 6,
                   padding: '7px 11px',
-                  borderRadius: 8,
+                  borderRadius: 6,
                   fontSize: 13,
                   fontWeight: 600,
-                  color: '#f8fafc',
+                  color: '#ffffff',
                   background: 'rgba(255, 255, 255, 0.08)',
                   border: '1px solid rgba(255, 255, 255, 0.2)',
                   cursor: 'pointer',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 <Globe size={14} color="#ffdcc2" />
@@ -273,11 +236,11 @@ export default function NavBar() {
                     width: 190,
                     maxHeight: 360,
                     overflowY: 'auto',
-                    background: '#001e40',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    borderRadius: 4,
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 6,
                     padding: '4px',
-                    boxShadow: '0 10px 25px rgba(0, 0, 0, 0.3)',
+                    boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
                     zIndex: 100,
                     display: 'flex',
                     flexDirection: 'column',
@@ -285,7 +248,7 @@ export default function NavBar() {
                   }}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div style={{ fontSize: 10.5, fontWeight: 700, color: '#94a3b8', padding: '4px 8px', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 700, color: '#64748b', padding: '4px 8px', textTransform: 'uppercase' }}>
                     {t('nav.select_lang', 'Select Language')}
                   </div>
 
@@ -301,21 +264,21 @@ export default function NavBar() {
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       padding: '7px 10px',
-                      borderRadius: 3,
+                      borderRadius: 4,
                       fontSize: 12.5,
                       fontWeight: isAuto ? 700 : 500,
-                      color: isAuto ? '#ffffff' : '#cbd5e1',
-                      background: isAuto ? '#003366' : 'transparent',
+                      color: isAuto ? '#003366' : '#334155',
+                      background: isAuto ? '#f1f5f9' : 'transparent',
                       border: 'none',
                       cursor: 'pointer',
                       textAlign: 'left',
                     }}
                   >
                     <span>Auto (Detect)</span>
-                    {isAuto && <span style={{ color: '#ffdcc2', fontSize: 12 }}>✓</span>}
+                    {isAuto && <span style={{ color: '#003366', fontSize: 12 }}>✓</span>}
                   </button>
 
-                  <div style={{ height: 1, background: 'rgba(255, 255, 255, 0.1)', margin: '2px 0' }} />
+                  <div style={{ height: 1, background: '#e2e8f0', margin: '2px 0' }} />
 
                   {SUPPORTED_LANGUAGES.map((item) => {
                     const isSelected = !isAuto && selectedMode === item.id;
@@ -332,18 +295,18 @@ export default function NavBar() {
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           padding: '7px 10px',
-                          borderRadius: 3,
+                          borderRadius: 4,
                           fontSize: 12.5,
                           fontWeight: isSelected ? 700 : 500,
-                          color: isSelected ? '#ffffff' : '#cbd5e1',
-                          background: isSelected ? '#003366' : 'transparent',
+                          color: isSelected ? '#003366' : '#334155',
+                          background: isSelected ? '#f1f5f9' : 'transparent',
                           border: 'none',
                           cursor: 'pointer',
                           textAlign: 'left',
                         }}
                       >
                         <span>{item.nativeName}</span>
-                        {isSelected && <span style={{ color: '#ffdcc2', fontSize: 12 }}>✓</span>}
+                        {isSelected && <span style={{ color: '#003366', fontSize: 12 }}>✓</span>}
                       </button>
                     );
                   })}
@@ -362,12 +325,11 @@ export default function NavBar() {
                     alignItems: 'center',
                     gap: 6,
                     padding: '7px 11px',
-                    borderRadius: 4,
+                    borderRadius: 6,
                     fontSize: 13,
                     fontWeight: 600,
                     color: '#ffffff',
                     background: '#003366',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
                     textDecoration: 'none',
                   }}
                 >
@@ -379,11 +341,12 @@ export default function NavBar() {
                   className="btn-bounce focus-ring"
                   style={{
                     padding: '7px 9px',
-                    borderRadius: 4,
+                    borderRadius: 6,
                     fontSize: 12,
-                    color: '#fca5a5',
-                    background: 'rgba(239, 68, 68, 0.1)',
-                    border: '1px solid rgba(239, 68, 68, 0.25)',
+                    fontWeight: 600,
+                    color: '#ef4444',
+                    background: '#fef2f2',
+                    border: '1px solid #fca5a5',
                     cursor: 'pointer',
                   }}
                 >
@@ -391,43 +354,50 @@ export default function NavBar() {
                 </button>
               </div>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                 <Link
                   href="/auth"
                   className="btn-bounce focus-ring"
                   style={{
                     fontSize: 13,
-                    padding: '7px 13px',
-                    borderRadius: 4,
+                    padding: '7px 14px',
+                    borderRadius: 6,
                     fontWeight: 600,
-                    color: '#e2e8f0',
-                    background: 'rgba(255, 255, 255, 0.08)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    color: '#ffffff',
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    border: '1px solid rgba(255, 255, 255, 0.25)',
                     textDecoration: 'none',
-                    display: 'flex',
+                    display: 'inline-flex',
                     alignItems: 'center',
-                    gap: 5,
+                    gap: 6,
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
                   }}
                 >
                   <User size={13} color="#ffdcc2" />
-                  <span>{t('nav.signin', 'Sign In')}</span>
+                  <span style={{ whiteSpace: 'nowrap' }}>{t('nav.signin', 'Sign In')}</span>
                 </Link>
                 <Link
                   href="/register"
-                  className="btn btn-amber btn-bounce focus-ring"
+                  className="btn-bounce focus-ring"
                   style={{
                     fontSize: 13,
-                    padding: '7px 14px',
-                    borderRadius: 4,
+                    padding: '7px 16px',
+                    borderRadius: 6,
                     fontWeight: 700,
+                    color: '#ffffff',
+                    background: '#f58220',
+                    border: '1px solid transparent',
                     textDecoration: 'none',
-                    display: 'flex',
+                    display: 'inline-flex',
                     alignItems: 'center',
                     gap: 6,
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
                   }}
                 >
                   <ShieldCheck size={14} />
-                  <span>{t('nav.register', 'Register')}</span>
+                  <span style={{ whiteSpace: 'nowrap' }}>{t('nav.register', 'Register')}</span>
                 </Link>
               </div>
             )}
@@ -439,7 +409,7 @@ export default function NavBar() {
               onClick={() => setMobileOpen((prev) => !prev)}
               style={{
                 padding: '7px',
-                borderRadius: 4,
+                borderRadius: 6,
                 background: 'rgba(255, 255, 255, 0.08)',
                 border: '1px solid rgba(255, 255, 255, 0.2)',
                 color: '#ffffff',
@@ -452,17 +422,18 @@ export default function NavBar() {
         </div>
       </div>
 
-      {/* ── Mobile Menu Dropdown ───────────────────────────────────────────── */}
+      {/* ── Mobile Menu Dropdown (Dark Theme) ─────────────────────────────── */}
       {mobileOpen && (
         <div
           className="md:hidden material-sheet"
           style={{
-            background: '#001e40',
-            borderBottom: '2px solid rgba(255, 255, 255, 0.15)',
+            background: '#00132b',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
             padding: '12px 20px',
             display: 'flex',
             flexDirection: 'column',
             gap: 6,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
           }}
         >
           {navLinks.map((link) => {
@@ -478,36 +449,37 @@ export default function NavBar() {
                   alignItems: 'center',
                   gap: 10,
                   padding: '9px 12px',
-                  borderRadius: 4,
-                  fontSize: 13.5,
+                  borderRadius: 6,
+                  fontSize: 14,
                   fontWeight: active ? 700 : 500,
                   color: active ? '#ffffff' : '#cbd5e1',
-                  background: active ? '#003366' : 'transparent',
+                  background: active ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
                   textDecoration: 'none',
                 }}
               >
-                <Icon size={16} color={active ? '#ffdcc2' : '#94a3b8'} />
+                <Icon size={18} color={active ? '#ffffff' : '#94a3b8'} />
                 <span>{link.label}</span>
               </Link>
             );
           })}
 
           {!user && (
-            <div style={{ display: 'flex', gap: 8, marginTop: 8, paddingTop: 10, borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+            <div style={{ display: 'flex', gap: 8, marginTop: 8, paddingTop: 10, borderTop: '1px solid rgba(255, 255, 255, 0.12)' }}>
               <Link
                 href="/auth"
                 onClick={() => setMobileOpen(false)}
                 style={{
                   flex: 1,
-                  padding: '9px 12px',
-                  borderRadius: 4,
+                  padding: '10px 12px',
+                  borderRadius: 6,
                   textAlign: 'center',
-                  fontSize: 13,
+                  fontSize: 13.5,
                   fontWeight: 600,
                   color: '#ffffff',
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.25)',
                   textDecoration: 'none',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 {t('nav.signin', 'Sign In')}
@@ -517,14 +489,15 @@ export default function NavBar() {
                 onClick={() => setMobileOpen(false)}
                 style={{
                   flex: 1,
-                  padding: '9px 12px',
-                  borderRadius: 4,
+                  padding: '10px 12px',
+                  borderRadius: 6,
                   textAlign: 'center',
-                  fontSize: 13,
+                  fontSize: 13.5,
                   fontWeight: 700,
-                  color: '#001e40',
-                  background: '#fe9832',
+                  color: '#ffffff',
+                  background: '#f58220',
                   textDecoration: 'none',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 {t('nav.register', 'Register')}
@@ -534,5 +507,13 @@ export default function NavBar() {
         </div>
       )}
     </header>
+  );
+}
+
+export default function NavBar() {
+  return (
+    <Suspense fallback={<header style={{ minHeight: '68px', background: '#00132b', borderBottom: '1px solid rgba(255, 255, 255, 0.12)' }} />}>
+      <NavBarContent />
+    </Suspense>
   );
 }

@@ -135,9 +135,9 @@ function RegisterContent() {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   // Onboarding Intent (SIH PS 26092 Pre-Qualification)
-  const [educationLevel, setEducationLevel] = useState('undergraduate');
-  const [tradeCategory, setTradeCategory] = useState('tailoring_garments');
-  const [fundingBracket, setFundingBracket] = useState('MICRO_UNDER_1_4L');
+  const [educationLevel, setEducationLevel] = useState('');
+  const [tradeCategory, setTradeCategory] = useState('');
+  const [fundingBracket, setFundingBracket] = useState('');
 
   // Verification States
   const [emailStep, setEmailStep] = useState<'idle' | 'sending' | 'sent' | 'verifying' | 'verified'>('idle');
