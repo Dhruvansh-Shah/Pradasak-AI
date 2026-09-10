@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { LanguageProvider } from '@/context/LanguageContext';
-import AuthGuard from '@/components/AuthGuard';
+import GuestBanner from '@/components/GuestBanner';
 
 export const metadata: Metadata = {
   title: 'NSFDC Channel Finance — Scheme Finder',
@@ -13,9 +13,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="min-h-screen" suppressHydrationWarning>
         <LanguageProvider>
-          <AuthGuard>
-            {children}
-          </AuthGuard>
+          <GuestBanner />
+          {children}
         </LanguageProvider>
       </body>
     </html>

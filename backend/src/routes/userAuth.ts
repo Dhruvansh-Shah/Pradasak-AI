@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { pool } from '../db/pool';
-import { requireUser, UserAuthRequest } from '../middleware/userAuthMiddleware';
+import { optionalUser, UserAuthRequest } from '../middleware/userAuthMiddleware';
 import {
   sendPasswordResetOtp,
   verifyPasswordResetOtp,
@@ -90,22 +90,37 @@ router.post('/login', async (req: Request, res: Response) => {
   const { email, password } = req.body as { email?: string; password?: string };
   if (!email || !password) { res.status(400).json({ error: 'email and password required' }); return; }
 
-  const { rows } = await pool.query('SELECT * FROM users WHERE email = $1', [email.toLowerCase().trim()]);
-  if (rows.length === 0) { res.status(401).json({ error: 'Invalid email or password' }); return; }
+  try {
+    const { rows } = await pool.query('SELECT * FROM users WHERE email = $1', [email.toLowerCase().trim()]);
+    if (rows.length === 0) { res.status(401).json({ error: 'Invalid email or password' }); return; }
 
-  const user = rows[0] as { id: number; name: string; email: string; phone: string; password_hash: string; salary: number | null; city?: string | null; state?: string | null; district?: string | null; pincode?: string | null };
-  const valid = await bcrypt.compare(password, user.password_hash);
-  if (!valid) { res.status(401).json({ error: 'Invalid email or password' }); return; }
+    const user = rows[0] as { id: number; name: string; email: string; phone: string; password_hash: string; salary: number | null; city?: string | null; state?: string | null; district?: string | null; pincode?: string | null };
+    const valid = await bcrypt.compare(password, user.password_hash);
+    if (!valid) { res.status(401).json({ error: 'Invalid email or password' }); return; }
 
-  const token = issueToken(user.id, user.email);
-  res.json({ token, user: { id: user.id, name: user.name, email: user.email, phone: user.phone, salary: user.salary, city: user.city, state: user.state, district: user.district, pincode: user.pincode } });
+    const token = issueToken(user.id, user.email);
+    res.json({ token, user: { id: user.id, name: user.name, email: user.email, phone: user.phone, salary: user.salary, city: user.city, state: user.state, district: user.district, pincode: user.pincode } });
+  } catch (err) {
+    console.error('[Login Error]', err);
+    res.status(500).json({ error: 'Login service temporarily unavailable. Please try again later.' });
+  }
 });
 
 // GET /api/users/me
-router.get('/me', requireUser, async (req: UserAuthRequest, res: Response) => {
-  const { rows } = await pool.query('SELECT id, name, email, phone, salary, city, district, state, pincode, created_at FROM users WHERE id = $1', [req.userId]);
-  if (rows.length === 0) { res.status(404).json({ error: 'User not found' }); return; }
-  res.json(rows[0]);
+router.get('/me', optionalUser, async (req: UserAuthRequest, res: Response) => {
+  // If no authenticated user, treat as guest
+  if (!req.userId) {
+    res.json({ guest: true });
+    return;
+  }
+  try {
+    const { rows } = await pool.query('SELECT id, name, email, phone, salary, city, district, state, pincode, created_at FROM users WHERE id = $1', [req.userId]);
+    if (rows.length === 0) { res.status(404).json({ error: 'User not found' }); return; }
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('[User Me Error]', err);
+    res.status(500).json({ error: 'Failed to retrieve user profile' });
+  }
 });
 
 // Single-use token tracking for password resets
