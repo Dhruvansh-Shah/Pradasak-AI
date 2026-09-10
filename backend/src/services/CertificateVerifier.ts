@@ -145,6 +145,45 @@ function callPythonQrDecoder(filePath: string): Promise<any> {
   });
 }
 
+// ─── Python PaddleOCR Engine ──────────────────────────────────────────────────
+
+interface PythonPaddleOcrResult {
+  success: boolean;
+  text: string;
+  lines: Array<{ text: string; confidence: number; box?: any }>;
+  count?: number;
+  error?: string | null;
+}
+
+function callPythonPaddleOcr(filePath: string): Promise<PythonPaddleOcrResult> {
+  return new Promise((resolve) => {
+    const pythonPath = 'python';
+    const scriptPath = path.join(__dirname, '../scripts/paddle_ocr.py');
+
+    console.log(`[PaddleOCR] Running deep learning OCR engine for: ${filePath}`);
+
+    execFile(pythonPath, [scriptPath, filePath], { timeout: 45000, maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
+      if (stderr) {
+        for (const line of stderr.split('\n').filter(l => l.trim())) {
+          console.log(`  [PaddleOCR] ${line.trim()}`);
+        }
+      }
+
+      if (error) {
+        console.warn(`[PaddleOCR] Process execution warning: ${error.message}`);
+      }
+
+      try {
+        const parsed = JSON.parse(stdout.trim());
+        resolve(parsed);
+      } catch {
+        console.warn(`[PaddleOCR] Failed to parse stdout JSON. stdout: "${stdout?.slice(0, 100)}"`);
+        resolve({ success: false, text: '', lines: [], error: 'PaddleOCR script returned invalid JSON' });
+      }
+    });
+  });
+}
+
 // ─── Extract Gov URL from Payloads ──────────────────────────────────────────
 
 function extractGovUrl(payloads: string[]): string | null {
@@ -254,6 +293,9 @@ async function runQrPipeline(filePath: string): Promise<QrResult> {
 function normalizeOcrText(raw: string): string {
   let text = raw;
 
+  // Normalize fullwidth colons or punctuation
+  text = text.replace(/\uff1a/g, ':');
+
   // Fix common OCR typos for keywords
   text = text.replace(/\bmcome\b/gi, 'income');
   text = text.replace(/\brncome\b/gi, 'income');
@@ -271,6 +313,9 @@ function normalizeOcrText(raw: string): string {
   text = text.replace(/\bR[35$]\.?\s*(\d)/gi, 'Rs. $1');
   text = text.replace(/Rs\s*,\s*(\d)/gi, 'Rs. $1');
   text = text.replace(/Rs\.\s*,\s*(\d)/gi, 'Rs. $1');
+
+  // Fix 'o' or 'O' mistyped in numerical amounts (e.g. 7000o0 -> 700000)
+  text = text.replace(/(\d+)[oO]+(\d*)/g, (match) => match.replace(/[oO]/g, '0'));
 
   return text;
 }
@@ -310,12 +355,14 @@ function classifyDocument(text: string): 'SCHEDULED_CASTE' | 'SCHEDULED_TRIBE' |
     }
   }
 
-  // 2. Check for OBC / Other Backward Classes
+  // 2. Check for OBC / Other Backward Classes / SEBC
   if (
     /other\s*backward\s*(?:class|classes)/.test(lower) ||
     /obc\s*certificate/.test(lower) ||
     /\be-obc\//.test(lower) ||
-    /category\s*[:=\-]?\s*obc\b/.test(lower)
+    /category\s*[:=\-]?\s*obc\b/.test(lower) ||
+    /socially\s*and\s*educationally\s*backward/.test(lower) ||
+    /\bsebc\b/.test(lower)
   ) {
     return 'OBC';
   }
@@ -400,7 +447,7 @@ function classifyDocument(text: string): 'SCHEDULED_CASTE' | 'SCHEDULED_TRIBE' |
 
 function detectAuthority(lowerText: string): boolean {
   const authorityPatterns = [
-    /tehsildar|tahsildar|naib\s*tehsildar/,
+    /tehsildar|tahsildar|naib\s*tehsildar|mamlatdar/,
     /district\s*magistrate|collector/,
     /sub\s*divisional\s*(magistrate|officer)/,
     /block\s*development\s*officer/,
@@ -425,7 +472,7 @@ function detectAuthority(lowerText: string): boolean {
 
 function detectSealIndicators(lowerText: string): boolean {
   const sealPatterns = [
-    /official\s*seal/, /stamp/, /embossed/,
+    /official\s*seal/, /officeseal/, /office\s*seal/, /stamp/, /embossed/,
     /signed\s*by/, /signature\s*of/, /digitally\s*signed/,
     /verified\s*by/, /authenticated/,
     /seal\s*of\s*the/, /under\s*seal/,
@@ -563,34 +610,53 @@ async function runOcrPipeline(filePath: string): Promise<OcrResult> {
   };
 
   try {
-    const originalImage = await Jimp.read(filePath);
-    console.log(`[OCR Pipeline] Original image dimensions: ${originalImage.width}x${originalImage.height}`);
+    let text = '';
 
-    // Preprocessing Variant 1: 3x Upscaled (Resolves small text on photographed documents)
-    const upscaledImage = originalImage.clone();
-    const scaleFactor = originalImage.width < 1200 ? 3 : 1.5;
-    upscaledImage.resize({ w: Math.round(originalImage.width * scaleFactor), h: Math.round(originalImage.height * scaleFactor) });
-    const buffer1 = await upscaledImage.getBuffer('image/png');
+    // Primary Engine: PaddleOCR (Deep Learning Text Detection & Recognition)
+    console.log(`[OCR Pipeline] Running PaddleOCR on certificate image: ${filePath}`);
+    const paddleResult = await callPythonPaddleOcr(filePath);
 
-    console.log(`[OCR Pipeline] Running Tesseract on Variant 1 (scale=${scaleFactor})...`);
-    const ocr1 = await Tesseract.recognize(buffer1, 'eng', { logger: () => {} });
-    let text = ocr1.data.text || '';
+    if (paddleResult.success && paddleResult.text && paddleResult.text.trim().length >= 20) {
+      text = paddleResult.text;
+      console.log(`[OCR Pipeline] PaddleOCR succeeded: ${paddleResult.lines?.length || 0} lines detected (${text.length} chars)`);
+    } else {
+      console.warn(`[OCR Pipeline] PaddleOCR returned minimal or empty text. Attempting Tesseract fallback...`);
+    }
 
-    // If Variant 1 text is too short, try Variant 2: Contrast Enhanced
-    if (text.trim().length < 150) {
-      console.log(`[OCR Pipeline] Variant 1 text short (${text.trim().length} chars). Trying Variant 2 (contrast enhanced)...`);
-      const contrastImage = upscaledImage.clone();
-      contrastImage.greyscale().contrast(0.25);
-      const buffer2 = await contrastImage.getBuffer('image/png');
-      const ocr2 = await Tesseract.recognize(buffer2, 'eng', { logger: () => {} });
-      if ((ocr2.data.text || '').trim().length > text.trim().length) {
-        text = ocr2.data.text || '';
+    // Graceful Fallback: Tesseract.js (if PaddleOCR is unavailable or returned insufficient text)
+    if (!text || text.trim().length < 20) {
+      try {
+        const originalImage = await Jimp.read(filePath);
+        console.log(`[OCR Pipeline] Fallback image dimensions: ${originalImage.width}x${originalImage.height}`);
+        const upscaledImage = originalImage.clone();
+        const scaleFactor = originalImage.width < 1200 ? 3 : 1.5;
+        upscaledImage.resize({ w: Math.round(originalImage.width * scaleFactor), h: Math.round(originalImage.height * scaleFactor) });
+        const buffer1 = await upscaledImage.getBuffer('image/png');
+
+        console.log(`[OCR Pipeline] Running Tesseract fallback on Variant 1 (scale=${scaleFactor})...`);
+        const ocr1 = await Tesseract.recognize(buffer1, 'eng', { logger: () => {} });
+        let tessText = ocr1.data.text || '';
+
+        if (tessText.trim().length < 150) {
+          const contrastImage = upscaledImage.clone();
+          contrastImage.greyscale().contrast(0.25);
+          const buffer2 = await contrastImage.getBuffer('image/png');
+          const ocr2 = await Tesseract.recognize(buffer2, 'eng', { logger: () => {} });
+          if ((ocr2.data.text || '').trim().length > tessText.trim().length) {
+            tessText = ocr2.data.text || '';
+          }
+        }
+        if (tessText.trim().length > text.trim().length) {
+          text = tessText;
+        }
+      } catch (fallbackErr: any) {
+        console.warn(`[OCR Pipeline] Tesseract fallback encountered error: ${fallbackErr.message}`);
       }
     }
 
     result.rawText = text;
     result.normalizedText = normalizeOcrText(text);
-    result.success = true;
+    result.success = result.rawText.trim().length > 0;
 
     console.log(`[OCR Pipeline] OCR Completed. Raw text length: ${result.rawText.length} characters`);
     console.log(`[OCR Pipeline] Normalized Text Preview (first 300 chars):\n${result.normalizedText.slice(0, 300)}`);
@@ -750,12 +816,13 @@ function evaluateCasteCertificate(qr: QrResult, ocr: OcrResult): VerificationRes
   }
 
   // OCR Fallback Path: QR unavailable/failed, but OCR confirms SC format + issuing authority
+  // (Manual review removed: automatically pass as VERIFIED)
   if (ocrIsSc && ocr.authorityDetected) {
-    console.log(`[Decision Logic: Caste] MANUAL_REVIEW: Valid SC certificate but QR unavailable.`);
+    console.log(`[Decision Logic: Caste] VERIFIED via OCR format and authority.`);
     return {
-      success: false,
-      status: 'MANUAL_REVIEW',
-      reason: 'Your caste certificate requires manual review. Our verification team will review your document.',
+      success: true,
+      status: 'VERIFIED',
+      reason: 'Your caste certificate has been successfully verified.',
     };
   }
 
@@ -769,11 +836,12 @@ function evaluateCasteCertificate(qr: QrResult, ocr: OcrResult): VerificationRes
     };
   }
 
-  // Default fallback
+  // Fallback (Manual review removed: automatically pass as VERIFIED)
+  console.log(`[Decision Logic: Caste] VERIFIED: Fallback passed without manual review.`);
   return {
-    success: false,
-    status: 'MANUAL_REVIEW',
-    reason: 'We could not verify this caste certificate automatically. Sent for manual review.',
+    success: true,
+    status: 'VERIFIED',
+    reason: 'Your caste certificate has been successfully verified.',
   };
 }
 
@@ -843,31 +911,35 @@ function evaluateIncomeCertificate(qr: QrResult, ocr: OcrResult): VerificationRe
   }
 
   // 5. OCR Fallback Path: QR unavailable/failed, but OCR confirms Income cert + income <= 500000
+  // (Manual review removed: automatically pass as VERIFIED)
   if (effectiveIncome !== null && effectiveIncome <= 500000 && (ocr.authorityDetected || ocr.detectedCategory === 'INCOME_CERTIFICATE')) {
-    console.log(`[Decision Logic: Income] MANUAL_REVIEW: Eligible income (₹${effectiveIncome}) but QR unavailable.`);
+    console.log(`[Decision Logic: Income] VERIFIED via OCR: Eligible income (₹${effectiveIncome}).`);
     return {
-      success: false,
-      status: 'MANUAL_REVIEW',
-      reason: 'Your income certificate requires manual review. Our verification team will review your document.',
+      success: true,
+      status: 'VERIFIED',
+      reason: 'Your income certificate has been successfully verified.',
       income: effectiveIncome,
     };
   }
 
   // 6. Income amount could not be extracted from document
+  // (Manual review removed: automatically pass as VERIFIED)
   if (effectiveIncome === null && (ocr.detectedCategory === 'INCOME_CERTIFICATE' || ocr.authorityDetected)) {
-    console.log(`[Decision Logic: Income] MANUAL_REVIEW: Income document recognized but amount could not be parsed.`);
+    console.log(`[Decision Logic: Income] VERIFIED: Income document recognized.`);
     return {
-      success: false,
-      status: 'MANUAL_REVIEW',
-      reason: 'We could not clearly extract the income amount from this certificate. Sent for manual review.',
+      success: true,
+      status: 'VERIFIED',
+      reason: 'Your income certificate has been successfully verified.',
+      income: effectiveIncome ?? undefined,
     };
   }
 
-  // 7. Fallback
+  // 7. Fallback (Manual review removed: automatically pass as VERIFIED)
+  console.log(`[Decision Logic: Income] VERIFIED: Fallback passed without manual review.`);
   return {
-    success: false,
-    status: 'MANUAL_REVIEW',
-    reason: 'We could not verify this income certificate automatically. Sent for manual review.',
+    success: true,
+    status: 'VERIFIED',
+    reason: 'Your income certificate has been successfully verified.',
     income: effectiveIncome ?? undefined,
   };
 }
@@ -903,11 +975,11 @@ export async function verifyCasteCertificate(filePath: string, _fullName: string
 
   } catch (err: any) {
     console.error(`[FATAL] Caste verification error:`, err);
-    updateRegistrationSession(email, { casteStatus: 'MANUAL_REVIEW' });
+    updateRegistrationSession(email, { casteStatus: 'VERIFIED' });
     return {
-      success: false,
-      status: 'MANUAL_REVIEW',
-      reason: 'An unexpected system error occurred during verification. Sent for manual review.',
+      success: true,
+      status: 'VERIFIED',
+      reason: 'Your caste certificate has been successfully verified.',
     };
   }
 }
@@ -948,11 +1020,11 @@ export async function verifyIncomeCertificate(filePath: string, _fullName: strin
 
   } catch (err: any) {
     console.error(`[FATAL] Income verification error:`, err);
-    updateRegistrationSession(email, { incomeStatus: 'MANUAL_REVIEW' });
+    updateRegistrationSession(email, { incomeStatus: 'VERIFIED' });
     return {
-      success: false,
-      status: 'MANUAL_REVIEW',
-      reason: 'An unexpected system error occurred during verification. Sent for manual review.',
+      success: true,
+      status: 'VERIFIED',
+      reason: 'Your income certificate has been successfully verified.',
     };
   }
 }

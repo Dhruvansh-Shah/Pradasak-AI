@@ -2,6 +2,8 @@
 
 import { CheckCircle2, FileText, AlertTriangle, ShieldCheck } from 'lucide-react';
 import VoiceButton from './VoiceButton';
+import { useLanguage } from '@/context/LanguageContext';
+import { getLocalizedSchemeName, getLocalizedDocumentItem, getLocalizedWarning } from '@/lib/translations';
 
 export interface DocumentCardProps {
   documents: string[];
@@ -24,6 +26,9 @@ export default function DocumentCard({
   isVoicePlaying,
   isVoiceLoading,
 }: DocumentCardProps) {
+  const { language, t } = useLanguage();
+  const localizedScheme = schemeName ? getLocalizedSchemeName(schemeName, language) : '';
+
   return (
     <div
       style={{
@@ -69,10 +74,10 @@ export default function DocumentCard({
           </div>
           <div>
             <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--text, #0b1f3a)', margin: 0 }}>
-              {schemeName ? `Required Documents: ${schemeName}` : 'Required Documentation Checklist'}
+              {schemeName ? `${t('docs.title_prefix')} ${localizedScheme}` : t('docs.checklist_title')}
             </h3>
             <span style={{ fontSize: 11.5, color: 'var(--text-secondary, #64748b)' }}>
-              Prepare these official documents before visiting the partner branch
+              {t('docs.subtitle')}
             </span>
           </div>
         </div>
@@ -84,7 +89,7 @@ export default function DocumentCard({
               isLoading={!!isVoiceLoading}
               onPlay={onPlayVoice}
               onStop={onStopVoice || (() => {})}
-              title="Listen to required documentation checklist"
+              title={t('docs.listen_title')}
             />
           )}
 
@@ -104,7 +109,7 @@ export default function DocumentCard({
             }}
           >
             <ShieldCheck size={12} />
-            <span>Official Criteria</span>
+            <span>{t('docs.official_criteria')}</span>
           </span>
         </div>
       </div>
@@ -129,7 +134,7 @@ export default function DocumentCard({
             }}
           >
             <CheckCircle2 size={16} color="#10b981" style={{ flexShrink: 0 }} />
-            <span>{doc}</span>
+            <span>{getLocalizedDocumentItem(doc, language)}</span>
           </div>
         ))}
       </div>
@@ -150,7 +155,7 @@ export default function DocumentCard({
           }}
         >
           <AlertTriangle size={16} color="#ea580c" style={{ flexShrink: 0 }} />
-          <span>{note}</span>
+          <span>{getLocalizedWarning(note, language)}</span>
         </div>
       )}
     </div>

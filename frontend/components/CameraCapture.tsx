@@ -4,23 +4,6 @@ import { useRef, useState, useEffect, useCallback } from 'react';
 import { Camera, Upload, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
 
-// Suppress benign MediaPipe / TFLite C++ informational logs routed to stderr/console.error by Emscripten
-if (typeof window !== 'undefined') {
-  const originalConsoleError = console.error;
-  console.error = (...args: unknown[]) => {
-    const msg = typeof args[0] === 'string' ? args[0] : '';
-    if (
-      msg.includes('Created TensorFlow Lite XNNPACK delegate') ||
-      msg.includes('INFO: Created TensorFlow Lite') ||
-      msg.startsWith('INFO:')
-    ) {
-      console.info(...args);
-      return;
-    }
-    originalConsoleError.apply(console, args);
-  };
-}
-
 interface CameraCaptureProps {
   title: string;
   description?: string;
@@ -96,13 +79,15 @@ export default function CameraCapture({ title, description, onPhotoSet, isDocume
     if (typeof window !== 'undefined') {
       const originalConsoleError = console.error;
       const filter = (...args: unknown[]) => {
-        const msg = typeof args[0] === 'string' ? args[0] : '';
+        const message = args
+          .map(arg => (typeof arg === 'string' ? arg : ((arg as Error)?.message || '')))
+          .join(' ');
         if (
-          msg.includes('Created TensorFlow Lite XNNPACK delegate') ||
-          msg.includes('INFO: Created TensorFlow Lite') ||
-          msg.startsWith('INFO:')
+          message.includes('Created TensorFlow Lite') ||
+          message.includes('XNNPACK delegate') ||
+          message.startsWith('INFO:')
         ) {
-          console.info(...args);
+          if (console.info) console.info(...args);
           return;
         }
         originalConsoleError.apply(console, args);
@@ -143,8 +128,8 @@ export default function CameraCapture({ title, description, onPhotoSet, isDocume
       });
       faceLandmarkerRef.current = landmarker;
       return true;
-    } catch (e) {
-      console.error("AI Init Error:", e);
+    } catch (e: any) {
+      console.warn("AI Init Error:", e?.message || e);
       setErrorMsg("Failed to initialize verification AI. Please try uploading a photo instead.");
       return false;
     }
@@ -171,16 +156,17 @@ export default function CameraCapture({ title, description, onPhotoSet, isDocume
     const landmarker = faceLandmarkerRef.current;
     const state = liveState.current;
     
-    // Safety checks: ensure video element, stream, landmarker exist, video has loaded data and has valid non-zero dimensions
+    // If stream is not active or video is paused/ended, do not loop
+    if (!streamRef.current || !video || video.paused || video.ended) {
+      return;
+    }
+
+    // Safety checks: ensure landmarker exists, and video has loaded decoded frames with valid non-zero dimensions
     if (
-      !video || 
       !landmarker || 
       video.readyState < 3 || 
-      video.paused || 
-      video.ended || 
       video.videoWidth === 0 || 
-      video.videoHeight === 0 || 
-      !streamRef.current
+      video.videoHeight === 0
     ) {
       requestRef.current = requestAnimationFrame(processVideoFrame);
       return;
@@ -266,11 +252,14 @@ export default function CameraCapture({ title, description, onPhotoSet, isDocume
           updateUI({ message: 'Only one person should be visible.', color: '#ef4444', canCapture: false, showScanner: false, isLoading: false });
         }
       }
-    } catch (e) {
-      console.error("Detection error:", e);
+    } catch (e: any) {
+      // Use console.warn instead of console.error to prevent transient frame drops from triggering the Next.js dev overlay
+      console.warn("Face detection frame notice:", e?.message || e);
     } finally {
       state.isProcessing = false;
-      requestRef.current = requestAnimationFrame(processVideoFrame);
+      if (streamRef.current && video && !video.paused && !video.ended) {
+        requestRef.current = requestAnimationFrame(processVideoFrame);
+      }
     }
   }, [updateUI]);
 

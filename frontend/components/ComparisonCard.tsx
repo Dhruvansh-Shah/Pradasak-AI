@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import {
   Scale,
   ShieldCheck,
@@ -7,6 +8,8 @@ import {
   BookOpen,
 } from 'lucide-react';
 import VoiceButton from './VoiceButton';
+import { useLanguage } from '@/context/LanguageContext';
+import { getLocalizedSchemeName } from '@/lib/translations';
 
 export interface Scheme {
   id?: number;
@@ -35,18 +38,6 @@ function fmt(lakh: number | null | undefined) {
   return `₹${(l * 100000).toLocaleString('en-IN')}`;
 }
 
-function rateRange(s: Scheme) {
-  return s.interest_rate_min === s.interest_rate_max
-    ? `${s.interest_rate_min}% p.a.`
-    : `${s.interest_rate_min}–${s.interest_rate_max}% p.a.`;
-}
-
-function moratorium(s: Scheme) {
-  return s.moratorium_months_min === s.moratorium_months_max
-    ? `${s.moratorium_months_min} Months`
-    : `${s.moratorium_months_min}–${s.moratorium_months_max} Months`;
-}
-
 interface Props {
   schemes?: Scheme[];
   schemeA?: Scheme;
@@ -72,6 +63,7 @@ export default function ComparisonCard({
   isPlaying,
   isLoadingTTS,
 }: Props) {
+  const { language, t } = useLanguage();
   const schemes =
     propSchemes && propSchemes.length > 0
       ? propSchemes
@@ -84,12 +76,27 @@ export default function ComparisonCard({
   const maxLoan = Math.max(...schemes.map((s) => Number(s.max_loan_lakh) || 0));
   const maxTenure = Math.max(...schemes.map((s) => Number(s.max_tenure_months) || 0));
 
+  const rateRange = (s: Scheme) => {
+    return s.interest_rate_min === s.interest_rate_max
+      ? `${s.interest_rate_min}% ${t('scheme.per_annum')}`
+      : `${s.interest_rate_min}–${s.interest_rate_max}% ${t('scheme.per_annum')}`;
+  };
+
+  const moratorium = (s: Scheme) => {
+    return s.moratorium_months_min === s.moratorium_months_max
+      ? `${s.moratorium_months_min} ${t('scheme.months')}`
+      : `${s.moratorium_months_min}–${s.moratorium_months_max} ${t('scheme.months')}`;
+  };
+
+  const featureLabel = t('compare.feature') !== 'compare.feature' ? t('compare.feature') : 'Feature';
+  const quickActionLabel = t('compare.quick_action') !== 'compare.quick_action' ? t('compare.quick_action') : 'Quick Action';
+
   const ROWS: {
     label: string;
     render: (s: Scheme) => React.ReactNode;
   }[] = [
     {
-      label: 'Match Score',
+      label: t('compare.match_score'),
       render: (s) =>
         s.score != null ? (
           <span
@@ -103,14 +110,14 @@ export default function ComparisonCard({
               fontSize: 12,
             }}
           >
-            {Math.round(Number(s.score))}% Match
+            {Math.round(Number(s.score))}% {t('scheme.match')}
           </span>
         ) : (
           <span style={{ color: 'var(--muted)' }}>—</span>
         ),
     },
     {
-      label: 'Maximum Loan',
+      label: t('compare.max_loan'),
       render: (s) => {
         const isBest = Number(s.max_loan_lakh) === maxLoan && maxLoan > 0;
         return (
@@ -118,7 +125,7 @@ export default function ComparisonCard({
             <span className="comparison-cell-value">{fmt(s.max_loan_lakh)}</span>
             {isBest && schemes.length > 1 && (
               <span className="badge-highest-limit">
-                Highest Limit
+                {t('compare.highest_limit')}
               </span>
             )}
           </div>
@@ -126,7 +133,7 @@ export default function ComparisonCard({
       },
     },
     {
-      label: 'Subsidized Interest',
+      label: t('compare.interest_rate'),
       render: (s) => {
         const isBest = Number(s.interest_rate_min) === minRate && minRate < 999;
         return (
@@ -136,7 +143,7 @@ export default function ComparisonCard({
             </span>
             {isBest && schemes.length > 1 && (
               <span className="badge-lowest-rate">
-                Lowest Rate ★
+                {t('compare.lowest_rate')}
               </span>
             )}
           </div>
@@ -144,19 +151,21 @@ export default function ComparisonCard({
       },
     },
     {
-      label: 'Annual Income Cap',
+      label: t('compare.income_limit'),
       render: (s) => <span className="comparison-cell-value" style={{ fontWeight: 600 }}>≤ {fmt(s.max_income_lakh)}</span>,
     },
     {
-      label: 'Repayment Tenure',
+      label: t('compare.tenure'),
       render: (s) => {
         const isBest = Number(s.max_tenure_months) === maxTenure && maxTenure > 0;
         return (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-            <span className="comparison-cell-value">Up to {s.max_tenure_months} Mo</span>
+            <span className="comparison-cell-value">
+              {t('scheme.tenure_up_to')} {s.max_tenure_months} {t('scheme.months')}
+            </span>
             {isBest && schemes.length > 1 && (
               <span className="badge-longest-tenure">
-                Longest Tenure
+                {t('compare.longest_tenure')}
               </span>
             )}
           </div>
@@ -164,24 +173,24 @@ export default function ComparisonCard({
       },
     },
     {
-      label: 'Moratorium Grace',
+      label: t('compare.moratorium'),
       render: (s) => <span className="comparison-cell-value" style={{ fontWeight: 600 }}>{moratorium(s)}</span>,
     },
     {
-      label: 'Eligible Activities',
+      label: t('compare.activities'),
       render: (s) => {
         const types = s.eligible_project_types || [];
-        if (types.length === 0) return <span style={{ color: 'var(--muted)', fontSize: 12 }}>General Enterprises</span>;
+        if (types.length === 0) return <span style={{ color: 'var(--muted)', fontSize: 12 }}>{t('compare.general_enterprises')}</span>;
         return (
           <span className="comparison-cell-subtext">
-            {types.slice(0, 3).map((t) => t.replace(/_/g, ' ')).join(', ')}
+            {types.slice(0, 3).map((item) => item.replace(/_/g, ' ')).join(', ')}
             {types.length > 3 ? ` +${types.length - 3} more` : ''}
           </span>
         );
       },
     },
     {
-      label: 'Target Beneficiaries',
+      label: t('compare.beneficiaries'),
       render: (s) => (
         <span
           style={{
@@ -194,12 +203,12 @@ export default function ComparisonCard({
             border: s.gender_eligibility === 'women_only' ? '1px solid rgba(219, 39, 119, 0.25)' : '1px solid var(--border)',
           }}
         >
-          {s.gender_eligibility === 'women_only' ? '👩 Women Only' : 'All SC Beneficiaries'}
+          {s.gender_eligibility === 'women_only' ? t('compare.women_only') : t('compare.all_sc')}
         </span>
       ),
     },
     {
-      label: 'Application Channel',
+      label: t('compare.channels'),
       render: (s) => {
         const channels = s.channel_partner_types || ['SCA', 'PSB', 'RRB'];
         return (
@@ -220,8 +229,10 @@ export default function ComparisonCard({
             <Scale size={18} />
           </div>
           <div>
-            <h4 className="comparison-title">Scheme Comparison Matrix</h4>
-            <span className="comparison-subtitle">Comparing {schemes.length} schemes side-by-side</span>
+            <h4 className="comparison-title">{t('compare.title')}</h4>
+            <span className="comparison-subtitle">
+              {t('compare.comparing_count').replace('{count}', String(schemes.length))}
+            </span>
           </div>
         </div>
 
@@ -233,13 +244,13 @@ export default function ComparisonCard({
               onPlay={onPlayTTS}
               onStop={onStopTTS || (() => {})}
               variant="glass"
-              title="Listen to scheme comparison"
+              title={t('compare.listen_title')}
             />
           )}
 
           <span className="comparison-authoritative-badge">
             <ShieldCheck size={13} />
-            Authoritative Data
+            {t('compare.official_data')}
           </span>
         </div>
       </div>
@@ -256,12 +267,12 @@ export default function ComparisonCard({
             }}
           >
             <div className="comparison-feature-header">
-              Feature
+              {featureLabel}
             </div>
             {schemes.map((s, i) => (
               <div key={i} style={{ padding: '0 8px', textAlign: 'center' }}>
                 <h5 className="comparison-scheme-header-name">
-                  {s.name}
+                  {getLocalizedSchemeName(s.name, language)}
                 </h5>
               </div>
             ))}
@@ -300,33 +311,36 @@ export default function ComparisonCard({
                 gridTemplateColumns: `200px repeat(${schemes.length}, 1fr)`,
               }}
             >
-              <div className="comparison-quick-action-label">Quick Action</div>
-              {schemes.map((s, sIdx) => (
-                <div key={sIdx} style={{ display: 'flex', gap: 6, justifyContent: 'center', padding: '0 6px' }}>
-                  {onKnowMore && (
-                    <button
-                      type="button"
-                      onClick={() => onKnowMore(s)}
-                      className="btn-scheme-details"
-                      title={`Details for ${s.name}`}
-                    >
-                      <BookOpen size={12} />
-                      <span>Details</span>
-                    </button>
-                  )}
-                  {onCalculateEMI && (
-                    <button
-                      type="button"
-                      onClick={() => onCalculateEMI(s)}
-                      className="btn-scheme-emi"
-                      title={`Calculate EMI for ${s.name}`}
-                    >
-                      <Calculator size={12} />
-                      <span>EMI</span>
-                    </button>
-                  )}
-                </div>
-              ))}
+              <div className="comparison-quick-action-label">{quickActionLabel}</div>
+              {schemes.map((s, sIdx) => {
+                const localizedName = getLocalizedSchemeName(s.name, language);
+                return (
+                  <div key={sIdx} style={{ display: 'flex', gap: 6, justifyContent: 'center', padding: '0 6px' }}>
+                    {onKnowMore && (
+                      <button
+                        type="button"
+                        onClick={() => onKnowMore(s)}
+                        className="btn-scheme-details"
+                        title={`${t('scheme.action_know_more')}: ${localizedName}`}
+                      >
+                        <BookOpen size={12} />
+                        <span>{t('scheme.action_know_more')}</span>
+                      </button>
+                    )}
+                    {onCalculateEMI && (
+                      <button
+                        type="button"
+                        onClick={() => onCalculateEMI(s)}
+                        className="btn-scheme-emi"
+                        title={`${t('scheme.action_emi')}: ${localizedName}`}
+                      >
+                        <Calculator size={12} />
+                        <span>{t('scheme.action_emi')}</span>
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

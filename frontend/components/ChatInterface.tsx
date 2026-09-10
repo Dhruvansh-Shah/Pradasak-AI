@@ -278,6 +278,7 @@ function MessageBubble({
   onOpenEMI?: (schemeId?: number) => void;
 }) {
   const isUser = msg.role === 'user';
+  const { language } = useLanguage();
   const [textDone, setTextDone] = useState(!msg.animate);
   const showExtras = !msg.animate || textDone;
 
@@ -392,7 +393,7 @@ function MessageBubble({
           <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 14 }}>
             {schemes.map((s: any, i: number) => {
               const schemeVoiceId = `scheme_${msg.id}_${s.id || i}`;
-              const schemeSpeech = buildSchemeSpeech(s);
+              const schemeSpeech = buildSchemeSpeech(s, language);
               return (
                 <SchemeResultCard
                   key={s.id || i}
@@ -459,7 +460,7 @@ function MessageBubble({
                   }}
                 >
                   <Scale size={15} color="#fbbf24" />
-                  <span>Compare Schemes ({schemes.length})</span>
+                  <span>{t('scheme.compare_btn')} ({schemes.length})</span>
                 </button>
               )}
 
@@ -498,7 +499,7 @@ function MessageBubble({
                 }}
               >
                 <MapPin size={15} color="#e87722" />
-                <span>Know Partner Locations</span>
+                <span>{t('scheme.know_partners')}</span>
               </button>
             </div>
           </div>
@@ -506,7 +507,7 @@ function MessageBubble({
 
         {showExtras && emiData && (() => {
           const emiVoiceId = `emi_${msg.id}`;
-          const emiSpeech = buildEmiSpeech(emiData);
+          const emiSpeech = buildEmiSpeech(emiData, language);
           return (
             <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10 }}>
               <EMIResultCard
@@ -549,7 +550,7 @@ function MessageBubble({
                   }}
                 >
                   <Calculator size={14} />
-                  <span>Open in Interactive EMI Calculator →</span>
+                  <span>{t('scheme.open_calculator')}</span>
                 </button>
               )}
             </div>
@@ -571,7 +572,7 @@ function MessageBubble({
         {showExtras && comparison && (() => {
           const compVoiceId = `comp_${msg.id}`;
           const schemesList = (comparison.schemes as any[]) || [comparison.schemeA, comparison.schemeB].filter(Boolean);
-          const compSpeech = msg.speechText || (comparison.speechText as string) || buildComparisonSpeech(schemesList);
+          const compSpeech = msg.speechText || (comparison.speechText as string) || buildComparisonSpeech(schemesList, language);
           return (
             <div style={{ width: '100%' }}>
               <ComparisonCard
@@ -593,7 +594,7 @@ function MessageBubble({
         {showExtras && documents.length > 0 && (() => {
           const docVoiceId = `doc_${msg.id}`;
           const schemeName = (msg.data?.schemeName || msg.data?.scheme_name || (msg.data?.scheme as any)?.name) as string | undefined;
-          const docSpeech = buildDocumentsSpeech(documents, schemeName, msg.data?.note as string | undefined);
+          const docSpeech = buildDocumentsSpeech(documents, schemeName, msg.data?.note as string | undefined, language);
           return (
             <div style={{ width: '100%' }}>
               <DocumentCard
@@ -759,10 +760,20 @@ export default function ChatInterface({
     try {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
-      if (lang === 'hi') utterance.lang = 'hi-IN';
-      else if (lang === 'mr') utterance.lang = 'mr-IN';
-      else if (lang === 'pa') utterance.lang = 'pa-IN';
-      else utterance.lang = 'en-IN';
+      const langMap: Record<string, string> = {
+        hi: 'hi-IN',
+        mr: 'mr-IN',
+        bn: 'bn-IN',
+        gu: 'gu-IN',
+        kn: 'kn-IN',
+        ml: 'ml-IN',
+        od: 'or-IN',
+        pa: 'pa-IN',
+        ta: 'ta-IN',
+        te: 'te-IN',
+        en: 'en-IN',
+      };
+      utterance.lang = langMap[lang] || 'en-IN';
       utterance.onend = () => setPlayingVoiceId(null);
       utterance.onerror = () => setPlayingVoiceId(null);
       if (voiceId) setPlayingVoiceId(voiceId);
