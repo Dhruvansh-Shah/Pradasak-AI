@@ -1,11 +1,19 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { LanguageProvider } from '@/context/LanguageContext';
-import GuestBanner from '@/components/GuestBanner';
+
 
 export const metadata: Metadata = {
-  title: 'NSFDC Channel Finance — Scheme Finder',
+  title: "PradarshakAI - Ministry of Social Justice & Empowerment",
   description: 'Find the right government loan scheme, calculate your EMI, and locate the nearest eligible Channel Partner.',
+  icons: {
+    icon: [
+      { url: "/emblem-gold.png?v=2", href: "/emblem-gold.png?v=2" },
+    ],
+    apple: [
+      { url: "/emblem-gold.png?v=2", href: "/emblem-gold.png?v=2" },
+    ],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -13,7 +21,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="min-h-screen" suppressHydrationWarning>
         <LanguageProvider>
-          <GuestBanner />
           {children}
         </LanguageProvider>
       </body>
