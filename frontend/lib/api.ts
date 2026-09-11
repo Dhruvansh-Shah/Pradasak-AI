@@ -23,8 +23,30 @@ export interface UserProfile {
   name: string | null;
   email: string;
   phone: string;
-  salary?: number | null;
+  salary?: number | string | null;
   created_at: string;
+  updated_at?: string | null;
+  dob?: string | null;
+  gender?: string | null;
+  mobile_verified?: boolean | null;
+  email_verified?: boolean | null;
+  address_line1?: string | null;
+  address_line2?: string | null;
+  city?: string | null;
+  district?: string | null;
+  state?: string | null;
+  pincode?: string | null;
+  selfie_image?: string | null;
+  sc_certificate_file?: string | null;
+  income_certificate_file?: string | null;
+  aadhaar?: string | null;
+  eligibility_status?: string | null;
+  registration_complete?: boolean | null;
+  education_level?: string | null;
+  trade_category?: string | null;
+  funding_bracket?: string | null;
+  caste_category?: string | null;
+  guest?: boolean;
 }
 
 export interface ChatSummary {
@@ -268,6 +290,22 @@ export async function getUserProfile(token: string): Promise<UserProfile> {
     throw new Error('Not authenticated');
   }
   return res.json() as Promise<UserProfile>;
+}
+
+export async function updateUserProfile(
+  token: string,
+  payload: Partial<UserProfile>
+): Promise<{ success: boolean; user: UserProfile }> {
+  const res = await fetch(`${BASE}/users/me`, {
+    method: 'PATCH',
+    headers: userHeaders(token),
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({ error: 'Failed to update profile' }));
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to update profile');
+  }
+  return data;
 }
 
 // ── Chat history ──────────────────────────────────────────────────────────────

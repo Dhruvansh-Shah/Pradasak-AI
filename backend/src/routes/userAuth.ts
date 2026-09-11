@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { pool } from '../db/pool';
-import { optionalUser, UserAuthRequest } from '../middleware/userAuthMiddleware';
+import { optionalUser, requireUser, UserAuthRequest } from '../middleware/userAuthMiddleware';
 import {
   sendPasswordResetOtp,
   verifyPasswordResetOtp,
@@ -106,7 +106,7 @@ router.post('/login', async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/users/me
+// GET /api/users/me — retrieve authenticated citizen profile
 router.get('/me', optionalUser, async (req: UserAuthRequest, res: Response) => {
   // If no authenticated user, treat as guest
   if (!req.userId) {
@@ -114,12 +114,69 @@ router.get('/me', optionalUser, async (req: UserAuthRequest, res: Response) => {
     return;
   }
   try {
-    const { rows } = await pool.query('SELECT id, name, email, phone, salary, city, district, state, pincode, created_at FROM users WHERE id = $1', [req.userId]);
+    const { rows } = await pool.query(
+      `SELECT id, name, email, phone, salary, city, district, state, pincode,
+              address_line1, address_line2, dob, gender, education_level, trade_category,
+              funding_bracket, caste_category, aadhaar, mobile_verified, email_verified,
+              eligibility_status, registration_complete, created_at, updated_at
+       FROM users WHERE id = $1`,
+      [req.userId]
+    );
     if (rows.length === 0) { res.status(404).json({ error: 'User not found' }); return; }
     res.json(rows[0]);
   } catch (err) {
     console.error('[User Me Error]', err);
     res.status(500).json({ error: 'Failed to retrieve user profile' });
+  }
+});
+
+// PATCH /api/users/me — update editable citizen profile details
+router.patch('/me', requireUser, async (req: UserAuthRequest, res: Response) => {
+  const allowedFields = [
+    'name', 'phone', 'dob', 'gender',
+    'address_line1', 'address_line2', 'city', 'district', 'state', 'pincode',
+    'education_level', 'trade_category', 'funding_bracket', 'salary'
+  ];
+
+  const updates: string[] = [];
+  const values: any[] = [];
+  let paramIdx = 1;
+
+  for (const field of allowedFields) {
+    if (req.body[field] !== undefined) {
+      updates.push(`${field} = $${paramIdx++}`);
+      const val = req.body[field];
+      values.push(val === '' ? null : val);
+    }
+  }
+
+  if (updates.length === 0) {
+    res.status(400).json({ error: 'No valid fields provided for update' });
+    return;
+  }
+
+  updates.push('updated_at = NOW()');
+  values.push(req.userId);
+
+  try {
+    const query = `
+      UPDATE users
+      SET ${updates.join(', ')}
+      WHERE id = $${paramIdx}
+      RETURNING id, name, email, phone, salary, city, district, state, pincode,
+                address_line1, address_line2, dob, gender, education_level, trade_category,
+                funding_bracket, caste_category, aadhaar, mobile_verified, email_verified,
+                eligibility_status, registration_complete, created_at, updated_at
+    `;
+    const { rows } = await pool.query(query, values);
+    if (rows.length === 0) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+    res.json({ success: true, user: rows[0] });
+  } catch (err) {
+    console.error('[User Profile Update Error]', err);
+    res.status(500).json({ error: 'Failed to update user profile' });
   }
 });
 
