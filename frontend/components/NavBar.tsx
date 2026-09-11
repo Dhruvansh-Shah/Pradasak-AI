@@ -14,6 +14,7 @@ import {
   User,
   Calculator,
   ShieldCheck,
+  LogOut,
 } from 'lucide-react';
 import type { UserProfile } from '@/lib/api';
 import { useLanguage } from '@/context/LanguageContext';
@@ -54,11 +55,12 @@ function NavBarContent() {
   }
 
   const isActive = (href: string) => {
+    const isChatPage = pathname === '/chat' || pathname === '/';
     if (href === '/chat?tab=emi') {
-      return pathname === '/chat' && searchParams.get('tab') === 'emi';
+      return isChatPage && searchParams.get('tab') === 'emi';
     }
     if (href === '/chat') {
-      return pathname === '/chat' && searchParams.get('tab') !== 'emi';
+      return isChatPage && searchParams.get('tab') !== 'emi';
     }
     return pathname === href || (href !== '/' && pathname.startsWith(href));
   };
@@ -99,7 +101,7 @@ function NavBarContent() {
         >
           {/* ── Brand Emblem & Title ───────────────────────────────────────── */}
           <Link
-            href="/"
+            href="/home"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -340,17 +342,31 @@ function NavBarContent() {
                   onClick={logout}
                   className="btn-bounce focus-ring"
                   style={{
-                    padding: '7px 9px',
-                    borderRadius: 6,
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: '#ef4444',
-                    background: '#fef2f2',
-                    border: '1px solid #fca5a5',
+                    padding: '7px 14px',
+                    borderRadius: 8,
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    color: '#ffffff',
+                    background: 'linear-gradient(135deg, #dc2626, #b91c1c)',
+                    border: 'none',
+                    boxShadow: '0 2px 8px rgba(220, 38, 38, 0.28)',
                     cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    transition: 'all 180ms ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                    (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 14px rgba(220, 38, 38, 0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, #dc2626, #b91c1c)';
+                    (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 8px rgba(220, 38, 38, 0.28)';
                   }}
                 >
-                  {t('nav.signout', 'Sign Out')}
+                  <LogOut size={13} color="#ffffff" />
+                  <span>{t('nav.signout', 'Sign Out')}</span>
                 </button>
               </div>
             ) : (
@@ -463,7 +479,36 @@ function NavBarContent() {
             );
           })}
 
-          {!user && (
+          {user ? (
+            <div style={{ display: 'flex', gap: 8, marginTop: 8, paddingTop: 10, borderTop: '1px solid rgba(255, 255, 255, 0.12)' }}>
+              <button
+                onClick={() => {
+                  setMobileOpen(false);
+                  logout();
+                }}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: 8,
+                  textAlign: 'center',
+                  fontSize: 13.5,
+                  fontWeight: 700,
+                  color: '#ffffff',
+                  background: 'linear-gradient(135deg, #dc2626, #b91c1c)',
+                  border: 'none',
+                  boxShadow: '0 2px 8px rgba(220, 38, 38, 0.3)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                }}
+              >
+                <LogOut size={16} color="#ffffff" />
+                <span>{t('nav.signout', 'Sign Out')}</span>
+              </button>
+            </div>
+          ) : (
             <div style={{ display: 'flex', gap: 8, marginTop: 8, paddingTop: 10, borderTop: '1px solid rgba(255, 255, 255, 0.12)' }}>
               <Link
                 href="/auth"

@@ -4,7 +4,7 @@ import type { SchemeActionPayload } from '../services/ChatOrchestrator';
 import { pool } from '../db/pool';
 import { optionalUser, UserAuthRequest } from '../middleware/userAuthMiddleware';
 import { generateChatId, autoTitle } from './chats';
-import { UserProfileContext } from '../services/ConversationSession';
+import { UserProfileContext, getOrCreate, hydrateSessionHistory } from '../services/ConversationSession';
 
 const router = Router();
 router.use(optionalUser);
@@ -20,6 +20,7 @@ router.post('/', async (req: UserAuthRequest, res: Response) => {
     languageProbability,
     category,
     schemeAction,
+    history,
   } = req.body as {
     message?: string;
     chatId?: string;
@@ -29,6 +30,7 @@ router.post('/', async (req: UserAuthRequest, res: Response) => {
     languageProbability?: number;
     category?: string;
     schemeAction?: SchemeActionPayload;
+    history?: { role: 'user' | 'assistant'; content: string }[];
   };
 
   const effectiveMessage = (message && message.trim()) || (
@@ -140,6 +142,26 @@ router.post('/', async (req: UserAuthRequest, res: Response) => {
           funding_bracket: u.funding_bracket,
           caste_category: u.caste_category || 'SC',
         };
+      }
+    }
+
+    // Hydrate session history if this is an existing chat and in-memory history is empty
+    const session = getOrCreate(activeSessionId);
+    if (session.conversationHistory.length === 0) {
+      if (validUserId && chatId) {
+        try {
+          const { rows: prevMsgs } = await pool.query(
+            'SELECT role, content FROM chat_messages WHERE chat_id = $1 AND content != $2 ORDER BY id ASC LIMIT 20',
+            [chatId, effectiveMessage]
+          );
+          if (prevMsgs.length > 0) {
+            hydrateSessionHistory(session, prevMsgs as any, userContext);
+          }
+        } catch (dbLoadErr) {
+          console.warn('[chat] Error hydrating session history from DB:', dbLoadErr);
+        }
+      } else if (Array.isArray(history) && history.length > 0) {
+        hydrateSessionHistory(session, history, userContext);
       }
     }
 

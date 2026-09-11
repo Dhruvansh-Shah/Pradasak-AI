@@ -54,11 +54,28 @@ export function normalizeSchemeText(str: string): string {
     .trim();
 }
 
-export async function fetchActiveSchemes(category?: string): Promise<Scheme[]> {
-  const { rows } = await readonlyPool.query<Scheme>(
-    `SELECT * FROM schemes WHERE active = TRUE ${category ? "AND category = $1" : ""} ORDER BY interest_rate_min ASC`,
-    category ? [category] : []
-  );
+export async function fetchActiveSchemes(categoryHint?: string): Promise<Scheme[]> {
+  // The categoryHint values from the orchestrator ('business_loan', 'education_loan')
+  // don't always match real DB category column values.
+  // Real DB categories: micro_finance, entrepreneurship, term_loan, education_loan, skill_development, other_programme
+  let query = 'SELECT * FROM schemes WHERE active = TRUE';
+  const params: string[] = [];
+
+  if (categoryHint === 'education_loan') {
+    // education_loan exists in DB — filter directly
+    query += ' AND category = $1';
+    params.push('education_loan');
+  } else if (categoryHint === 'business_loan') {
+    // 'business_loan' does NOT exist in DB — exclude non-business categories instead
+    query += " AND category NOT IN ('education_loan', 'skill_development', 'other_programme')";
+  } else if (categoryHint) {
+    // Direct category match for other hints
+    query += ' AND category = $1';
+    params.push(categoryHint);
+  }
+
+  query += ' ORDER BY interest_rate_min ASC';
+  const { rows } = await readonlyPool.query<Scheme>(query, params);
   return rows;
 }
 
@@ -182,6 +199,7 @@ function purposeMatchScore(scheme: Scheme, purpose: string | undefined): number 
     if (businessWords.some((w) => normP.includes(w))) {
       if (isAgriScheme) return -30;
       if (isSanitationScheme || isArtisanScheme) return -15;
+      if (isEducationScheme || scheme.category === 'skill_development' || scheme.category === 'welfare_programme') return -50;
       if (normP.includes('सिलाई') || normP.includes('tailoring') || normP.includes('शिलाई')) {
         if (scheme.name.includes('Mahila Samriddhi')) return 50;
         if (normalizedTypes.some((t) => t.includes('tailoring'))) return 45;
@@ -208,10 +226,16 @@ function incomeScore(scheme: Scheme, incomeRs: number | undefined): { score: num
   if (!incomeRs) return { score: 10 };
   const incomeLakh = incomeRs / 100000;
 
-  if (incomeLakh > scheme.max_income_lakh) {
+  if (incomeLakh > 5.0) {
     return {
-      score: -10,
-      warning: `Annual family income (₹${incomeLakh.toFixed(1)}L) exceeds the standard NSFDC concessional limit (₹${scheme.max_income_lakh}L/yr). Official guidelines apply.`,
+      score: -20,
+      warning: `Family income (₹${incomeLakh.toFixed(1)}L) exceeds the standard NSFDC concessional limit of ₹5.0L`,
+    };
+  }
+  if (scheme.max_income_lakh && incomeLakh > scheme.max_income_lakh) {
+    return {
+      score: -20,
+      warning: `Your family income exceeds the limit for this scheme (₹${scheme.max_income_lakh}L)`,
     };
   }
   if (scheme.min_income_lakh && incomeLakh < scheme.min_income_lakh) {
@@ -226,8 +250,16 @@ function incomeScore(scheme: Scheme, incomeRs: number | undefined): { score: num
 function loanAmountScore(scheme: Scheme, amountRs: number | undefined): { score: number; warning?: string } {
   if (!amountRs) return { score: 10 };
   const amountLakh = amountRs / 100000;
+  const schemeMax = Number(scheme.max_loan_lakh || 0);
 
-  if (amountLakh > scheme.max_loan_lakh) {
+  if (schemeMax === 0) {
+    return {
+      score: -100,
+      warning: `${scheme.name} is a non-loan assistance programme (₹0 loan ceiling)`,
+    };
+  }
+
+  if (amountLakh > schemeMax) {
     return {
       score: -20,
       warning: `Required amount (₹${amountLakh.toFixed(1)}L) exceeds this scheme's maximum limit (₹${scheme.max_loan_lakh}L)`,
@@ -323,15 +355,28 @@ export function scoreSchemes(schemes: Scheme[], entities: UserEntities, category
       const incomeLakh = entities.family_income_rs ? entities.family_income_rs / 100000 : null;
       const isWomenOnly = scheme.gender_eligibility === 'women_only' || scheme.name.toLowerCase().includes('mahila');
 
-      // Boundary check 1: Loan ceiling exceeded (e.g. ₹55L > ₹50L Term Loan cap)
-      if (loanLakh && scheme.max_loan_lakh && loanLakh > scheme.max_loan_lakh) {
+      const schemeMaxLoan = Number(scheme.max_loan_lakh || 0);
+      const schemeMaxIncome = Number(scheme.max_income_lakh || 0);
+
+      const isBusinessQuery = categoryHint === 'business_loan' ||
+        ['tailor', 'tailoring', 'sewing', 'business', 'shop', 'kirana', 'dairy', 'machine', 'सिलाई', 'शिलाई', 'दुकान', 'व्यापार'].some(w => pNorm.includes(w));
+
+      // Boundary check 1: Loan ceiling exceeded (e.g. ₹55L > ₹50L Term Loan cap) or non-loan scheme when loan requested
+      if (loanLakh && (schemeMaxLoan === 0 || loanLakh > schemeMaxLoan)) {
         tier = 'HARD_DISQUALIFIED';
-        disqualificationReason = `Requested loan amount (₹${loanLakh.toFixed(1)}L) exceeds the maximum statutory ceiling of ₹${scheme.max_loan_lakh.toFixed(1)}L for ${scheme.name}.`;
+        disqualificationReason = schemeMaxLoan === 0
+          ? `${scheme.name} is a non-loan skill training or social welfare programme with no loan facility (₹0 cap). It cannot provide the requested loan of ₹${loanLakh.toFixed(1)}L.`
+          : `Requested loan amount (₹${loanLakh.toFixed(1)}L) exceeds the maximum statutory ceiling of ₹${schemeMaxLoan.toFixed(1)}L for ${scheme.name}.`;
+      }
+      // Boundary check 1b: Business query vs non-loan welfare / skill training
+      else if (isBusinessQuery && (scheme.category === 'skill_development' || scheme.category === 'welfare_programme' || scheme.education_required)) {
+        tier = 'HARD_DISQUALIFIED';
+        disqualificationReason = `${scheme.name} is a skill training or welfare programme, not an enterprise business loan.`;
       }
       // Boundary check 2: Family income exceeded (e.g. > ₹5.00L universal cap)
-      else if (incomeLakh && scheme.max_income_lakh && incomeLakh > scheme.max_income_lakh) {
+      else if (incomeLakh && schemeMaxIncome > 0 && incomeLakh > schemeMaxIncome) {
         tier = 'HARD_DISQUALIFIED';
-        disqualificationReason = `Annual family income (₹${incomeLakh.toFixed(1)}L) exceeds the statutory eligibility cap of ₹${scheme.max_income_lakh.toFixed(1)}L/yr for NSFDC concessional loans.`;
+        disqualificationReason = `Annual family income (₹${incomeLakh.toFixed(1)}L) exceeds the statutory eligibility cap of ₹${schemeMaxIncome.toFixed(1)}L/yr for NSFDC concessional loans.`;
       }
       // Boundary check 3: Gender exclusivity
       else if (isWomenOnly && entities.gender && entities.gender !== 'female' && !isDirectMatch) {
@@ -374,10 +419,23 @@ export function scoreSchemes(schemes: Scheme[], entities: UserEntities, category
 }
 
 export async function recommendSchemes(entities: UserEntities, categoryHint?: string): Promise<ScoredScheme[]> {
-  const all = await fetchActiveSchemes(categoryHint);
+  console.log('[SCHEME_SERVICE] recommendSchemes called:', JSON.stringify({ categoryHint, purpose: entities.purpose, loan_amount_rs: entities.loan_amount_rs, gender: entities.gender, family_income_rs: entities.family_income_rs }));
+  let all = await fetchActiveSchemes(categoryHint);
+  console.log(`[DATABASE] fetchActiveSchemes(${categoryHint || 'all'}) returned ${all.length} schemes`);
+
+  // If category filtering returned zero, fall back to ALL active schemes
+  if (all.length === 0 && categoryHint) {
+    console.log('[DATABASE] Category filter returned 0 results, falling back to ALL active schemes');
+    all = await fetchActiveSchemes();
+  }
+
   const scored = scoreSchemes(all, entities, categoryHint);
+  console.log(`[SCHEME_SERVICE] scoreSchemes returned ${scored.length} scored schemes:`, scored.map(s => `${s.name}(score=${s.score},tier=${s.tier})`).join(', '));
+
   if (scored.length === 0) {
-    return all.slice(0, 3).map((s) => ({
+    // Ultimate fallback: return top 3 from ALL active schemes
+    const fallbackAll = await fetchActiveSchemes();
+    return fallbackAll.slice(0, 3).map((s) => ({
       ...s,
       score: 50,
       tier: 'ELIGIBLE_SUBOPTIMAL' as SchemeTier,

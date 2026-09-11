@@ -72,7 +72,8 @@ function AuthContent() {
 
   useEffect(() => {
     if (searchParams.get('mode') === 'register') {
-      router.replace('/register');
+      const returnUrl = searchParams.get('returnUrl');
+      router.replace(returnUrl ? `/register?returnUrl=${encodeURIComponent(returnUrl)}` : '/register');
     }
   }, [searchParams, router]);
 
@@ -106,7 +107,8 @@ function AuthContent() {
       const result = await userLogin(cleanEmail, password);
       localStorage.setItem('auth_token', result.token);
       localStorage.setItem('auth_user', JSON.stringify(result.user));
-      router.push('/');
+      const returnUrl = searchParams.get('returnUrl') || '/';
+      router.push(returnUrl);
     } catch (err) {
       setError((err as Error).message);
     } finally {

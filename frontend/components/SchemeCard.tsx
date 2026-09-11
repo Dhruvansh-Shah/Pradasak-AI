@@ -1,6 +1,8 @@
 'use client';
 
 import { IndianRupee, Clock, TrendingUp, CheckCircle, Award } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
+import { getLocalizedSchemeName, getLocalizedSchemeDesc } from '@/lib/translations';
 
 interface Scheme {
   id: number;
@@ -46,9 +48,12 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 export default function SchemeCard({ scheme, onSelect, selected }: Props) {
+  const { t, language } = useLanguage();
   const catInfo = CATEGORY_COLORS[scheme.category] || { color: '#003366', bg: '#eff6ff', border: '#bfdbfe' };
-  const label = CATEGORY_LABELS[scheme.category] || scheme.category;
+  const label = t(`category.${scheme.category}`, CATEGORY_LABELS[scheme.category] || scheme.category);
   const isInformational = scheme.scheme_type === 'informational' || scheme.channel_partner_applicable === false;
+  const localizedName = getLocalizedSchemeName(scheme.name, language);
+  const localizedDesc = getLocalizedSchemeDesc(scheme.name, scheme.description, language);
 
   return (
     <div
@@ -66,11 +71,11 @@ export default function SchemeCard({ scheme, onSelect, selected }: Props) {
           <div className="flex items-center gap-2 flex-wrap mb-1">
             {isInformational ? (
               <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 uppercase">
-                🔵 OTHER GOVERNMENT PROGRAMME
+                {t('schemes.type_informational', '🔵 OTHER GOVERNMENT PROGRAMME')}
               </span>
             ) : (
               <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase">
-                🟢 FINANCING SCHEME
+                {t('schemes.type_financing', '🟢 FINANCING SCHEME')}
               </span>
             )}
             <span
@@ -82,7 +87,7 @@ export default function SchemeCard({ scheme, onSelect, selected }: Props) {
           </div>
 
           <h3 className="font-bold mt-1 text-base leading-tight text-primary">
-            {scheme.name}
+            {localizedName || scheme.name}
           </h3>
         </div>
         {selected && <CheckCircle className="w-5 h-5 flex-shrink-0" style={{ color: catInfo.color }} />}
@@ -92,7 +97,7 @@ export default function SchemeCard({ scheme, onSelect, selected }: Props) {
         <div className="text-center">
           <div className="flex items-center justify-center gap-1 mb-0.5">
             <IndianRupee className="w-3 h-3 text-muted" />
-            <span className="text-xs text-muted">Max Loan</span>
+            <span className="text-xs text-muted">{t('schemes.max_loan', 'Max Loan')}</span>
           </div>
           <span className="text-sm font-bold text-on-surface">
             ₹{scheme.max_loan_lakh}L
@@ -101,7 +106,7 @@ export default function SchemeCard({ scheme, onSelect, selected }: Props) {
         <div className="text-center border-x border-outline-variant/30">
           <div className="flex items-center justify-center gap-1 mb-0.5">
             <TrendingUp className="w-3 h-3 text-muted" />
-            <span className="text-xs text-muted">Interest</span>
+            <span className="text-xs text-muted">{t('schemes.interest', 'Interest')}</span>
           </div>
           <span className="text-sm font-bold text-success">
             {scheme.interest_rate_min}–{scheme.interest_rate_max}%
@@ -110,7 +115,7 @@ export default function SchemeCard({ scheme, onSelect, selected }: Props) {
         <div className="text-center">
           <div className="flex items-center justify-center gap-1 mb-0.5">
             <Clock className="w-3 h-3 text-muted" />
-            <span className="text-xs text-muted">Tenure</span>
+            <span className="text-xs text-muted">{t('schemes.tenure', 'Tenure')}</span>
           </div>
           <span className="text-sm font-bold text-on-surface">
             {Math.round(scheme.max_tenure_months / 12)}yr
@@ -119,14 +124,14 @@ export default function SchemeCard({ scheme, onSelect, selected }: Props) {
       </div>
 
       <p className="text-xs leading-relaxed text-on-surface-variant line-clamp-2">
-        {scheme.description}
+        {localizedDesc || scheme.description}
       </p>
 
       {scheme.coverage_percent > 0 && (
         <div className="mt-3 pt-2.5 border-t border-border flex items-center justify-between text-xs text-muted">
-          <span>Project Coverage: <strong className="text-primary font-semibold">Up to {scheme.coverage_percent}%</strong></span>
+          <span>{t('schemes.project_coverage', 'Project Coverage:')} <strong className="text-primary font-semibold">Up to {scheme.coverage_percent}%</strong></span>
           {scheme.moratorium_months_max > 0 && (
-            <span>Moratorium: <strong className="text-primary font-semibold">{scheme.moratorium_months_max}m</strong></span>
+            <span>{t('schemes.moratorium', 'Moratorium:')} <strong className="text-primary font-semibold">{scheme.moratorium_months_max}m</strong></span>
           )}
         </div>
       )}

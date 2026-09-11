@@ -1,7 +1,7 @@
 import { detectLanguage } from './IntentClassifier';
 import type { Language } from './IntentClassifier';
-import { getOrCreate, updateSession } from './ConversationSession';
-import type { Session, UserProfileContext } from './ConversationSession';
+import { getOrCreate, updateSession, extractAndUpdateFacts } from './ConversationSession';
+import type { Session, UserProfileContext, ConversationFacts } from './ConversationSession';
 import { TOOL_DEFS, executeTool } from './Tools';
 import { fetchSchemeById, fetchSchemeByName, fetchActiveSchemes, normalizeSchemeText } from './SchemeEngine';
 import type { Scheme } from './SchemeEngine';
@@ -51,10 +51,33 @@ export interface ChatApiResponse {
   intent: string;
 }
 
+
+export const POST_RECOMMENDATION_CTA: Record<string, string> = {
+  en: "Tell me if you'd like more details about a scheme, the required documents, an EMI estimate, or the nearest channel partner.",
+  hi: "यदि आप किसी योजना के बारे में अधिक विवरण, आवश्यक दस्तावेज, ईएमआई अनुमान, या निकटतम चैनल पार्टनर की जानकारी चाहते हैं, तो कृपया मुझे बताएं।",
+  mr: "तुम्हाला एखाद्या योजनेबद्दल अधिक तपशील, आवश्यक कागदपत्रे, ईएमआय अंदाज किंवा जवळच्या चॅनेल भागीदाराची माहिती हवी असल्यास मला सांगा.",
+  bn: "আপনি যদি কোনো প্রকল্পের বিস্তারিত, প্রয়োজনীয় নথিপত্র, ইএমআই অনুমান বা নিকটবর্তী চ্যানেল পার্টনার সম্পর্কে জানতে চান তবে আমাকে বলুন।",
+  gu: "જો તમે કોઈ યોજના વિશે વધુ વિગતો, જરૂરી દસ્તાવેજો, EMI અંદાજ અથવા નજીકના ચેનલ પાર્ટનરની માહિતી મેળવવા માંગતા હોવ, તો કૃપા કરીને મને જણાવો.",
+  kn: "ಯಾವುದೇ ಯೋಜನೆಯ ಹೆಚ್ಚಿನ ವಿವರಗಳು, ಅಗತ್ಯ ದಾಖಲೆಗಳು, ಇಎಂಐ ಅಂದಾಜು ಅಥವಾ ಹತ್ತಿರದ ಚಾನಲ್ ಪಾಲುದಾರರ ಮಾಹಿತಿ ಬೇಕಾಗಿದ್ದರೆ ನನಗೆ ತಿಳಿಸಿ.",
+  ml: "ഏതെങ്കിലും പദ്ധതിയെക്കുറിച്ചുള്ള കൂടുതൽ വിവരങ്ങൾ, ആവശ്യമായ രേഖകൾ, ഇഎംഐ കണക്കുകൂട്ടൽ, അല്ലെങ്കിൽ അടുത്തുള്ള ചാനൽ പങ്കാളിയെക്കുറിച്ച് അറിയാൻ താൽപ്പര്യമുണ്ടെങ്കിൽ എന്നോട് പറയുക.",
+  od: "ଯଦି ଆପଣ କୌଣସି ଯୋଜନା ବିଷୟରେ ଅଧିକ ବିବରଣୀ, ଆବଶ୍ୟକୀୟ ଦସ୍ତାବିଜ, EMI ଅନୁମାନ କିମ୍ବା ନିକଟତମ ଚ୍ୟାନେଲ ପାର୍ଟନର ବିଷୟରେ ଜାଣିବାକୁ ଚାହାଁନ୍ତି, ତେବେ ମୋତେ ଜଣାନ୍ତୁ।",
+  pa: "ਜੇਕਰ ਤੁਸੀਂ ਕਿਸੇ ਸਕੀਮ ਬਾਰੇ ਹੋਰ ਵੇਰਵੇ, ਲੋੜੀਂਦੇ ਦਸਤਾਵੇਜ਼, EMI ਅਨੁਮਾਨ, ਜਾਂ ਨਜ਼ਦੀਕੀ ਚੈਨਲ ਪਾਰਟਨਰ ਬਾਰੇ ਜਾਣਨਾ ਚਾਹੁੰਦੇ ਹੋ, ਤਾਂ ਕਿਰਪਾ ਕਰਕੇ ਮੈਨੂੰ ਦੱਸੋ।",
+  ta: "ஒரு திட்டம் பற்றிய கூடுதல் விவரங்கள், தேவையான ஆவணங்கள், இஎம்ஐ மதிப்பீடு அல்லது அருகிலுள்ள சேனல் கூட்டாளர் பற்றி அறிய விரும்பினால் என்னிடம் கூறுங்கள்.",
+  te: "ఏదైనా పథకం గురించి మరిన్ని వివరాలు, అవసరమైన పత్రాలు, EMI అంచనా లేదా సమీపంలోని ఛానెల్ భాగస్వామి గురించి తెలుసుకోవాలనుకుంటే నాకు చెప్పండి.",
+};
+
 const DISCLAIMER: Record<string, string> = {
   en: 'Official NSFDC Concessional Scheme Guidelines. Final eligibility and sanction are subject to document verification by the authorized Channel Partner.',
   hi: 'आधिकारिक NSFDC रियायती योजना दिशानिर्देश। अंतिम पात्रता और ऋण स्वीकृति अधिकृत चैनल पार्टनर द्वारा दस्तावेज सत्यापन के अधीन है।',
   mr: 'अधिकृत NSFDC सवलत योजना मार्गदर्शक तत्त्वे. अंतिम पात्रता आणि कर्ज मंजुरी अधिकृत चॅनेल भागीदाराद्वारे कागदपत्र पडताळणीच्या अधीन आहे.',
+  bn: 'অফিসিয়াল এনএসএফডিসি কনসেশনাল স্কিম নির্দেশিকা। চূড়ান্ত যোগ্যতা এবং অনুমোদন অনুমোদিত চ্যানেল পার্টনার দ্বারা নথি যাচাইকরণ সাপেক্ষ।',
+  gu: 'સત્તાવાર NSFDC રાહત યોજના માર્ગદર્શિકા. અંતિમ પાત્રતા અને લોન મંજૂરી અધિકૃત ચેનલ પાર્ટનર દ્વારા દસ્તાવેજ ચકાસણીને આધીન છે.',
+  kn: 'ಅಧಿಕೃತ ಎನ್ಎಸ್ಎಫ್ಡಿಸಿ ರಿಯಾಯಿತಿ ಯೋಜನೆ ಮಾರ್ಗಸೂಚಿಗಳು. ಅಂತಿಮ ಅರ್ಹತೆ ಮತ್ತು ಸಾಲ ಮಂಜೂರಾತಿ ಅಧಿಕೃತ ಚಾನಲ್ ಪಾಲುದಾರರಿಂದ ದಾಖಲೆ ಪರಿಶೀಲನೆಗೆ ಒಳಪಟ್ಟಿರುತ್ತದೆ.',
+  ml: 'ഔദ്യോഗിക എൻ‌എസ്‌എഫ്‌ഡി‌സി ഇളവ് പദ്ധതി മാർഗ്ഗനിർദ്ദേശങ്ങൾ. അന്തിമ യോഗ്യതയും വായ്പ അനുമതിയും അംഗീകൃത ചാനൽ പങ്കാളിയുടെ രേഖ പരിശോധനയ്ക്ക് വിധേയമാണ്.',
+  od: 'ଅଫିସିଆଲ୍ NSFDC ରିହାତି ଯୋଜନା ନିର୍ଦ୍ଦେଶାବଳୀ। ଚୂଡ଼ାନ୍ତ ଯୋଗ୍ୟତା ଏବଂ ମଞ୍ଜୁରୀ ପ୍ରାଧିକୃତ ଚ୍ୟାନେଲ ପାର୍ଟନରଙ୍କ ଦ୍ୱାରା ଦସ୍ତାବିଜ ଯାଞ୍ଚ ସାପେକ୍ଷ।',
+  pa: 'ਅਧਿਕਾਰਤ NSFDC ਰਿਆਇਤੀ ਸਕੀਮ ਦਿਸ਼ਾ-ਨਿਰਦੇਸ਼। ਅੰਤਿਮ ਯੋਗਤਾ ਅਤੇ ਪ੍ਰਵਾਨਗੀ ਅਧਿਕਾਰਤ ਚੈਨਲ ਪਾਰਟਨਰ ਦੁਆਰਾ ਦਸਤਾਵੇਜ਼ ਤਸਦੀਕ ਦੇ ਅਧੀਨ ਹੈ।',
+  ta: 'அதிகாரப்பூர்வ NSFDC சலுகை திட்ட வழிகாட்டுதல்கள். இறுதி தகுதி மற்றும் ஒப்புதல் அங்கீகரிக்கப்பட்ட சேனல் கூட்டாளரின் ஆவண சரிபார்ப்புக்கு உட்பட்டது.',
+  te: 'అధికారిక NSFDC రాయితీ పథకం మార్గదర్శకాలు. తుది అర్హత మరియు రుణం మంజూరు అధీకృత ఛానెల్ భాగస్వామి ద్వారా పత్రాల ధృవీకరణకు లోబడి ఉంటుంది.',
 };
 
 const QUICK_ACTIONS: Record<ChatApiResponse['type'], QuickAction[]> = {
@@ -110,7 +133,8 @@ function getCategoryInfo(category: string): { name: string; altName: string } | 
 export function buildSystemPrompt(
   langCode: string,
   category?: string,
-  userContext?: UserProfileContext
+  userContext?: UserProfileContext,
+  knownFacts?: ConversationFacts
 ): string {
   const cfg = getLanguageConfig(langCode);
   const langName = cfg ? cfg.name : 'English';
@@ -164,9 +188,47 @@ ${userContext?.trade_category ? `- Target Trade is "${userContext.trade_category
 `
     : '';
 
+  const factLines: string[] = [];
+  if (knownFacts) {
+    if (knownFacts.business_type) factLines.push(`- Stated Business / Trade: ${knownFacts.business_type}`);
+    if (knownFacts.purpose) factLines.push(`- Stated Purpose / Equipment: ${knownFacts.purpose}`);
+    if (knownFacts.loan_amount_rs != null) {
+      factLines.push(`- Stated Loan Requirement: ₹${(knownFacts.loan_amount_rs / 100000).toFixed(1)} Lakh (₹${knownFacts.loan_amount_rs.toLocaleString('en-IN')}) [${knownFacts.loan_amount_type || 'approximate'}]`);
+    }
+    if (knownFacts.family_income_rs != null) {
+      factLines.push(`- Stated Annual Family Income: ₹${knownFacts.family_income_rs.toLocaleString('en-IN')}`);
+    }
+    if (knownFacts.location) factLines.push(`- Stated Location: ${knownFacts.location}`);
+    if (knownFacts.last_recommended_schemes && knownFacts.last_recommended_schemes.length > 0) {
+      factLines.push(`- Previously Presented Schemes: ${knownFacts.last_recommended_schemes.map((s) => s.name).join(', ')}`);
+    }
+  }
+
+  const knownFactsPrompt = factLines.length > 0
+    ? `
+STRUCTURED CONVERSATION CONTEXT & KNOWN BENEFICIARY FACTS (DO NOT RE-ASK):
+${factLines.join('\n')}
+
+CONVERSATIONAL INTEGRITY & ZERO-REDUNDANCY MANDATE:
+- DO NOT re-ask the user for any information that is already present in the KNOWN FACTS or pre-verified profile above!
+- Specifically:
+  * If the loan amount is already known (e.g. ₹1 Lakh), NEVER ask "What loan amount do you need?" or "Could you share your required loan amount?".
+  * If the business type is already known (e.g. tailoring), NEVER ask "What business are you planning?".
+  * NEVER ask about an "intended course" or "degree" unless the user's inquiry is explicitly an education loan. For a tailoring business, discuss machines, shop setup, and working capital, NEVER courses.
+- FINANCING ESTIMATION INQUIRIES:
+  * If the user asks "how much money do I need actually" or asks for an estimate for their tailoring business, explain that ₹1 Lakh is a realistic starting estimate covering an industrial sewing machine, shop security/furnishing, and fabric working capital.
+  * Highlight that Micro Credit Finance (MCF) supports small projects up to ₹1.40 Lakh at 6.5% interest, making it an ideal match.
+- STANDARDIZED POST-RECOMMENDATION CTA:
+  * Whenever you present or recommend schemes to the user, conclude your response with this exact offer:
+    "${POST_RECOMMENDATION_CTA[langCode] || POST_RECOMMENDATION_CTA.en}"
+  * This offer MUST appear strictly AFTER the scheme recommendations, never before them.
+`
+    : '';
+
   return `
 You are the AI Financial Advisor for Pradarshak AI (National Scheduled Castes Finance and Development Corporation - NSFDC, Govt. of India). You help Scheduled Caste beneficiaries find subsidized loan schemes, understand repayment EMIs, find channel partners, and understand documentation and application steps.
 ${userInfoPrompt}
+${knownFactsPrompt}
 USER'S EFFECTIVE RESPONSE LANGUAGE:
 - Effective response language: ${langName} (${langCode}).
 - You MUST respond naturally in ${langName}.
@@ -188,7 +250,7 @@ TOOLS & GROUNDING (critical):
   * Call recommend_schemes when the user describes a business/education plan OR asks for details about a single scheme (e.g. "Tell me more about SUY", "What is GBS", "Explain MCF").
   * Call compare_schemes ONLY when the user explicitly asks to compare two or more distinct schemes (e.g. "Compare SUY and VETLS"). Never call compare_schemes for a single scheme detail query.
 - If a tool needs information you don't have anywhere in this conversation, do NOT call it with a guessed value — instead, ask the user ONE short, warm, specific question to get exactly that missing piece, in ${langName}. Do not list multiple questions at once.
-- If you already have enough from earlier in the conversation (including any "Known context" note below), go ahead and call the tool — don't re-ask for something already given.
+- If you already have enough from earlier in the conversation (including any "Known context" note or "STRUCTURED CONVERSATION CONTEXT" above), go ahead and call the tool — NEVER re-ask for something already given.
 - Application process steps and general NSFDC background are safe to explain directly without a tool call — they aren't scheme-specific numbers.
 
 STYLE:
@@ -329,6 +391,18 @@ export function generateComparisonSpeechText(schemes: Scheme[], lang: string = '
     return `${count}টি প্রকল্পের তুলনা। ${lines.join(' ')}`;
   }
 
+  if (lang === 'gu') {
+    const lines = schemes.map((s) => {
+      const loan = s.max_loan_lakh ? `${s.max_loan_lakh} લાખ રૂપિયા` : 'ઉપલબ્ધ મર્યાદા';
+      const rate = s.interest_rate_min === s.interest_rate_max
+        ? `${s.interest_rate_min} ટકા`
+        : `${s.interest_rate_min} થી ${s.interest_rate_max} ટકા`;
+      const tenure = s.max_tenure_months ? `મહત્તમ ${s.max_tenure_months} મહિના` : '';
+      return `${s.name}માં મહત્તમ લોન ${loan}, વાર્ષિક વ્યાજ દર ${rate} અને પુનઃચુકવણીની મુદત ${tenure} સુધીની છે.`;
+    });
+    return `${count} યોજનાઓની સરખામણી. ${lines.join(' ')}`;
+  }
+
   const lines = schemes.map((s) => {
     const loan = s.max_loan_lakh ? `${s.max_loan_lakh} lakh rupees` : 'specified limits';
     const rate = s.interest_rate_min === s.interest_rate_max
@@ -357,6 +431,11 @@ export function generateDocumentsSpeechText(schemeName: string, mandatory: strin
     const cStr = conditional.length > 0 ? `। পরিস্থিতি অনুযায়ী প্রয়োজনীয় অতিরিক্ত নথি: ${conditional.map((d) => d.split('(')[0].trim()).join(', ')}` : '';
     return `${sName}-এর জন্য প্রয়োজনীয় নথি। বাধ্যতামূলক নথিগুলি হলো: ${mStr}${cStr}। যাচাইকরণের জন্য আসল শংসাপত্র উপস্থাপন করতে হবে।`;
   }
+  if (lang === 'gu') {
+    const mStr = mandatory.map((d) => d.split('(')[0].trim()).join(', ');
+    const cStr = conditional.length > 0 ? `। સંજોગો અનુસાર જરૂરી વધારાના દસ્તાવેજો: ${conditional.map((d) => d.split('(')[0].trim()).join(', ')}` : '';
+    return `${sName} માટે જરૂરી દસ્તાવેજો. ફરજિયાત દસ્તાવેજો છે: ${mStr}${cStr}। ચકાસણી માટે મૂળ પ્રમાણપત્રો રજૂ કરવા જરૂરી છે.`;
+  }
   const mStr = mandatory.map((d) => d.split('(')[0].trim()).join(', ');
   const cStr = conditional.length > 0 ? `. Additional documents depending on your business: ${conditional.map((d) => d.split('(')[0].trim()).join(', ')}` : '';
   return `Required documents for ${sName}. Mandatory documents include: ${mStr}${cStr}. Original certificates must be presented for verification at the channel partner branch.`;
@@ -375,6 +454,9 @@ export function generateEmiSpeechText(schemeName: string, emi: number, principal
   if (lang === 'bn') {
     return `${sName}-এর জন্য আনুমানিক মাসিক ইএমআই হলো ${emiStr}। মূল ঋণের পরিমাণ ${pStr}-এর উপর বার্ষিক ${rate} শতাংশ সুদে ${tenure} মাসের মেয়াদ, যার মধ্যে ${moratorium} মাসের গ্রেস পিরিয়ড অন্তর্ভুক্ত রয়েছে।`;
   }
+  if (lang === 'gu') {
+    return `${sName} માટે અંદાજિત માસિક EMI ${emiStr} છે. મૂળ લોન રકમ ${pStr} પર વાર્ષિક ${rate} ટકા વ્યાજ અને ${tenure} મહિનાની મુદત છે, જેમાં ${moratorium} મહિનાનો મોરેટોરિયમ ગ્રેસ સમયગાળો શામેલ છે.`;
+  }
   return `For ${sName}, the estimated monthly EMI is ${emiStr} for a loan of ${pStr} at ${rate} percent annual interest over ${tenure} months, including a ${moratorium} month moratorium grace period.`;
 }
 
@@ -392,6 +474,8 @@ export async function resolveComparisonFromQuery(
     norm.includes('tulna') ||
     message.includes('तुलना') ||
     message.includes('तुलना करा') ||
+    message.includes('સરખામણી') ||
+    message.includes('તુલના') ||
     message.includes('फरक');
 
   if (!isCompareIntent) return null;
@@ -434,6 +518,42 @@ export async function resolveComparisonFromQuery(
   return null;
 }
 
+
+export function cleanAndFormatPostRecommendation(
+  text: string,
+  lang: string = 'en',
+  hasLoanAmount: boolean = false
+): string {
+  let cleaned = text.trim();
+
+  // 1. Strip generic asking for course or loan amount if loan amount or business is known
+  cleaned = cleaned.replace(/Could you (?:please )?share your intended course and required loan amount[^.?!\r\n]*[.?!\r\n]?/gi, '');
+  cleaned = cleaned.replace(/Could you (?:please )?share your (?:intended )?course[^.?!\r\n]*[.?!\r\n]?/gi, '');
+  if (hasLoanAmount) {
+    cleaned = cleaned.replace(/Could you (?:please )?share your (?:required )?loan amount[^.?!\r\n]*[.?!\r\n]?/gi, '');
+    cleaned = cleaned.replace(/What loan amount (?:are you considering|do you need)[^.?!\r\n]*[.?!\r\n]?/gi, '');
+    cleaned = cleaned.replace(/Please let me know (?:how much|the) loan amount[^.?!\r\n]*[.?!\r\n]?/gi, '');
+    cleaned = cleaned.replace(/कितना ऋण[^.?!\r\n]*[.?!\r\n]?/gi, '');
+    cleaned = cleaned.replace(/कर्ज रक्कम[^.?!\r\n]*[.?!\r\n]?/gi, '');
+  }
+
+  cleaned = cleaned.trim();
+
+  const cta = POST_RECOMMENDATION_CTA[lang] || POST_RECOMMENDATION_CTA.en;
+  // 2. Ensure post-recommendation CTA is present
+  if (
+    !cleaned.includes('channel partner') &&
+    !cleaned.includes('चैनल पार्टनर') &&
+    !cleaned.includes('चॅनेल भागीदार') &&
+    !cleaned.includes('চ্যানেল পার্টনার') &&
+    !cleaned.includes('ચેનલ પાર્ટનર')
+  ) {
+    cleaned = cleaned ? `${cleaned}\n\n${cta}` : cta;
+  }
+
+  return cleaned;
+}
+
 const MAX_TOOL_ROUNDS = 3;
 
 export async function process(
@@ -462,9 +582,30 @@ export async function process(
 
   session.language = resolution.effectiveLanguage as Language;
 
+  // 1. Extract and update structured persistent facts
+  session.knownFacts = extractAndUpdateFacts(session.knownFacts || {}, message, effectiveUserContext);
+
+  // ── Pipeline Logging ──────────────────────────────────────────────────
+  console.log(`[CHAT] user_message="${message.substring(0, 120)}" session=${session.id} lang=${session.language}`);
+  console.log(`[CONTEXT] knownFacts=${JSON.stringify({
+    business_type: session.knownFacts.business_type,
+    purpose: session.knownFacts.purpose,
+    loan_amount_rs: session.knownFacts.loan_amount_rs,
+    category_hint: session.knownFacts.category_hint,
+    family_income_rs: session.knownFacts.family_income_rs,
+    location: session.knownFacts.location,
+    gender: session.knownFacts.gender,
+    last_schemes: session.knownFacts.last_recommended_schemes?.map(s => s.name),
+  })}`);
+  if (effectiveUserContext) {
+    console.log(`[CONTEXT] userProfile: salary=${effectiveUserContext.salary}, city=${effectiveUserContext.city}, gender=${effectiveUserContext.gender}, trade=${effectiveUserContext.trade_category}, caste=${effectiveUserContext.caste_category}`);
+  }
+
   session.conversationHistory.push({ role: 'user', content: message });
 
-  const messages: ChatMessage[] = [{ role: 'system', content: buildSystemPrompt(session.language, category, effectiveUserContext) }];
+  const messages: ChatMessage[] = [
+    { role: 'system', content: buildSystemPrompt(session.language, category, effectiveUserContext, session.knownFacts) },
+  ];
 
   if (session.lastContext) {
     messages.push({
@@ -473,7 +614,20 @@ export async function process(
     });
   }
 
-  for (const turn of session.conversationHistory) {
+  // Active recommended schemes from earlier in this conversation for pronoun & reference resolution
+  if (session.knownFacts?.last_recommended_schemes && session.knownFacts.last_recommended_schemes.length > 0) {
+    const listStr = session.knownFacts.last_recommended_schemes
+      .map((s, idx) => `[${idx + 1}] ${s.name} (Max Loan: ₹${s.max_loan_lakh}L)`)
+      .join(', ');
+    messages.push({
+      role: 'system',
+      content: `CURRENT ACTIVE RECOMMENDED SCHEMES IN THIS CONVERSATION: ${listStr}. When the user says "the first one", "first scheme", "that scheme", or "this loan", refer directly to these.`,
+    });
+  }
+
+  // Bound conversation history to last 10 turns to avoid token inflation
+  const historySlice = session.conversationHistory.slice(-10);
+  for (const turn of historySlice) {
     messages.push({ role: turn.role, content: turn.content });
   }
 
@@ -712,6 +866,7 @@ Explain clearly and warmly that during the ${morat}-month moratorium no principa
           const assistantMsg = await llmChat({ messages, tools: TOOL_DEFS, maxTokens: 700 });
 
           if (assistantMsg.tool_calls && assistantMsg.tool_calls.length > 0) {
+            console.log(`[ROUTER] LLM round ${round}: tool_calls=[${assistantMsg.tool_calls.map(tc => tc.function.name).join(', ')}]`);
             messages.push({ role: 'assistant', content: assistantMsg.content ?? null, tool_calls: assistantMsg.tool_calls });
 
             for (const call of assistantMsg.tool_calls) {
@@ -722,32 +877,85 @@ Explain clearly and warmly that during the ${morat}-month moratorium no principa
                 args = {};
               }
 
-              // Pre-populate missing tool arguments from verified user profile
+              // Pre-populate missing or enrich tool arguments from verified profile & known conversation facts
               if (call.function.name === 'recommend_schemes') {
-                if (args.family_income_rs == null && effectiveUserContext?.salary != null) {
-                  args.family_income_rs = Number(effectiveUserContext.salary);
+                if (!args.purpose) {
+                  args.purpose = session.knownFacts?.purpose || session.knownFacts?.business_type || effectiveUserContext?.trade_category;
+                } else if (session.knownFacts?.business_type && !String(args.purpose).toLowerCase().includes(session.knownFacts.business_type.toLowerCase())) {
+                  args.purpose = `${session.knownFacts.business_type} - ${args.purpose}`;
                 }
-                if (!args.location && (effectiveUserContext?.district || effectiveUserContext?.city)) {
-                  args.location = effectiveUserContext.district || effectiveUserContext.city;
+
+                if (!args.query) {
+                  args.query = session.knownFacts?.business_type || message;
+                } else if (session.knownFacts?.business_type && !String(args.query).toLowerCase().includes(session.knownFacts.business_type.toLowerCase())) {
+                  args.query = `${session.knownFacts.business_type} ${args.query}`;
                 }
+
+                if (args.loan_amount_rs == null && session.knownFacts?.loan_amount_rs != null) {
+                  args.loan_amount_rs = session.knownFacts.loan_amount_rs;
+                }
+
+                if (args.family_income_rs == null) {
+                  if (session.knownFacts?.family_income_rs != null) {
+                    args.family_income_rs = session.knownFacts.family_income_rs;
+                  } else if (effectiveUserContext?.salary != null) {
+                    args.family_income_rs = Number(effectiveUserContext.salary);
+                  }
+                }
+
+                if (!args.location) {
+                  args.location = session.knownFacts?.location || effectiveUserContext?.district || effectiveUserContext?.city;
+                }
+
                 if (!args.gender && effectiveUserContext?.gender) {
                   args.gender = effectiveUserContext.gender.toLowerCase();
                 }
-                if (!args.education_level && effectiveUserContext?.education_level) {
-                  args.education_level = effectiveUserContext.education_level;
+
+                if (!args.education_level && (session.knownFacts?.education_level || effectiveUserContext?.education_level)) {
+                  args.education_level = session.knownFacts?.education_level || effectiveUserContext?.education_level;
                 }
-                if (!args.purpose && effectiveUserContext?.trade_category) {
-                  args.purpose = effectiveUserContext.trade_category;
+
+                if (!args.category_hint) {
+                  if (session.knownFacts?.business_type) {
+                    args.category_hint = 'business_loan';
+                  } else if (session.knownFacts?.education_level) {
+                    args.category_hint = 'education_loan';
+                  }
                 }
               } else if (call.function.name === 'find_partners') {
-                if (!args.location && (effectiveUserContext?.district || effectiveUserContext?.city)) {
-                  args.location = effectiveUserContext.district || effectiveUserContext.city;
+                if (!args.location && (session.knownFacts?.location || effectiveUserContext?.district || effectiveUserContext?.city)) {
+                  args.location = session.knownFacts?.location || effectiveUserContext?.district || effectiveUserContext?.city;
+                }
+              } else if (call.function.name === 'calculate_emi') {
+                if (args.loan_amount_rs == null && session.knownFacts?.loan_amount_rs != null) {
+                  args.loan_amount_rs = session.knownFacts.loan_amount_rs;
+                }
+                if (!args.scheme_name && !args.scheme_id && session.knownFacts?.last_recommended_schemes?.length) {
+                  args.scheme_name = session.knownFacts.last_recommended_schemes[0].name;
+                  args.scheme_id = session.knownFacts.last_recommended_schemes[0].id;
+                }
+              } else if (call.function.name === 'get_required_documents') {
+                if (!args.scheme_name && !args.scheme_id && session.knownFacts?.last_recommended_schemes?.length) {
+                  args.scheme_name = session.knownFacts.last_recommended_schemes[0].name;
+                  args.scheme_id = session.knownFacts.last_recommended_schemes[0].id;
                 }
               }
 
+              console.log(`[ROUTER] Calling tool: ${call.function.name} args=${JSON.stringify(args).substring(0, 300)}`);
               const result = await executeTool(call.function.name, args);
+              console.log(`[ROUTER] Tool result: ${result.toolName} schemeCount=${Array.isArray(result.data?.schemes) ? (result.data.schemes as any[]).length : 'N/A'}`);
               lastToolName = result.toolName;
               lastToolData = result.data;
+
+              // Cache top recommended schemes in session knownFacts for pronoun & follow-up resolution
+              if (result.toolName === 'recommend_schemes' && Array.isArray(result.data?.schemes)) {
+                session.knownFacts.last_recommended_schemes = (result.data.schemes as Scheme[]).slice(0, 5).map((s) => ({
+                  id: s.id,
+                  name: s.name,
+                  category: s.category,
+                  max_loan_lakh: s.max_loan_lakh,
+                }));
+              }
 
               // Immediately compute authoritative speechText
               if (result.toolName === 'compare_schemes') {
@@ -784,11 +992,19 @@ Explain clearly and warmly that during the ${morat}-month moratorium no principa
           }
 
           finalText = assistantMsg.content || '';
+          console.log(`[ROUTER] LLM round ${round}: no tool call, finalText=${finalText ? 'present (' + finalText.length + ' chars)' : 'EMPTY'}`);
           break;
         }
       } catch (llmErr) {
         console.warn('[ChatOrchestrator] LLM call fallback triggered:', (llmErr as Error)?.message);
-        const fallbackResult = await executeTool('recommend_schemes', { query: message });
+        const fallbackResult = await executeTool('recommend_schemes', {
+          query: session.knownFacts?.business_type || message,
+          loan_amount_rs: session.knownFacts?.loan_amount_rs,
+          purpose: session.knownFacts?.purpose || session.knownFacts?.business_type,
+          family_income_rs: session.knownFacts?.family_income_rs || (effectiveUserContext?.salary ? Number(effectiveUserContext.salary) : undefined),
+          location: session.knownFacts?.location || effectiveUserContext?.district || effectiveUserContext?.city,
+          category_hint: session.knownFacts?.business_type ? 'business_loan' : undefined,
+        });
         lastToolName = fallbackResult.toolName;
         lastToolData = fallbackResult.data;
         finalText = session.language === 'hi'
@@ -834,16 +1050,70 @@ Explain clearly and warmly that during the ${morat}-month moratorium no principa
         : 'Here are the recommended schemes matching your inquiry.';
       speechText = finalText;
     } else {
-      finalText =
-        session.language === 'hi'
-          ? 'क्षमा करें, कृपया अपना प्रश्न दोबारा बताएं।'
-          : session.language === 'mr'
-          ? 'माफ करा, कृपया तुमचा प्रश्न पुन्हा सांगा.'
-          : session.language === 'bn'
-          ? 'দুঃখিত, অনুগ্রহ করে আপনার প্রশ্নটি পুনরায় বলুন।'
-          : "Sorry, could you rephrase that for me?";
-      speechText = finalText;
+      // ── SMART FALLBACK: detect scheme-related queries and call recommend_schemes directly ──
+      const lowerMsg = message.toLowerCase();
+      const isSchemeRelated =
+        session.knownFacts?.business_type ||
+        session.knownFacts?.category_hint ||
+        session.knownFacts?.purpose ||
+        /scheme|loan|business|education|tailoring|shop|college|school|money|fund|assist|help|available|suggest|recommend|emi|partner|योजना|ऋण|ऋण|कर्ज|व्यवसाय|शिक्षा/i.test(lowerMsg);
+
+      if (isSchemeRelated) {
+        console.log('[ROUTER] Smart fallback: LLM returned empty, but message is scheme-related. Calling recommend_schemes directly.');
+        try {
+          const smartFallbackResult = await executeTool('recommend_schemes', {
+            query: message,
+            purpose: session.knownFacts?.purpose || session.knownFacts?.business_type || message,
+            loan_amount_rs: session.knownFacts?.loan_amount_rs,
+            family_income_rs: session.knownFacts?.family_income_rs || (effectiveUserContext?.salary ? Number(effectiveUserContext.salary) : undefined),
+            location: session.knownFacts?.location || effectiveUserContext?.district || effectiveUserContext?.city,
+            gender: session.knownFacts?.gender || effectiveUserContext?.gender?.toLowerCase(),
+            category_hint: session.knownFacts?.category_hint,
+          });
+          lastToolName = smartFallbackResult.toolName;
+          lastToolData = smartFallbackResult.data;
+
+          // Cache recommended schemes
+          if (Array.isArray(smartFallbackResult.data?.schemes)) {
+            session.knownFacts.last_recommended_schemes = (smartFallbackResult.data.schemes as Scheme[]).slice(0, 5).map((s) => ({
+              id: s.id,
+              name: s.name,
+              category: s.category,
+              max_loan_lakh: s.max_loan_lakh,
+            }));
+          }
+
+          const schemeCount = Array.isArray(smartFallbackResult.data?.schemes) ? (smartFallbackResult.data.schemes as any[]).length : 0;
+          console.log(`[RESPONSE] Smart fallback returned ${schemeCount} schemes`);
+
+          finalText = session.language === 'hi'
+            ? 'आपकी आवश्यकता के अनुसार उपयुक्त योजनाएं नीचे प्रदर्शित की गई हैं।'
+            : session.language === 'mr'
+            ? 'तुमच्या गरजेनुसार योग्य योजना खाली दाखवल्या आहेत.'
+            : session.language === 'bn'
+            ? 'আপনার প্রয়োজনীয়তা অনুযায়ী উপযুক্ত প্রকল্পগুলি নীচে প্রদর্শিত হয়েছে।'
+            : 'Here are the recommended schemes matching your inquiry.';
+          speechText = finalText;
+        } catch (fallbackErr) {
+          console.error('[ROUTER] Smart fallback also failed:', (fallbackErr as Error)?.message);
+          finalText = LOCALIZED_ERROR_MESSAGES[session.language] || LOCALIZED_ERROR_MESSAGES.en;
+          speechText = finalText;
+        }
+      } else {
+        // Truly unrecognizable query — give a graceful error, not "rephrase"
+        console.log('[ROUTER] No scheme-related signal in message, returning graceful error.');
+        finalText = LOCALIZED_ERROR_MESSAGES[session.language] || LOCALIZED_ERROR_MESSAGES.en;
+        speechText = finalText;
+      }
     }
+  }
+
+  if (lastToolName === 'recommend_schemes') {
+    finalText = cleanAndFormatPostRecommendation(
+      finalText,
+      session.language,
+      session.knownFacts?.loan_amount_rs != null
+    );
   }
 
   finalText = stripMarkdown(finalText);

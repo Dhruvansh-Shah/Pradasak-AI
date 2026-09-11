@@ -9,6 +9,7 @@ import Footer from '@/components/Footer';
 export default function SummaryPage() {
   const router = useRouter();
   const [data, setData] = useState<any>(null);
+  const [hasPendingChat, setHasPendingChat] = useState(false);
 
   useEffect(() => {
     const summaryStr = localStorage.getItem('registration_summary');
@@ -18,6 +19,16 @@ export default function SummaryPage() {
     } else {
       router.replace('/');
     }
+
+    try {
+      const raw = sessionStorage.getItem('pradarshak_active_chat');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.messages && parsed.messages.length > 0) {
+          setHasPendingChat(true);
+        }
+      }
+    } catch {}
   }, [router]);
 
   if (!data) return null;
@@ -82,16 +93,25 @@ export default function SummaryPage() {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {hasPendingChat && (
+          <button 
+            onClick={() => router.push('/chat')}
+            style={{ width: '100%', padding: '16px', borderRadius: 12, background: 'linear-gradient(135deg, #0b1f3a, #1d4ed8)', color: '#fff', fontSize: 15, fontWeight: 800, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 4px 14px rgba(29, 78, 216, 0.25)' }}
+          >
+            Return to Your Consultation (Auto-Saved) <ArrowRight size={18} />
+          </button>
+        )}
+
         <button 
           onClick={() => router.push('/schemes')}
-          style={{ width: '100%', padding: '16px', borderRadius: 12, background: '#0b1f3a', color: '#fff', fontSize: 15, fontWeight: 700, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 4px 12px rgba(11, 31, 58, 0.15)' }}
+          style={{ width: '100%', padding: '16px', borderRadius: 12, background: hasPendingChat ? '#ffffff' : '#0b1f3a', color: hasPendingChat ? '#0b1f3a' : '#fff', fontSize: 15, fontWeight: 700, border: hasPendingChat ? '1.5px solid #0b1f3a' : 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: hasPendingChat ? 'none' : '0 4px 12px rgba(11, 31, 58, 0.15)' }}
         >
           Explore Concessional Schemes <ArrowRight size={18} />
         </button>
         
         <button 
           onClick={() => router.push('/')}
-          style={{ width: '100%', padding: '16px', borderRadius: 12, background: '#fff', color: '#0b1f3a', fontSize: 15, fontWeight: 700, border: '1.5px solid #0b1f3a', cursor: 'pointer' }}
+          style={{ width: '100%', padding: '16px', borderRadius: 12, background: '#fff', color: '#64748b', fontSize: 14, fontWeight: 600, border: '1px solid #e2e8f0', cursor: 'pointer' }}
         >
           Go to Dashboard
         </button>

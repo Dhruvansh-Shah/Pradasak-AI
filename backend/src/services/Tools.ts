@@ -27,19 +27,19 @@ export const TOOL_DEFS: ToolDef[] = [
     type: 'function',
     function: {
       name: 'recommend_schemes',
-      description:
-        "Look up and score real NSFDC concessional loan schemes from the database that match the applicant's situation or single-scheme detail queries (e.g. 'Tell me more about SUY', 'What is GBS', 'Explain MCF'). Use this whenever the user describes a business/education plan, asks which scheme fits them, or asks for details on a specific scheme. Never guess scheme names, rates, or limits yourself — always call this to get real data.",
+      description: 'Search and score NSFDC government loan schemes from the database. Call this whenever the user asks about loans, schemes, financial assistance, business funding, education loans, or wants scheme recommendations. Also call this when the user describes a business plan, educational goal, or asks "what schemes are available".',
       parameters: {
         type: 'object',
         properties: {
-          purpose: { type: 'string', description: 'What the loan/education is for OR the specific scheme name/acronym requested by the user, e.g. "tailoring shop", "GBS", "Green Business Scheme"' },
-          loan_amount_rs: { type: 'number', description: 'Desired loan amount in rupees' },
+          query: { type: 'string', description: 'The user\'s search query or question about schemes' },
+          purpose: { type: 'string', description: 'Loan purpose, business type, or scheme name/acronym (e.g. tailoring, education, MCF, dairy)' },
+          loan_amount_rs: { type: 'number', description: 'Requested loan amount in rupees' },
           family_income_rs: { type: 'number', description: 'Annual family income in rupees' },
           education_level: { type: 'string', enum: ['school', 'diploma', 'undergraduate', 'postgraduate'] },
           course: { type: 'string' },
           gender: { type: 'string', enum: ['male', 'female'] },
-          location: { type: 'string', description: 'City/district, if mentioned' },
-          category_hint: { type: 'string', enum: ['education_loan', 'business_loan'] },
+          location: { type: 'string', description: 'City or district' },
+          category_hint: { type: 'string', enum: ['education_loan', 'business_loan'], description: 'Set to education_loan for education/study queries, business_loan for business/trade queries' },
         },
       },
     },
@@ -48,13 +48,12 @@ export const TOOL_DEFS: ToolDef[] = [
     type: 'function',
     function: {
       name: 'calculate_emi',
-      description:
-        'Compute the exact monthly EMI, total interest, and total payable for a loan using deterministic financial math. Always call this instead of estimating an EMI figure yourself. If you do not know the loan amount from this conversation, ask the user for it instead of calling this tool with a guess.',
+      description: 'Compute exact monthly EMI, total interest, and repayment schedule for a loan amount and interest rate.',
       parameters: {
         type: 'object',
         properties: {
           loan_amount_rs: { type: 'number', description: 'Principal loan amount in rupees' },
-          interest_rate_pct: { type: 'number', description: 'Annual interest rate percent. Use the scheme rate if one was already recommended in this conversation.' },
+          interest_rate_pct: { type: 'number', description: 'Annual interest rate percent' },
           tenure_months: { type: 'number', description: 'Repayment tenure in months' },
           moratorium_months: { type: 'number', description: 'Moratorium/grace period in months, 0 if none' },
         },
@@ -66,13 +65,12 @@ export const TOOL_DEFS: ToolDef[] = [
     type: 'function',
     function: {
       name: 'find_partners',
-      description:
-        'Find nearby authorized, financially healthy NSFDC channel partners (State Channelizing Agencies, Rural Banks, etc.) using geo-spatial search. Requires a city or district — if the user has not given one anywhere in the conversation, ask for it instead of calling this tool.',
+      description: 'Find nearby authorized NSFDC channel partner banks and agencies using geo-spatial search.',
       parameters: {
         type: 'object',
         properties: {
           location: { type: 'string', description: 'City or district name' },
-          category: { type: 'string', description: 'Scheme category to filter partners by, if known (e.g. micro_finance, term_loan, education_loan)' },
+          category: { type: 'string', description: 'Scheme category filter' },
         },
         required: ['location'],
       },
@@ -82,13 +80,13 @@ export const TOOL_DEFS: ToolDef[] = [
     type: 'function',
     function: {
       name: 'get_required_documents',
-      description: 'Get the official checklist of documents required to apply, optionally tailored to a specific scheme.',
+      description: 'Get required application documents checklist for a scheme.',
       parameters: {
         type: 'object',
         properties: {
-          scheme_id: { type: 'number', description: 'Numeric ID of the scheme, if known' },
-          scheme_name: { type: 'string', description: 'Name of the scheme the user is applying for, if known' },
-          is_education: { type: 'boolean', description: 'True if this is for an education loan' },
+          scheme_id: { type: 'number', description: 'Numeric ID of the scheme' },
+          scheme_name: { type: 'string', description: 'Name of the scheme' },
+          is_education: { type: 'boolean', description: 'True if for education loan' },
         },
       },
     },
@@ -97,12 +95,12 @@ export const TOOL_DEFS: ToolDef[] = [
     type: 'function',
     function: {
       name: 'compare_schemes',
-      description: 'Fetch two or more distinct schemes side by side for comparison using scheme IDs or names.',
+      description: 'Fetch two or more schemes side by side for comparison using scheme IDs or names.',
       parameters: {
         type: 'object',
         properties: {
-          scheme_ids: { type: 'array', items: { type: 'number' }, description: 'Array of numeric scheme IDs to compare' },
-          scheme_names: { type: 'array', items: { type: 'string' }, description: 'Array of scheme names/acronyms to compare' },
+          scheme_ids: { type: 'array', items: { type: 'number' }, description: 'Array of scheme IDs' },
+          scheme_names: { type: 'array', items: { type: 'string' }, description: 'Array of scheme names' },
         },
       },
     },
@@ -117,17 +115,47 @@ export interface ToolResult {
 export async function executeTool(name: string, args: Record<string, unknown>): Promise<ToolResult> {
   switch (name) {
     case 'recommend_schemes': {
+      const rawPurpose = ((args.purpose || args.query || '') as string).trim();
+      const lowerPurpose = rawPurpose.toLowerCase();
+
+      const isEdu =
+        args.category_hint === 'education_loan' ||
+        lowerPurpose.includes('education') ||
+        lowerPurpose.includes('study') ||
+        lowerPurpose.includes('college') ||
+        lowerPurpose.includes('school') ||
+        lowerPurpose.includes('degree') ||
+        lowerPurpose.includes('course') ||
+        lowerPurpose.includes('student') ||
+        lowerPurpose.includes('scholarship') ||
+        lowerPurpose.includes('university') ||
+        lowerPurpose.includes('btech') ||
+        lowerPurpose.includes('mba') ||
+        lowerPurpose.includes('mbbs') ||
+        lowerPurpose.includes('विद्या') ||
+        lowerPurpose.includes('शिक्षा') ||
+        lowerPurpose.includes('शिक्षण') ||
+        lowerPurpose.includes('पढ़ाई');
+
+      const isWomen =
+        args.category_hint === 'women-exclusive' ||
+        args.gender === 'female' ||
+        lowerPurpose.includes('women') ||
+        lowerPurpose.includes('mahila') ||
+        lowerPurpose.includes('महिला');
+
+      const categoryHint = (args.category_hint as string | undefined) || (isEdu ? 'education_loan' : undefined);
+
       const entities: UserEntities = {
-        purpose: args.purpose as string | undefined,
+        purpose: rawPurpose || undefined,
         loan_amount_rs: args.loan_amount_rs as number | undefined,
         family_income_rs: args.family_income_rs as number | undefined,
         education_level: args.education_level as string | undefined,
         course: args.course as string | undefined,
-        gender: args.gender as string | undefined,
+        gender: (args.gender as string | undefined) || (isWomen ? 'female' : undefined),
         location: args.location as string | undefined,
       };
-      const categoryHint = args.category_hint as string | undefined;
-      const schemes: ScoredScheme[] = await recommendSchemes(entities, categoryHint === 'education_loan' ? 'education_loan' : undefined);
+      const schemes: ScoredScheme[] = await recommendSchemes(entities, categoryHint);
 
       let nearestPartner: unknown = null;
       if (entities.location) {
@@ -138,9 +166,21 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
         }
       }
 
-      // Direct single-scheme lookup returns ONLY 1 scheme; generic queries return top 3
-      const isDirectMatch = schemes[0] && schemes[0].score >= 100;
-      const returnedSchemes = isDirectMatch ? schemes.slice(0, 1) : schemes.slice(0, 3);
+      // Direct single-scheme lookup (by specific acronym or exact scheme name) returns 1 scheme; category/intent inquiries return top schemes
+      const isSpecificSchemeLookup =
+        schemes[0] &&
+        rawPurpose &&
+        (schemes[0].name.toLowerCase().includes(rawPurpose.toLowerCase()) ||
+          (schemes[0].short_name && schemes[0].short_name.toLowerCase() === rawPurpose.toLowerCase()) ||
+          (schemes[0].aliases && schemes[0].aliases.some((a) => a.toLowerCase() === rawPurpose.toLowerCase())));
+
+      const isCategoryInquiry =
+        isEdu ||
+        isWomen ||
+        args.category_hint != null ||
+        /suggest|recommend|find|best|good|list|available|options|what schemes|which schemes/i.test(rawPurpose);
+
+      const returnedSchemes = isSpecificSchemeLookup && !isCategoryInquiry ? schemes.slice(0, 1) : schemes.slice(0, 3);
 
       return {
         toolName: name,
