@@ -88,6 +88,28 @@ export function buildSchemeSpeech(s: any, lang: string = 'en'): string {
     return parts.join(' ');
   }
 
+  if (lang === 'gu') {
+    if (schemeName) parts.push(`${schemeName}.`);
+    if (s.score != null) parts.push(`પાત્રતા મેળ: ${Math.round(Number(s.score))} ટકા.`);
+    if (maxLoan != null) {
+      const loanStr = maxLoan >= 1 ? `${maxLoan} લાખ રૂપિયા` : `${Math.round(maxLoan * 100000)} રૂપિયા`;
+      parts.push(`મહત્તમ લોન મર્યાદા: ${loanStr}.`);
+    }
+    if (rateStr) {
+      parts.push(`રાહત વ્યાજ દર: વાર્ષિક ${rateMin === rateMax ? rateMin : `${rateMin} થી ${rateMax}`} ટકા.`);
+    }
+    if (s.max_income_lakh != null) {
+      parts.push(`વાર્ષિક કૌટુંબિક આવક મર્યાદા: મહત્તમ ${s.max_income_lakh} લાખ રૂપિયા.`);
+    }
+    if (desc) parts.push(desc.replace(/[#*`_\[\]]/g, '').trim());
+    if (tenure) parts.push(`પુનઃચુકવણી મુદત: મહત્તમ ${tenure} મહિના.`);
+    if (morMin != null && morMax != null) {
+      const morStr = morMin === morMax ? `${morMin} મહિના` : `${morMin} થી ${morMax} મહિના`;
+      parts.push(`મોરેટોરિયમ ગ્રેસ સમયગાળો: ${morStr}.`);
+    }
+    return parts.join(' ');
+  }
+
   // English fallback
   if (s.name) {
     parts.push(`${s.name}.`);
@@ -176,6 +198,21 @@ export function buildDocumentsSpeech(
     return parts.join(' ');
   }
 
+  if (lang === 'gu') {
+    if (localizedScheme) {
+      parts.push(`${localizedScheme} માટે જરૂરી દસ્તાવેજો.`);
+    } else {
+      parts.push('જરૂરી દસ્તાવેજોની ચકાસણી યાદી.');
+    }
+    if (localizedDocs.length > 0) {
+      parts.push(`જરૂરી દસ્તાવેજોમાં શામેલ છે: ${localizedDocs.join(', ')}.`);
+    }
+    if (note) {
+      parts.push(note.replace(/[#*`_\[\]]/g, '').trim());
+    }
+    return parts.join(' ');
+  }
+
   // English fallback
   if (schemeName) {
     parts.push(`Required documents for ${schemeName}.`);
@@ -248,7 +285,7 @@ export function buildEmiSpeech(data: any, lang: string = 'en'): string {
     if (schemeName) {
       parts.push(`${schemeName}-এর জন্য ইএমআই পূর্বাভাস।`);
     } else {
-      parts.push('ইএমআই পূর্বাভাসের হিসাব।');
+      parts.push('ইএমআই পূর্বাভাস হিসাব।');
     }
     if (principal > 0) {
       const pStr = principal >= 100000 ? `${(principal / 100000).toFixed(2)} লাখ টাকা` : `${principal} টাকা`;
@@ -260,6 +297,25 @@ export function buildEmiSpeech(data: any, lang: string = 'en'): string {
     if (emi > 0) parts.push(`আনুমানিক মাসিক ইএমআই: ${Math.round(emi)} টাকা।`);
     if (totalInterest > 0) parts.push(`মোট প্রদেয় সুদ: ${Math.round(totalInterest)} টাকা।`);
     if (totalPayable > 0) parts.push(`মোট পরিশোধের পরিমাণ: ${Math.round(totalPayable)} টাকা।`);
+    return parts.join(' ');
+  }
+
+  if (lang === 'gu') {
+    if (schemeName) {
+      parts.push(`${schemeName} માટે EMI અંદાજ.`);
+    } else {
+      parts.push('EMI ગણતરી અંદાજ.');
+    }
+    if (principal > 0) {
+      const pStr = principal >= 100000 ? `${(principal / 100000).toFixed(2)} લાખ રૂપિયા` : `${principal} રૂપિયા`;
+      parts.push(`લોન મૂળ રકમ: ${pStr}.`);
+    }
+    if (rate > 0) parts.push(`વ્યાજ દર: વાર્ષિક ${rate} ટકા.`);
+    if (tenure > 0) parts.push(`પુનઃચુકવણી મુદત: ${tenure} મહિના.`);
+    if (moratorium > 0) parts.push(`મોરેટોરિયમ ગ્રેસ સમયગાળો: ${moratorium} મહિના.`);
+    if (emi > 0) parts.push(`અંદાજિત માસિક EMI: ${Math.round(emi)} રૂપિયા.`);
+    if (totalInterest > 0) parts.push(`કુલ ચૂકવવાપાત્ર વ્યાજ: ${Math.round(totalInterest)} રૂપિયા.`);
+    if (totalPayable > 0) parts.push(`કુલ પુનઃચુકવણી રકમ: ${Math.round(totalPayable)} રૂપિયા.`);
     return parts.join(' ');
   }
 
@@ -338,6 +394,20 @@ export function buildComparisonSpeech(schemes: any[], lang: string = 'en'): stri
         : `বার্ষিক ${s.interest_rate_min} থেকে ${s.interest_rate_max} শতাংশ`;
       const tenure = s.max_tenure_months ? `সর্বোচ্চ ${s.max_tenure_months} মাস` : 'নমনীয় মেয়াদ';
       parts.push(`${name}-এ সর্বোচ্চ ঋণ ${loan}, সুদের হার ${rate} এবং পরিশোধের মেয়াদ ${tenure}।`);
+    }
+    return parts.join(' ');
+  }
+
+  if (lang === 'gu') {
+    parts.push(`${count} યોજનાઓની વિગતવાર સરખામણી.`);
+    for (const s of schemes) {
+      const name = getLocalizedSchemeName(s.name, lang) || s.name;
+      const loan = s.max_loan_lakh != null ? `${s.max_loan_lakh} લાખ રૂપિયા` : 'રાહત મર્યાદા';
+      const rate = s.interest_rate_min === s.interest_rate_max
+        ? `વાર્ષિક ${s.interest_rate_min} ટકા`
+        : `વાર્ષિક ${s.interest_rate_min} થી ${s.interest_rate_max} ટકા`;
+      const tenure = s.max_tenure_months ? `મહત્તમ ${s.max_tenure_months} મહિના` : 'લવચીક મુદત';
+      parts.push(`${name}માં મહત્તમ લોન ${loan}, વ્યાજ દર ${rate} અને પુનઃચુકવણી મુદત ${tenure} સુધી છે.`);
     }
     return parts.join(' ');
   }

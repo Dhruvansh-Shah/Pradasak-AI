@@ -13,6 +13,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
+import { getLocalizedSchemeName, getLocalizedSchemeDesc } from '@/lib/translations';
 
 import { API_BASE } from '@/lib/apiBase';
 
@@ -60,7 +61,7 @@ function SchemeCard({
   scheme: Scheme;
   onChat: (name: string) => void;
 }) {
-const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const isInformational = scheme.scheme_type === 'informational' || scheme.channel_partner_applicable === false;
   const meta =
     CATEGORY_META[scheme.category] || {
@@ -69,6 +70,9 @@ const { t } = useLanguage();
       text: '#334155',
       border: '#e2e8f0',
     };
+  const categoryLabel = t(`category.${scheme.category}`, meta.label);
+  const localizedName = getLocalizedSchemeName(scheme.name, language);
+  const localizedDesc = getLocalizedSchemeDesc(scheme.name, scheme.description, language);
 
   return (
     <div
@@ -119,7 +123,7 @@ const { t } = useLanguage();
                 gap: 4,
               }}
             >
-              <span>🔵 OTHER GOVERNMENT PROGRAMME</span>
+              <span>{t('schemes.type_informational', '🔵 OTHER GOVERNMENT PROGRAMME')}</span>
             </span>
           ) : (
             <span
@@ -138,7 +142,7 @@ const { t } = useLanguage();
                 gap: 4,
               }}
             >
-              <span>🟢 FINANCING SCHEME</span>
+              <span>{t('schemes.type_financing', '🟢 FINANCING SCHEME')}</span>
             </span>
           )}
 
@@ -154,7 +158,7 @@ const { t } = useLanguage();
               textTransform: 'uppercase',
             }}
           >
-            {meta.label}
+            {categoryLabel}
           </span>
 
           {scheme.gender_eligibility === 'women_only' && (
@@ -178,21 +182,21 @@ const { t } = useLanguage();
         {/* ── Subtitle explanation ────────────────────────────────────────── */}
         <div style={{ fontSize: 11.5, color: isInformational ? '#2563eb' : '#059669', fontWeight: 600, marginTop: -4 }}>
           {isInformational
-            ? 'Provides information about an official government programme. It is not part of the NSFDC channel-partner routing flow.'
-            : 'May involve financing through an authorized channel partner.'}
+            ? t('schemes.subtitle_informational', 'Provides information about an official government programme. It is not part of the NSFDC channel-partner routing flow.')
+            : t('schemes.subtitle_financing', 'May involve financing through an authorized channel partner.')}
         </div>
 
         {/* ── Scheme Title ────────────────────────────────────────────────── */}
         <h3 style={{ fontSize: 17, fontWeight: 800, color: '#0b1f3a', margin: 0, lineHeight: 1.35 }}>
-          {scheme.name}
+          {localizedName || scheme.name}
         </h3>
 
         {/* ── Description ────────────────────────────────────────────────── */}
         <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.55, margin: 0 }}>
-          {scheme.description}
+          {localizedDesc || scheme.description}
         </p>
 
-{/* ── Key Metrics Grid (For Financing Schemes) ─────────────────────── */}
+        {/* ── Key Metrics Grid (For Financing Schemes) ─────────────────────── */}
         {!isInformational ? (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, paddingTop: 4 }}>
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '10px 12px' }}>
@@ -219,19 +223,19 @@ const { t } = useLanguage();
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, paddingTop: 4 }}>
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '10px 12px' }}>
               <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', display: 'block', marginBottom: 2 }}>
-                Bank Loan Range
+                {t('schemes.bank_loan_range', 'Bank Loan Range')}
               </span>
               <strong style={{ fontSize: 15, fontWeight: 800, color: '#0b1f3a' }}>
                 ₹{scheme.min_loan_lakh}L – ₹{scheme.max_loan_lakh}L
               </strong>
             </div>
 
-<div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '10px 12px' }}>
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '10px 12px' }}>
               <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', display: 'block', marginBottom: 2 }}>
-                Disbursing Body
+                {t('schemes.disbursing_body', 'Disbursing Body')}
               </span>
               <strong style={{ fontSize: 13, fontWeight: 800, color: '#1d4ed8' }}>
-                Commercial Banks
+                {t('schemes.commercial_banks', 'Commercial Banks')}
               </strong>
             </div>
           </div>
@@ -255,7 +259,7 @@ const { t } = useLanguage();
         {/* ── Official Source Citation ────────────────────────────────────── */}
         {scheme.official_source && (
           <div style={{ fontSize: 11, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
-            <span>Source:</span>
+            <span>{t('schemes.source', 'Source:')}</span>
             {scheme.official_source_url ? (
               <a
                 href={scheme.official_source_url}
@@ -298,7 +302,7 @@ const { t } = useLanguage();
               transition: 'all 150ms ease',
             }}
           >
-            <span>Learn More ↗</span>
+            <span>{t('schemes.learn_more', 'Learn More ↗')}</span>
           </a>
         )}
 
@@ -465,7 +469,7 @@ export default function SchemesPage() {
                 transition: 'all 150ms ease',
               }}
             >
-              All Programmes ({schemeList.length})
+              {t('schemes.tab_all', 'All Programmes')} ({schemeList.length})
             </button>
             <button
               onClick={() => setTypeFilter('financing')}
@@ -481,7 +485,7 @@ export default function SchemesPage() {
                 transition: 'all 150ms ease',
               }}
             >
-              🟢 Financing Schemes ({schemeList.filter(s => s.scheme_type !== 'informational' && s.channel_partner_applicable !== false).length})
+              {t('schemes.tab_financing', '🟢 Financing Schemes')} ({schemeList.filter(s => s.scheme_type !== 'informational' && s.channel_partner_applicable !== false).length})
             </button>
             <button
               onClick={() => setTypeFilter('informational')}
@@ -497,7 +501,7 @@ export default function SchemesPage() {
                 transition: 'all 150ms ease',
               }}
             >
-              🔵 Informational Programmes ({schemeList.filter(s => s.scheme_type === 'informational' || s.channel_partner_applicable === false).length})
+              {t('schemes.tab_informational', '🔵 Informational Programmes')} ({schemeList.filter(s => s.scheme_type === 'informational' || s.channel_partner_applicable === false).length})
             </button>
           </div>
         </div>
@@ -582,7 +586,7 @@ export default function SchemesPage() {
                       transition: 'all 150ms ease',
                     }}
                   >
-                    {meta.label}
+                    {t(`category.${cat}`, meta.label)}
                   </button>
                 );
               })}

@@ -134,21 +134,21 @@ export default function Footer() {
                 letterSpacing: '0.06em',
               }}
             >
-              Support & Redressal
+              {t('footer.support_redressal', 'Support & Redressal')}
             </span>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13 }}>
               <span style={{ color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <HelpCircle size={14} color="#38bdf8" />
-                <span>CPGRAMS Portal</span>
+                <span>{t('footer.cpgrams', 'CPGRAMS Portal')}</span>
               </span>
               <span style={{ color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <FileText size={14} color="#38bdf8" />
-                <span>Application Guidelines</span>
+                <span>{t('footer.guidelines', 'Application Guidelines')}</span>
               </span>
               <span style={{ color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <MapPin size={14} color="#38bdf8" />
-                <span>State SC/ST Commissions</span>
+                <span>{t('footer.commissions', 'State SC/ST Commissions')}</span>
               </span>
             </div>
           </div>
@@ -164,16 +164,16 @@ export default function Footer() {
                 letterSpacing: '0.06em',
               }}
             >
-              National Helplines
+              {t('footer.helplines', 'National Helplines')}
             </span>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13 }}>
               <div style={{ background: 'rgba(255, 255, 255, 0.06)', padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(255, 255, 255, 0.1)' }}>
-                <span style={{ fontSize: 11, color: '#94a3b8', display: 'block' }}>Toll Free (National)</span>
+                <span style={{ fontSize: 11, color: '#94a3b8', display: 'block' }}>{t('footer.toll_free', 'Toll Free (National)')}</span>
                 <strong style={{ color: '#fed7aa', fontSize: 14 }}>1800-11-2001</strong>
               </div>
               <div style={{ background: 'rgba(255, 255, 255, 0.06)', padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(255, 255, 255, 0.1)' }}>
-                <span style={{ fontSize: 11, color: '#94a3b8', display: 'block' }}>Technical Support</span>
+                <span style={{ fontSize: 11, color: '#94a3b8', display: 'block' }}>{t('footer.tech_support', 'Technical Support')}</span>
                 <strong style={{ color: '#e0f2fe', fontSize: 13 }}>support@nsfdc.nic.in</strong>
               </div>
             </div>
@@ -193,12 +193,12 @@ export default function Footer() {
           }}
         >
           <span>
-            © {new Date().getFullYear()} National SC Financial Assistance Portal • PradarshakAI. All Rights Reserved.
+            © {new Date().getFullYear()} {t('footer.portal_title', 'National SC Financial Assistance Portal')} • {t('brand.name', 'PradarshakAI')}. {t('footer.rights_reserved', 'All Rights Reserved.')}
           </span>
           <div style={{ display: 'flex', gap: 16 }}>
-            <span>Privacy Policy</span>
-            <span>Terms of Service</span>
-            <span>Accessibility Statement (WCAG 2.1 AA)</span>
+            <span>{t('footer.privacy', 'Privacy Policy')}</span>
+            <span>{t('footer.terms', 'Terms of Service')}</span>
+            <span>{t('footer.accessibility', 'Accessibility Statement (WCAG 2.1 AA)')}</span>
           </div>
         </div>
       </div>

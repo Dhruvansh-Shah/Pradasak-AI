@@ -678,12 +678,329 @@ function MessageBubble({
   );
 }
 
+export type VoiceAgentState =
+  | 'IDLE'
+  | 'LISTENING'
+  | 'PROCESSING'
+  | 'SPEAKING'
+  | 'INTERRUPTED'
+  | 'ERROR'
+  | 'ENDED';
+
+function AudioWaveformIcon({ state }: { state: VoiceAgentState }) {
+  const bars = [
+    { idleH: 8, delay: '0ms' },
+    { idleH: 15, delay: '120ms' },
+    { idleH: 22, delay: '240ms' },
+    { idleH: 14, delay: '360ms' },
+    { idleH: 7, delay: '480ms' },
+  ];
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 3.5,
+        height: 26,
+        width: 30,
+      }}
+      aria-hidden="true"
+    >
+      {bars.map((bar, i) => {
+        let animation = 'none';
+        if (state === 'LISTENING') {
+          animation = `waveBarListening 1s ease-in-out infinite ${bar.delay}`;
+        } else if (state === 'PROCESSING') {
+          animation = `waveBarProcessing 1.4s ease-in-out infinite ${bar.delay}`;
+        } else if (state === 'SPEAKING') {
+          animation = `waveBarSpeaking 0.85s ease-in-out infinite ${bar.delay}`;
+        }
+
+        return (
+          <span
+            key={i}
+            className="audio-wave-bar"
+            style={{
+              display: 'block',
+              width: 3,
+              height:
+                state === 'IDLE' || state === 'ENDED' || state === 'ERROR'
+                  ? bar.idleH
+                  : undefined,
+              background: '#ffffff',
+              borderRadius: 2.5,
+              animation,
+              transition: 'height 180ms ease, opacity 180ms ease',
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+function renderSlidingLetters(
+  text: string,
+  phase: 'IN' | 'OUT',
+  delayPerLetter: number,
+  lang: string = 'en'
+) {
+  let letters: string[] = [];
+  try {
+    if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+      const segmenter = new Intl.Segmenter(lang, { granularity: 'grapheme' });
+      letters = Array.from(segmenter.segment(text), (s) => s.segment);
+    } else {
+      letters = Array.from(text);
+    }
+  } catch {
+    letters = Array.from(text);
+  }
+
+  // Group by words so line wrapping only happens on whitespace boundaries
+  const words: { wordLetters: { char: string; index: number }[]; isSpaceAfter: boolean }[] = [];
+  let currentWord: { char: string; index: number }[] = [];
+  let globalIndex = 0;
+
+  for (let i = 0; i < letters.length; i++) {
+    const char = letters[i];
+    if (char === ' ') {
+      if (currentWord.length > 0) {
+        words.push({ wordLetters: currentWord, isSpaceAfter: true });
+        currentWord = [];
+      } else if (words.length > 0) {
+        words[words.length - 1].isSpaceAfter = true;
+      }
+      globalIndex++;
+    } else {
+      currentWord.push({ char, index: globalIndex });
+      globalIndex++;
+    }
+  }
+  if (currentWord.length > 0) {
+    words.push({ wordLetters: currentWord, isSpaceAfter: false });
+  }
+
+  const animClass = phase === 'IN' ? 'letter-slide-in' : 'letter-slide-out';
+
+  return (
+    <>
+      {words.map((w, wIdx) => (
+        <span key={wIdx} style={{ display: 'inline-block', whiteSpace: 'nowrap' }}>
+          {w.wordLetters.map(({ char, index }) => (
+            <span
+              key={index}
+              className={animClass}
+              style={{
+                display: 'inline-block',
+                animationDelay: phase === 'IN' ? `${index * delayPerLetter}ms` : `${index * 12}ms`,
+              }}
+            >
+              {char}
+            </span>
+          ))}
+          {w.isSpaceAfter && (
+            <span style={{ display: 'inline-block', width: '0.28em' }}>&nbsp;</span>
+          )}
+        </span>
+      ))}
+    </>
+  );
+}
+
+function SequentialWelcome({
+  onComplete,
+  t,
+}: {
+  onComplete: () => void;
+  t: (key: string, fallback?: string) => string;
+}) {
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 'DONE'>(1);
+  const [phase, setPhase] = useState<'IN' | 'OUT'>('IN');
+
+  const step1Text = 'नमस्ते!';
+  const step2Text = t('chat.welcome_step2', 'Welcome to PradarshakAI');
+  const step3Text = t(
+    'chat.welcome_step3',
+    'Tap the blue audio button to start a voice conversation.'
+  );
+  const step4Text = t(
+    'chat.welcome_step4',
+    'Prefer typing? Enter your question below - or use the mic in the chat box to speak your question.'
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+    const timers: NodeJS.Timeout[] = [];
+
+    // Step 1 ("नमस्ते!"): slower letter-by-letter flow
+    timers.push(
+      setTimeout(() => {
+        if (!isMounted) return;
+        setPhase('OUT');
+      }, 2800)
+    );
+
+    timers.push(
+      setTimeout(() => {
+        if (!isMounted) return;
+        setStep(2);
+        setPhase('IN');
+      }, 2800 + 480 + 140) // 3420ms
+    );
+
+    // Step 2 ("Welcome to PradarshakAI"): ~23 letters
+    timers.push(
+      setTimeout(() => {
+        if (!isMounted) return;
+        setPhase('OUT');
+      }, 3420 + 3400) // 6820ms
+    );
+
+    timers.push(
+      setTimeout(() => {
+        if (!isMounted) return;
+        setStep(3);
+        setPhase('IN');
+      }, 6820 + 480 + 140) // 7440ms
+    );
+
+    // Step 3 (Voice instruction): ~60 letters
+    timers.push(
+      setTimeout(() => {
+        if (!isMounted) return;
+        setPhase('OUT');
+      }, 7440 + 3800) // 11240ms
+    );
+
+    timers.push(
+      setTimeout(() => {
+        if (!isMounted) return;
+        setStep(4);
+        setPhase('IN');
+      }, 11240 + 480 + 140) // 11860ms
+    );
+
+    // Step 4 (Typing instruction): ~95 letters
+    timers.push(
+      setTimeout(() => {
+        if (!isMounted) return;
+        setPhase('OUT');
+      }, 11860 + 4400) // 16260ms
+    );
+
+    timers.push(
+      setTimeout(() => {
+        if (!isMounted) return;
+        setStep('DONE');
+        onComplete();
+      }, 16260 + 480) // 16740ms
+    );
+
+    return () => {
+      isMounted = false;
+      timers.forEach((t) => clearTimeout(t));
+    };
+  }, [onComplete]);
+
+  if (step === 'DONE') return null;
+
+  return (
+    <div
+      style={{
+        width: '100%',
+        minHeight: 180,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        textAlign: 'center',
+        padding: '24px 16px',
+        overflow: 'hidden',
+      }}
+    >
+      {/* STEP 1: HINDI NAMASTE (Letter by letter from left to right) */}
+      {step === 1 && (
+        <h1
+          key="step1"
+          style={{
+            fontSize: 'clamp(28px, 4.5vw, 42px)',
+            fontWeight: 800,
+            color: '#001e40',
+            letterSpacing: '-0.02em',
+            lineHeight: 1.25,
+            margin: 0,
+            maxWidth: 720,
+          }}
+        >
+          {renderSlidingLetters(step1Text, phase, 140, 'hi')}
+        </h1>
+      )}
+
+      {/* STEP 2: WELCOME TO PRADARSHAKAI (Letter by letter from left to right) */}
+      {step === 2 && (
+        <h1
+          key="step2"
+          style={{
+            fontSize: 'clamp(26px, 3.8vw, 38px)',
+            fontWeight: 800,
+            color: '#001e40',
+            letterSpacing: '-0.02em',
+            lineHeight: 1.25,
+            margin: 0,
+            maxWidth: 720,
+          }}
+        >
+          {renderSlidingLetters(step2Text, phase, 42, 'en')}
+        </h1>
+      )}
+
+      {/* STEP 3: VOICE INSTRUCTION (Letter by letter from left to right) */}
+      {step === 3 && (
+        <p
+          key="step3"
+          style={{
+            fontSize: 'clamp(17px, 2.4vw, 20.5px)',
+            fontWeight: 600,
+            color: '#000000',
+            lineHeight: 1.5,
+            margin: 0,
+            maxWidth: 680,
+          }}
+        >
+          {renderSlidingLetters(step3Text, phase, 24, 'en')}
+        </p>
+      )}
+
+      {/* STEP 4: TEXT / DICTATION INSTRUCTION (Letter by letter from left to right) */}
+      {step === 4 && (
+        <p
+          key="step4"
+          style={{
+            fontSize: 'clamp(17px, 2.4vw, 20.5px)',
+            fontWeight: 600,
+            color: '#000000',
+            lineHeight: 1.5,
+            margin: 0,
+            maxWidth: 680,
+          }}
+        >
+          {renderSlidingLetters(step4Text, phase, 18, 'en')}
+        </p>
+      )}
+    </div>
+  );
+}
+
 interface ChatInterfaceProps {
   chatId?: string | null;
   resetKey?: number;
   token?: string | null;
   onChatCreated?: (chatId: string) => void;
   onStepComplete?: (stepKey: 'eligibility' | 'scheme' | 'emi' | 'partner') => void;
+  onMessagesChange?: (messages: Message[], currentChatId: string | null) => void;
   initialMessages?: ChatMessage[];
   initialQuery?: string | null;
   category?: string | null;
@@ -695,31 +1012,42 @@ export default function ChatInterface({
   token,
   onChatCreated,
   onStepComplete,
+  onMessagesChange,
   initialMessages,
   initialQuery,
   category,
 }: ChatInterfaceProps) {
   const router = useRouter();
+  // Always initialise with empty array on SSR; hydrate from sessionStorage in useEffect.
   const [messages, setMessages] = useState<Message[]>(() => {
-    if (!initialMessages || initialMessages.length === 0) return [];
-    return initialMessages.map((m) => ({
-      id: String(m.id),
-      role: m.role,
-      text: m.content,
-      type: m.type as ChatResponse['type'],
-      data: m.data || undefined,
-      quickActions: m.quick_actions || undefined,
-      disclaimer: m.disclaimer || undefined,
-      speechText: (m.speechText || (m as any).speech_text || (m.data as any)?.speechText) as string | undefined,
-    }));
+    if (initialMessages && initialMessages.length > 0) {
+      return initialMessages.map((m) => ({
+        id: String(m.id),
+        role: m.role,
+        text: m.content,
+        type: m.type as ChatResponse['type'],
+        data: m.data || undefined,
+        quickActions: m.quick_actions || undefined,
+        disclaimer: m.disclaimer || undefined,
+        speechText: (m.speechText || (m as any).speech_text || (m.data as any)?.speechText) as string | undefined,
+      }));
+    }
+    return [];
   });
+  const [_hydratedFromSession, _setHydratedFromSession] = useState(false);
 
   const { lang: language, isAuto, updateDetectedLang, setLang: setLanguage, t } = useLanguage();
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [sessionId, setSessionId] = useState<string>(propChatId || '');
-  const [showWelcome, setShowWelcome] = useState(!initialMessages?.length);
-
+  // sessionId and showWelcome: initialise safely without sessionStorage (SSR-safe).
+  const [sessionId, setSessionId] = useState<string>(() => propChatId || '');
+  const [showWelcome, setShowWelcome] = useState(() => {
+    if (initialMessages && initialMessages.length > 0) return false;
+    return true;
+  });
+  const [isWelcomeComplete, setIsWelcomeComplete] = useState(!showWelcome || !!initialMessages?.length);
+  const [playAttentionPop, setPlayAttentionPop] = useState(false);
+  const prevWelcomeCompleteRef = useRef(isWelcomeComplete);
   const [isListening, setIsListening] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(true);
@@ -733,6 +1061,32 @@ export default function ChatInterface({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const mediaStreamRef = useRef<MediaStream | null>(null);
+
+  // Flow B: Large Blue Audio Waveform Button (Continuous Voice-to-Voice Agent)
+  const [voiceAgentState, setVoiceAgentState] = useState<VoiceAgentState>('IDLE');
+
+  const isBottomDocked =
+    messages.some((m) => m.role === 'assistant') ||
+    loading ||
+    voiceAgentState === 'PROCESSING' ||
+    voiceAgentState === 'SPEAKING' ||
+    (messages.length > 0 && !showWelcome);
+
+  // Trigger attention scale pop shortly after the chatbox begins its smooth slide up
+  useEffect(() => {
+    if (!prevWelcomeCompleteRef.current && isWelcomeComplete && !isBottomDocked) {
+      const timer = setTimeout(() => {
+        setPlayAttentionPop(true);
+      }, 700);
+      return () => clearTimeout(timer);
+    }
+    prevWelcomeCompleteRef.current = isWelcomeComplete;
+  }, [isWelcomeComplete, isBottomDocked]);
+  const isVoiceSessionActiveRef = useRef(false);
+  const voiceStreamRef = useRef<MediaStream | null>(null);
+  const voiceRecorderRef = useRef<MediaRecorder | null>(null);
+  const voiceChunksRef = useRef<Blob[]>([]);
+  const voiceAudioCtxRef = useRef<AudioContext | null>(null);
 
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
   const [loadingVoiceId, setLoadingVoiceId] = useState<string | null>(null);
@@ -773,7 +1127,24 @@ export default function ChatInterface({
         te: 'te-IN',
         en: 'en-IN',
       };
-      utterance.lang = langMap[lang] || 'en-IN';
+      const targetLang = langMap[lang] || 'en-IN';
+      utterance.lang = targetLang;
+
+      // Select matching voice from browser if available
+      const voices = window.speechSynthesis.getVoices?.() || [];
+      if (voices.length > 0) {
+        const exactVoice = voices.find((v) => v.lang && v.lang.toLowerCase().replace('_', '-') === targetLang.toLowerCase());
+        const prefixVoice = voices.find((v) => v.lang && v.lang.toLowerCase().startsWith(lang.toLowerCase()));
+        const indianVoice = voices.find((v) => v.lang && (v.lang.toLowerCase().includes('in') || v.name.toLowerCase().includes('india')));
+        if (exactVoice) {
+          utterance.voice = exactVoice;
+        } else if (prefixVoice) {
+          utterance.voice = prefixVoice;
+        } else if (indianVoice) {
+          utterance.voice = indianVoice;
+        }
+      }
+
       utterance.onend = () => setPlayingVoiceId(null);
       utterance.onerror = () => setPlayingVoiceId(null);
       if (voiceId) setPlayingVoiceId(voiceId);
@@ -839,14 +1210,88 @@ export default function ChatInterface({
     };
   }, [stopAudio]);
 
+  // ── Hydrate messages and sessionId from sessionStorage after mount (client-only) ──
+  useEffect(() => {
+    if (_hydratedFromSession) return;
+    if (initialMessages && initialMessages.length > 0) {
+      _setHydratedFromSession(true);
+      return;
+    }
+    try {
+      const raw = sessionStorage.getItem('pradarshak_active_chat');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed.messages) && parsed.messages.length > 0) {
+          setMessages(parsed.messages);
+          setShowWelcome(false);
+          setIsWelcomeComplete(true);
+        }
+        if (parsed.chatId && !propChatId) {
+          setSessionId(parsed.chatId);
+        }
+      }
+    } catch { }
+    _setHydratedFromSession(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Translate all existing chat messages when the selected language changes ──
+  useEffect(() => {
+    if (!_hydratedFromSession) return; // wait until we have real messages
+    if (messages.length === 0) return;
+
+    const langMap: Record<string, string> = {
+      hi: 'hi', mr: 'mr', bn: 'bn', gu: 'gu', kn: 'kn',
+      ml: 'ml', od: 'or', pa: 'pa', ta: 'ta', te: 'te', en: 'en',
+    };
+    const targetLang = langMap[language] || 'en';
+    if (targetLang === 'en' && language === 'en') return; // nothing to do for default
+
+    let cancelled = false;
+
+    async function translateText(text: string): Promise<string> {
+      if (!text || !text.trim()) return text;
+      try {
+        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
+        const res = await fetch(url);
+        const json = await res.json();
+        // Response is nested array: [[['translated','original',...],...],...]  
+        const translated: string = (json[0] as any[])
+          .map((chunk: any[]) => (chunk[0] as string) || '')
+          .join('');
+        return translated || text;
+      } catch {
+        return text;
+      }
+    }
+
+    async function translateAll() {
+      const translated = await Promise.all(
+        messages.map(async (msg) => {
+          const newText = await translateText(msg.text);
+          return { ...msg, text: newText, animate: false };
+        })
+      );
+      if (!cancelled) setMessages(translated);
+    }
+
+    translateAll();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language, _hydratedFromSession]);
+
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const chatIdRef = useRef<string | null>(propChatId || null);
 
   useEffect(() => {
+    chatIdRef.current = propChatId || null;
+  }, [propChatId]);
+
+  useEffect(() => {
     setSpeechSupported(
       typeof window !== 'undefined' &&
-        !!(navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function' && typeof MediaRecorder !== 'undefined')
+      !!(navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function' && typeof MediaRecorder !== 'undefined')
     );
   }, []);
 
@@ -950,13 +1395,358 @@ export default function ChatInterface({
     }
   }, [language, t]);
 
+  const addMessage = useCallback((msg: Omit<Message, 'id'>) => {
+    setMessages((prev) => [
+      ...prev,
+      { ...msg, id: Date.now().toString() + Math.random().toString(36).substring(2) },
+    ]);
+  }, []);
+
+  const cleanupVoiceAgent = useCallback(() => {
+    isVoiceSessionActiveRef.current = false;
+    if (voiceRecorderRef.current && voiceRecorderRef.current.state !== 'inactive') {
+      try {
+        voiceRecorderRef.current.stop();
+      } catch { }
+    }
+    if (voiceStreamRef.current) {
+      voiceStreamRef.current.getTracks().forEach((track) => track.stop());
+      voiceStreamRef.current = null;
+    }
+    if (voiceAudioCtxRef.current && voiceAudioCtxRef.current.state !== 'closed') {
+      try {
+        voiceAudioCtxRef.current.close();
+      } catch { }
+      voiceAudioCtxRef.current = null;
+    }
+    stopAudio();
+  }, [stopAudio]);
+
+  const startVoiceAgentTurn = useCallback(async () => {
+    if (!isVoiceSessionActiveRef.current) return;
+    setSpeechError(null);
+
+    if (
+      !navigator.mediaDevices ||
+      typeof navigator.mediaDevices.getUserMedia !== 'function' ||
+      typeof MediaRecorder === 'undefined'
+    ) {
+      setVoiceAgentState('ERROR');
+      setSpeechError('Microphone recording is not supported by your browser.');
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (!isVoiceSessionActiveRef.current) {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
+
+      voiceStreamRef.current = stream;
+      voiceChunksRef.current = [];
+
+      let mimeType = 'audio/webm';
+      if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+        mimeType = 'audio/webm;codecs=opus';
+      } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+        mimeType = 'audio/mp4';
+      }
+
+      const recorder = new MediaRecorder(stream, { mimeType });
+      voiceRecorderRef.current = recorder;
+
+      let animFrameId: number | null = null;
+      let hasSpoken = false;
+      let silenceStart: number | null = null;
+      let sourceNode: MediaStreamAudioSourceNode | null = null;
+      let analyser: AnalyserNode | null = null;
+
+      try {
+        const AudioCtx =
+          window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        if (AudioCtx) {
+          const audioCtx = new AudioCtx();
+          voiceAudioCtxRef.current = audioCtx;
+          analyser = audioCtx.createAnalyser();
+          analyser.fftSize = 256;
+          sourceNode = audioCtx.createMediaStreamSource(stream);
+          sourceNode.connect(analyser);
+
+          const dataArr = new Uint8Array(analyser.frequencyBinCount);
+
+          const checkAudio = () => {
+            if (!isVoiceSessionActiveRef.current || recorder.state === 'inactive') return;
+            analyser?.getByteFrequencyData(dataArr);
+            let sum = 0;
+            for (let i = 0; i < dataArr.length; i++) sum += dataArr[i];
+            const avg = sum / dataArr.length;
+
+            const now = Date.now();
+            if (avg > 14) {
+              hasSpoken = true;
+              silenceStart = null;
+            } else if (hasSpoken) {
+              if (!silenceStart) {
+                silenceStart = now;
+              } else if (now - silenceStart > 1650) {
+                if (recorder.state === 'recording') {
+                  recorder.stop();
+                  return;
+                }
+              }
+            }
+            animFrameId = requestAnimationFrame(checkAudio);
+          };
+          animFrameId = requestAnimationFrame(checkAudio);
+        }
+      } catch (e) {
+        console.warn('AudioContext VAD unavailable:', e);
+      }
+
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          voiceChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onstop = async () => {
+        if (animFrameId) cancelAnimationFrame(animFrameId);
+        try {
+          sourceNode?.disconnect();
+          analyser?.disconnect();
+          if (voiceAudioCtxRef.current && voiceAudioCtxRef.current.state !== 'closed') {
+            voiceAudioCtxRef.current.close();
+            voiceAudioCtxRef.current = null;
+          }
+        } catch { }
+
+        if (voiceStreamRef.current) {
+          voiceStreamRef.current.getTracks().forEach((track) => track.stop());
+          voiceStreamRef.current = null;
+        }
+
+        if (!isVoiceSessionActiveRef.current) {
+          setVoiceAgentState('IDLE');
+          return;
+        }
+
+        if (voiceChunksRef.current.length === 0) {
+          if (isVoiceSessionActiveRef.current) {
+            startVoiceAgentTurn();
+          }
+          return;
+        }
+
+        const audioBlob = new Blob(voiceChunksRef.current, { type: mimeType });
+        voiceChunksRef.current = [];
+
+        setVoiceAgentState('PROCESSING');
+        setShowWelcome(false);
+
+        try {
+          const sttRes = await transcribeAudio(audioBlob, 'unknown');
+          if (!isVoiceSessionActiveRef.current) {
+            setVoiceAgentState('IDLE');
+            return;
+          }
+
+          const transcript = sttRes?.transcript?.trim();
+          if (transcript) {
+            addMessage({ role: 'user', text: transcript });
+            if (sttRes.detectedLanguageCode) {
+              updateDetectedLang(sttRes.detectedLanguageCode, sttRes.languageProbability);
+            }
+
+            const reqLang = isAuto ? 'auto' : language;
+            const chatRes = await sendChat(
+              transcript,
+              sessionId || undefined,
+              chatIdRef.current || undefined,
+              token,
+              reqLang,
+              sttRes.detectedLanguageCode,
+              sttRes.languageProbability,
+              category || undefined
+            );
+
+            if (!isVoiceSessionActiveRef.current) {
+              setVoiceAgentState('IDLE');
+              return;
+            }
+
+            if (chatRes.detectedLanguage) {
+              updateDetectedLang(chatRes.detectedLanguage);
+            }
+
+            const newCId = chatRes.chatId || chatRes.sessionId;
+            setSessionId(newCId);
+            if (!chatIdRef.current && chatRes.chatId) {
+              chatIdRef.current = chatRes.chatId;
+              onChatCreated?.(chatRes.chatId);
+            }
+
+            onStepComplete?.('eligibility');
+            if (chatRes.type === 'emi' || chatRes.data?.emi) {
+              onStepComplete?.('scheme');
+              onStepComplete?.('emi');
+            } else if (chatRes.type === 'partners' || chatRes.data?.partners) {
+              onStepComplete?.('scheme');
+              onStepComplete?.('partner');
+            }
+
+            const assistantMsgId = Date.now().toString() + Math.random().toString(36).substring(2);
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: assistantMsgId,
+                role: 'assistant',
+                text: chatRes.message,
+                type: chatRes.type,
+                data: chatRes.data,
+                quickActions: chatRes.quickActions,
+                disclaimer: chatRes.disclaimer,
+                speechText: chatRes.speechText,
+                animate: true,
+              },
+            ]);
+
+            const speechToSay = chatRes.speechText || chatRes.message;
+            const cleanSpeech = speechToSay.replace(/[#*`_\[\]]/g, '').trim();
+
+            setVoiceAgentState('SPEAKING');
+
+            try {
+              const ttsBlob = await fetchTTS(cleanSpeech, language);
+              if (!isVoiceSessionActiveRef.current) {
+                setVoiceAgentState('IDLE');
+                return;
+              }
+
+              const url = URL.createObjectURL(ttsBlob);
+              audioUrlRef.current = url;
+              const audio = new Audio(url);
+              audioRef.current = audio;
+
+              audio.onended = () => {
+                stopAudio();
+                if (isVoiceSessionActiveRef.current) {
+                  startVoiceAgentTurn();
+                } else {
+                  setVoiceAgentState('IDLE');
+                }
+              };
+
+              audio.onerror = () => {
+                stopAudio();
+                if (isVoiceSessionActiveRef.current) {
+                  fallbackBrowserSpeech(cleanSpeech, language, assistantMsgId);
+                  setTimeout(() => {
+                    if (isVoiceSessionActiveRef.current) startVoiceAgentTurn();
+                  }, 3000);
+                }
+              };
+
+              await audio.play();
+            } catch (ttsErr) {
+              console.warn('TTS error, falling back to browser synthesis:', ttsErr);
+              if (isVoiceSessionActiveRef.current) {
+                fallbackBrowserSpeech(cleanSpeech, language, assistantMsgId);
+                setTimeout(() => {
+                  if (isVoiceSessionActiveRef.current) startVoiceAgentTurn();
+                }, 3500);
+              }
+            }
+          } else {
+            if (isVoiceSessionActiveRef.current) {
+              startVoiceAgentTurn();
+            } else {
+              setVoiceAgentState('IDLE');
+            }
+          }
+        } catch (err) {
+          console.error('Voice turn processing error:', err);
+          if (isVoiceSessionActiveRef.current) {
+            startVoiceAgentTurn();
+          } else {
+            setVoiceAgentState('ERROR');
+          }
+        }
+      };
+
+      recorder.start(100);
+      setVoiceAgentState('LISTENING');
+    } catch (err: unknown) {
+      console.error('Microphone access error:', err);
+      const eName = (err as { name?: string })?.name;
+      if (eName === 'NotAllowedError' || eName === 'PermissionDeniedError') {
+        setSpeechError('Microphone access denied. Please allow microphone permissions and try again.');
+      } else {
+        setSpeechError(t('stt.error_unclear', "Sorry, I couldn't understand that. Please try again."));
+      }
+      setVoiceAgentState('ERROR');
+    }
+  }, [
+    isAuto,
+    language,
+    sessionId,
+    token,
+    category,
+    onChatCreated,
+    onStepComplete,
+    addMessage,
+    stopAudio,
+    fallbackBrowserSpeech,
+    t,
+    updateDetectedLang,
+  ]);
+
+  const handleToggleVoiceAgent = useCallback(() => {
+    if (voiceAgentState === 'SPEAKING') {
+      stopAudio();
+      setVoiceAgentState('INTERRUPTED');
+      setTimeout(() => {
+        if (isVoiceSessionActiveRef.current) {
+          startVoiceAgentTurn();
+        }
+      }, 150);
+      return;
+    }
+
+    if (voiceAgentState === 'LISTENING' || voiceAgentState === 'PROCESSING') {
+      cleanupVoiceAgent();
+      setVoiceAgentState('ENDED');
+      setTimeout(() => setVoiceAgentState('IDLE'), 500);
+      return;
+    }
+
+    setIsWelcomeComplete(true);
+    if (isListening) {
+      stopListening();
+    }
+    isVoiceSessionActiveRef.current = true;
+    startVoiceAgentTurn();
+  }, [voiceAgentState, stopAudio, startVoiceAgentTurn, cleanupVoiceAgent, isListening, stopListening]);
+
   const toggleListening = () => {
+    setIsWelcomeComplete(true);
     if (isListening) {
       stopListening();
     } else {
+      if (isVoiceSessionActiveRef.current) {
+        cleanupVoiceAgent();
+        setVoiceAgentState('IDLE');
+      }
       startListening();
     }
   };
+
+  useEffect(() => {
+    return () => {
+      cleanupVoiceAgent();
+    };
+  }, [cleanupVoiceAgent]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -974,19 +1764,51 @@ export default function ChatInterface({
   // Reset chat on explicit New Chat action
   useEffect(() => {
     if (resetKey !== undefined && resetKey > 0) {
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('pradarshak_active_chat');
+      }
       chatIdRef.current = null;
       lastSyncedMessagesRef.current = null;
       setSessionId('');
       setMessages([]);
       setShowWelcome(true);
+      setIsWelcomeComplete(false);
       setInput('');
       setLoading(false);
       setSpeechError(null);
       lastProcessedQueryRef.current = null;
       stopAudio();
       stopListening();
+      cleanupVoiceAgent();
+      setVoiceAgentState('IDLE');
     }
-  }, [resetKey, stopAudio, stopListening]);
+  }, [resetKey, stopAudio, stopListening, cleanupVoiceAgent]);
+
+  // Synchronize messages state with parent and sessionStorage for session retention
+  useEffect(() => {
+    onMessagesChange?.(messages, propChatId || sessionId || null);
+    if (typeof window !== 'undefined' && messages.length > 0) {
+      try {
+        let existing: Record<string, unknown> = {};
+        const raw = sessionStorage.getItem('pradarshak_active_chat');
+        if (raw) existing = JSON.parse(raw);
+
+        sessionStorage.setItem(
+          'pradarshak_active_chat',
+          JSON.stringify({
+            ...existing,
+            clientChatId: existing.clientChatId || ('guest-' + Date.now().toString(36)),
+            chatId: propChatId || sessionId || existing.chatId || null,
+            messages,
+            persistedToDb: Boolean(token && (propChatId || existing.persistedToDb)),
+            timestamp: Date.now(),
+          })
+        );
+      } catch (err) {
+        console.warn('Failed to save chat to sessionStorage:', err);
+      }
+    }
+  }, [messages, sessionId, propChatId, token, onMessagesChange]);
 
   // Synchronize when switching to a different chat or loading initial messages
   useEffect(() => {
@@ -995,6 +1817,8 @@ export default function ChatInterface({
       setSessionId(propChatId);
       stopAudio();
       stopListening();
+      cleanupVoiceAgent();
+      setVoiceAgentState('IDLE');
     }
 
     if (
@@ -1016,6 +1840,7 @@ export default function ChatInterface({
         }))
       );
       setShowWelcome(false);
+      setIsWelcomeComplete(true);
 
       const hasAssistant = initialMessages.some((m) => m.role === 'assistant');
       if (hasAssistant) onStepCompleteRef.current?.('eligibility');
@@ -1032,14 +1857,7 @@ export default function ChatInterface({
         onStepCompleteRef.current?.('partner');
       }
     }
-  }, [propChatId, initialMessages, stopAudio, stopListening]);
-
-  const addMessage = useCallback((msg: Omit<Message, 'id'>) => {
-    setMessages((prev) => [
-      ...prev,
-      { ...msg, id: Date.now().toString() + Math.random().toString(36).substring(2) },
-    ]);
-  }, []);
+  }, [propChatId, initialMessages, stopAudio, stopListening, cleanupVoiceAgent]);
 
   const send = useCallback(
     async (text: string) => {
@@ -1048,6 +1866,7 @@ export default function ChatInterface({
       if (isListening) stopListening();
 
       setShowWelcome(false);
+      setIsWelcomeComplete(true);
       addMessage({ role: 'user', text });
       setInput('');
       setLoading(true);
@@ -1123,6 +1942,7 @@ export default function ChatInterface({
       else if (action === 'EMI') actionLabel = `Calculate EMI for ${scheme.name}`;
 
       setShowWelcome(false);
+      setIsWelcomeComplete(true);
       addMessage({ role: 'user', text: actionLabel });
       setLoading(true);
 
@@ -1197,6 +2017,7 @@ export default function ChatInterface({
       const text = `Compare the schemes: ${names}`;
 
       setShowWelcome(false);
+      setIsWelcomeComplete(true);
       addMessage({ role: 'user', text });
       setLoading(true);
 
@@ -1417,155 +2238,22 @@ export default function ChatInterface({
             </div>
           )}
 
-          {/* ── AI Assistant Landing Page View ───────────────────────────────────────── */}
-          {showWelcome && messages.length === 0 && !activeCategoryItem && (
+          {/* ── Conversational Welcome Screen (Sequential Slide-Style Intro) ── */}
+          {showWelcome && messages.length === 0 && !activeCategoryItem && !isWelcomeComplete && (
             <div
               style={{
                 width: '100%',
-                padding: '24px 0 36px',
-                textAlign: 'center',
+                minHeight: '35vh',
                 display: 'flex',
-                flexDirection: 'column',
                 alignItems: 'center',
-                gap: 28,
+                justifyContent: 'center',
               }}
             >
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-                <div
-                  style={{
-                    width: 58,
-                    height: 62,
-                    borderRadius: 8,
-                    background: '#ffffff',
-                    border: '1.5px solid #cbd5e1',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '4px',
-                    boxShadow: '0 4px 14px rgba(0, 30, 64, 0.08)',
-                  }}
-                >
-                  <EmblemOfIndia size={48} />
-                </div>
-
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#eef3f9', padding: '5px 14px', borderRadius: 6, border: '1px solid #cbd5e1' }}>
-                  <span style={{ fontSize: 11.5, fontWeight: 700, color: '#001e40', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    National SC Finance & Development Corporation (NSFDC)
-                  </span>
-                </div>
-
-                <h1 style={{ fontSize: 28, fontWeight: 800, color: '#001e40', letterSpacing: '-0.02em', margin: '4px 0 0' }}>
-                  {t('chat.welcome_title', 'NSFDC Scheme & Concessional Loan Advisory')}
-                </h1>
-
-                <p style={{ fontSize: 14.5, color: '#475569', maxWidth: 640, lineHeight: 1.6, margin: 0 }}>
-                  {t('chat.welcome_desc', 'Official consultation service for Scheduled Caste entrepreneurs, students, and self-help groups. Provide your project trade, income profile, or loan requirement to receive eligible program rankings and exact subsidized repayment plans.')}
-                </p>
-              </div>
-
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, 1fr)',
-                  gap: 16,
-                  width: '100%',
-                  textAlign: 'left',
-                }}
-              >
-                {suggestionList.map((item, i) => {
-                  const Icon = item.icon;
-                  return (
-                    <button
-                      key={i}
-                      onClick={() => router.push(`/chat?category=${item.id}`)}
-                      className="chat-suggestion-card interactive-control focus-ring"
-                      style={{
-                        background: '#ffffff',
-                        border: '1.5px solid #e2e8f0',
-                        borderRadius: 16,
-                        padding: '20px 22px',
-                        boxShadow: '0 2px 8px rgba(11,31,58,0.03)',
-                        textAlign: 'left',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        minHeight: 148,
-                        transition: 'transform 180ms var(--ease-out), border-color 150ms ease, box-shadow 180ms var(--ease-out)',
-                      }}
-                      onMouseEnter={(e) => {
-                        const el = e.currentTarget as HTMLElement;
-                        el.style.borderColor = '#0b1f3a';
-                        el.style.transform = 'translateY(-2px)';
-                        el.style.boxShadow = '0 8px 24px rgba(11,31,58,0.08)';
-                      }}
-                      onMouseLeave={(e) => {
-                        const el = e.currentTarget as HTMLElement;
-                        el.style.borderColor = '#e2e8f0';
-                        el.style.transform = 'translateY(0)';
-                        el.style.boxShadow = '0 2px 8px rgba(11,31,58,0.03)';
-                      }}
-                    >
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <div
-                            style={{
-                              width: 36,
-                              height: 36,
-                              borderRadius: 10,
-                              background: item.bg,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            }}
-                          >
-                            <Icon size={18} color={item.color} />
-                          </div>
-                          <span
-                            style={{
-                              fontSize: 10.5,
-                              fontWeight: 700,
-                              textTransform: 'uppercase',
-                              letterSpacing: '0.04em',
-                              padding: '3px 9px',
-                              borderRadius: 20,
-                              background: '#f1f5f9',
-                              color: '#475569',
-                            }}
-                          >
-                            {item.tag}
-                          </span>
-                        </div>
-
-                        <h3 style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', margin: 0, lineHeight: 1.3 }}>
-                          {item.title}
-                        </h3>
-
-                        <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.5, margin: 0 }}>
-                          {item.desc}
-                        </p>
-                      </div>
-
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 6,
-                          fontSize: 12,
-                          fontWeight: 700,
-                          color: '#0b1f3a',
-                          paddingTop: 12,
-                          marginTop: 10,
-                          borderTop: '1px solid #f1f5f9',
-                        }}
-                      >
-                        <span>Ask AI</span>
-                        <ArrowRight size={13} />
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+              <SequentialWelcome
+                key={`welcome-${resetKey}`}
+                onComplete={() => setIsWelcomeComplete(true)}
+                t={t}
+              />
             </div>
           )}
 
@@ -1615,148 +2303,318 @@ export default function ChatInterface({
         </div>
       </div>
 
-      {/* ── Docked Bottom Input Bar ──────────────────────────────────────────── */}
+      {/* ── Docked Bottom / Ready Centered Input Area with Large Blue Audio Waveform Button ────── */}
       <div
+        className="chat-controls-container"
         style={{
-          borderTop: '1px solid #e2e8f0',
-          background: '#ffffff',
-          padding: '16px 24px 20px',
+          borderTop: isBottomDocked ? '1px solid #e2e8f0' : '1px solid transparent',
+          background: isBottomDocked ? '#ffffff' : 'transparent',
+          padding: '14px 20px 20px',
           flexShrink: 0,
-          boxShadow: '0 -4px 20px rgba(0,0,0,0.03)',
+          boxShadow: isBottomDocked ? '0 -4px 20px rgba(0,0,0,0.03)' : 'none',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           width: '100%',
+          position: 'relative',
+          zIndex: 10,
+          transform: isBottomDocked
+            ? 'translateY(0)'
+            : isWelcomeComplete
+              ? 'translateY(calc(-44dvh + 50%))'
+              : 'translateY(0)',
+          transition:
+            isWelcomeComplete && !isBottomDocked
+              ? 'transform 1000ms cubic-bezier(0.22, 1, 0.36, 1), background-color 350ms ease, border-color 350ms ease, box-shadow 350ms ease'
+              : 'transform 450ms cubic-bezier(0.16, 1, 0.3, 1), background-color 350ms ease, border-color 350ms ease, box-shadow 350ms ease',
         }}
       >
-        <div style={{ maxWidth: 880, width: '100%', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ maxWidth: 880, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
 
+          {/* ── Active Live Voice-to-Voice Agent Panel (Shown ABOVE Chatbox when clicked/active) ── */}
+          {voiceAgentState !== 'IDLE' && (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 6,
+                animation: 'fadeIn 200ms ease-in-out',
+              }}
+            >
+              <button
+                type="button"
+                onClick={handleToggleVoiceAgent}
+                className={`interactive-control focus-ring ${voiceAgentState === 'LISTENING' ? 'audio-btn-listening' : ''}`}
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: '50%',
+                  background:
+                    voiceAgentState === 'LISTENING'
+                      ? 'linear-gradient(135deg, #0284c7, #0056b3)'
+                      : voiceAgentState === 'SPEAKING'
+                        ? 'linear-gradient(135deg, #0056b3, #0b1f3a)'
+                        : voiceAgentState === 'PROCESSING'
+                          ? '#1e3a5f'
+                          : voiceAgentState === 'ERROR'
+                            ? '#dc2626'
+                            : 'linear-gradient(135deg, #0056b3, #003366)',
+                  border: 'none',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  boxShadow:
+                    voiceAgentState === 'LISTENING'
+                      ? '0 4px 18px rgba(2, 132, 199, 0.42)'
+                      : '0 3px 12px rgba(0, 86, 179, 0.22)',
+                  transition: 'all 200ms ease',
+                  position: 'relative',
+                }}
+                title={
+                  voiceAgentState === 'LISTENING'
+                    ? t('voice.listening_title', 'Listening... Tap to finish turn or end session')
+                    : voiceAgentState === 'SPEAKING'
+                      ? t('voice.speaking', 'PradarshakAI speaking... Tap to interrupt')
+                      : voiceAgentState === 'PROCESSING'
+                        ? t('voice.thinking', 'Thinking...')
+                        : t('voice.tap_to_start', 'Tap to start voice conversation with PradarshakAI')
+                }
+                aria-label={t('voice.aria_label', 'Voice conversation with PradarshakAI')}
+              >
+                <AudioWaveformIcon state={voiceAgentState} />
+              </button>
+
+              {/* Voice Status Sub-label */}
+              <div style={{ fontSize: 12, fontWeight: 600, textAlign: 'center' }}>
+                {voiceAgentState === 'LISTENING' ? (
+                  <span style={{ color: '#0284c7', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#0284c7', animation: 'pulse 1.5s infinite' }} />
+                    {t('voice.listening_hint', 'Listening — speak naturally (tap to pause/end)')}
+                  </span>
+                ) : voiceAgentState === 'PROCESSING' ? (
+                  <span style={{ color: '#1e3a5f', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                    <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
+                    {t('voice.thinking', 'Thinking...')}
+                  </span>
+                ) : voiceAgentState === 'SPEAKING' ? (
+                  <span style={{ color: '#0056b3', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                    <Volume2 size={13} />
+                    {t('voice.speaking_status', 'PradarshakAI speaking (tap to interrupt)')}
+                  </span>
+                ) : voiceAgentState === 'ERROR' ? (
+                  <span style={{ color: '#dc2626' }}>{t('voice.error_mic', 'Microphone access required. Tap to retry.')}</span>
+                ) : (
+                  <span style={{ color: '#475569' }}>{t('voice.talk_to_pradarshak', 'Talk to PradarshakAI')}</span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── Chatbox Row (Chat Composer + Idle Voice Button on the Right Level) ── */}
           <div
-            className="chat-composer"
-            style={{
-              background: '#f8fafc',
-              border: '1.5px solid #cbd5e1',
-              borderRadius: 18,
-              padding: '8px 12px 8px 18px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
-              transition: 'background-color 180ms ease, border-color 180ms ease, box-shadow 180ms var(--ease-out)',
-            }}
-            onFocus={(e) => {
-              (e.currentTarget as HTMLElement).style.borderColor = '#0b1f3a';
-              (e.currentTarget as HTMLElement).style.background = '#ffffff';
-              (e.currentTarget as HTMLElement).style.boxShadow = '0 0 0 3px rgba(11,31,58,0.08)';
-            }}
-            onBlur={(e) => {
-              (e.currentTarget as HTMLElement).style.borderColor = '#cbd5e1';
-              (e.currentTarget as HTMLElement).style.background = '#f8fafc';
-              (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 6px rgba(0,0,0,0.02)';
-            }}
+            className={`chatbox-row ${playAttentionPop ? 'chatbox-attention-pop' : ''}`}
+            onAnimationEnd={() => setPlayAttentionPop(false)}
+            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, transformOrigin: 'center center' }}
           >
-            <textarea
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={
-                isListening
-                  ? t('chat.listening', 'Listening...')
-                  : activeCategoryItem
-                  ? `${t('chat.ask_about', 'Ask a question about')} ${activeCategoryItem.title}...`
-                  : t('chat.input_ph', 'Ask about loans, eligibility, interest rates, or channel partners...')
-              }
-              rows={1}
+            {/* ── Chat Composer (Flow A: Text chat with speech-to-text dictation mic) ── */}
+            <div
+              className="chat-composer"
               style={{
                 flex: 1,
-                background: 'transparent',
-                border: 'none',
-                outline: 'none',
-                resize: 'none',
-                fontSize: 14.5,
-                color: '#0f172a',
-                padding: '6px 0',
-                minHeight: 28,
-                maxHeight: 120,
-                lineHeight: 1.5,
-                fontFamily: 'inherit',
+                minWidth: 0,
+                background: '#ffffff',
+                border: '1.5px solid #cbd5e1',
+                borderRadius: 18,
+                padding: '8px 12px 8px 18px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
+                transition: 'background-color 180ms ease, border-color 180ms ease, box-shadow 180ms var(--ease-out)',
               }}
-              disabled={loading}
-              onInput={(e) => {
-                const el = e.currentTarget;
-                el.style.height = 'auto';
-                el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+              onFocus={(e) => {
+                (e.currentTarget as HTMLElement).style.borderColor = '#0b1f3a';
+                (e.currentTarget as HTMLElement).style.boxShadow = '0 0 0 3px rgba(11,31,58,0.08)';
               }}
-            />
-
-            {speechSupported && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                {isListening && <VoiceVisualizer stream={activeStream} isListening={isListening} />}
-                <button
-                  onClick={toggleListening}
-                  disabled={loading || isTranscribing}
-                  title={
-                    isTranscribing
-                      ? 'Processing voice input...'
-                      : isListening
-                      ? 'Stop listening'
-                      : 'Speak your message'
+              onBlur={(e) => {
+                (e.currentTarget as HTMLElement).style.borderColor = '#cbd5e1';
+                (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 10px rgba(0,0,0,0.04)';
+              }}
+            >
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={(e) => {
+                  setInput(e.target.value);
+                  if (!isWelcomeComplete) {
+                    setIsWelcomeComplete(true);
                   }
+                }}
+                onFocus={() => {
+                  setPlayAttentionPop(false);
+                  if (!isWelcomeComplete) {
+                    setIsWelcomeComplete(true);
+                  }
+                }}
+                onKeyDown={handleKeyDown}
+                placeholder={
+                  isListening
+                    ? t('chat.listening', 'Listening for text input...')
+                    : activeCategoryItem
+                      ? `${t('chat.ask_about', 'Ask a question about')} ${activeCategoryItem.title}...`
+                      : t('chat.input_ph', 'Ask about loans, eligibility, interest rates, or channel partners...')
+                }
+                rows={1}
+                style={{
+                  flex: 1,
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  resize: 'none',
+                  fontSize: 14.5,
+                  color: '#0f172a',
+                  padding: '6px 0',
+                  minHeight: 28,
+                  maxHeight: 120,
+                  lineHeight: 1.5,
+                  fontFamily: 'inherit',
+                }}
+                disabled={loading || voiceAgentState === 'PROCESSING'}
+                onInput={(e) => {
+                  const el = e.currentTarget;
+                  el.style.height = 'auto';
+                  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+                }}
+              />
+
+              {/* Preserved small composer mic for Speech-to-Text */}
+              {speechSupported && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {isListening && <VoiceVisualizer stream={activeStream} isListening={isListening} />}
+                  <button
+                    type="button"
+                    onClick={toggleListening}
+                    disabled={loading || isTranscribing || voiceAgentState === 'LISTENING' || voiceAgentState === 'PROCESSING'}
+                    title={
+                      isTranscribing
+                        ? 'Processing voice-to-text...'
+                        : isListening
+                          ? 'Stop speech-to-text'
+                          : 'Speak into chat box (Speech-to-Text)'
+                    }
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 12,
+                      background: isListening ? '#dc2626' : '#e2e8f0',
+                      color: '#ffffff',
+                      border: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      cursor: loading || isTranscribing ? 'default' : 'pointer',
+                      opacity: loading || isTranscribing ? 0.6 : 1,
+                      transition: 'background-color 180ms ease, opacity 150ms ease, transform 180ms var(--ease-out)',
+                    }}
+                    aria-label="Speech to text input"
+                  >
+                    {isTranscribing ? (
+                      <Loader2 size={17} style={{ animation: 'spin 1s linear infinite' }} color="#0b1f3a" />
+                    ) : isListening ? (
+                      <MicOff size={17} color="#ffffff" />
+                    ) : (
+                      <Mic size={17} color="#0b1f3a" />
+                    )}
+                  </button>
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => send(input)}
+                disabled={!input.trim() || loading}
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  background: input.trim() && !loading ? '#0b1f3a' : '#cbd5e1',
+                  color: '#ffffff',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  cursor: input.trim() && !loading ? 'pointer' : 'default',
+                  transition: 'background-color 180ms ease, opacity 150ms ease, transform 180ms var(--ease-out)',
+                }}
+                title="Send message (Enter)"
+                aria-label="Send message"
+              >
+                <Send size={16} color={input.trim() && !loading ? '#fbbf24' : '#ffffff'} />
+              </button>
+            </div>
+
+            {/* ── Voice-to-Voice Button & Text on the Right Level of Chatbox (When IDLE) ── */}
+            {voiceAgentState === 'IDLE' && (
+              <button
+                type="button"
+                onClick={handleToggleVoiceAgent}
+                className="interactive-control focus-ring voice-idle-widget"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  background: '#ffffff',
+                  border: '1.5px solid #cbd5e1',
+                  borderRadius: 18,
+                  padding: '8px 16px 8px 10px',
+                  boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  transition: 'all 200ms ease',
+                }}
+                title={t('voice.tap_to_start', 'Tap to start voice conversation with PradarshakAI')}
+                aria-label={t('voice.aria_label', 'Voice conversation with PradarshakAI')}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.borderColor = '#0056b3';
+                  (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 16px rgba(0, 86, 179, 0.15)';
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.borderColor = '#cbd5e1';
+                  (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 10px rgba(0,0,0,0.04)';
+                }}
+              >
+                <div
                   style={{
-                    width: 42,
-                    height: 42,
-                    borderRadius: 12,
-                    background: isListening ? '#dc2626' : '#e2e8f0',
+                    width: 38,
+                    height: 38,
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #0056b3, #003366)',
                     color: '#ffffff',
-                    border: 'none',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
-                    cursor: loading || isTranscribing ? 'default' : 'pointer',
-                    opacity: loading || isTranscribing ? 0.6 : 1,
-                    transition: 'background-color 180ms ease, opacity 150ms ease, transform 180ms var(--ease-out)',
+                    boxShadow: '0 2px 8px rgba(0, 86, 179, 0.25)',
                   }}
                 >
-                  {isTranscribing ? (
-                    <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} color="#0b1f3a" />
-                  ) : isListening ? (
-                    <MicOff size={18} color="#ffffff" />
-                  ) : (
-                    <Mic size={18} color="#0b1f3a" />
-                  )}
-                </button>
-              </div>
+                  <AudioWaveformIcon state="IDLE" />
+                </div>
+                <span className="voice-idle-text" style={{ fontSize: 13.5, fontWeight: 700, color: '#0b1f3a', whiteSpace: 'nowrap' }}>
+                  {t('voice.talk_to_pradarshak', 'Talk to PradarshakAI')}
+                </span>
+              </button>
             )}
-
-            <button
-              onClick={() => send(input)}
-              disabled={!input.trim() || loading}
-              style={{
-                width: 42,
-                height: 42,
-                borderRadius: 12,
-                background: input.trim() && !loading ? '#0b1f3a' : '#cbd5e1',
-                color: '#ffffff',
-                border: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                cursor: input.trim() && !loading ? 'pointer' : 'default',
-                transition: 'background-color 180ms ease, opacity 150ms ease, transform 180ms var(--ease-out)',
-              }}
-              title="Send message (Enter)"
-            >
-              <Send size={17} color={input.trim() && !loading ? '#fbbf24' : '#ffffff'} />
-            </button>
           </div>
 
           {isTranscribing && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 4px', fontSize: 11.5, color: '#0b1f3a' }}>
               <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} color="#0b1f3a" />
-              <span style={{ fontWeight: 600 }}>{t('chat.transcribing', 'Processing voice input with Sarvam AI...')}</span>
+              <span style={{ fontWeight: 600 }}>{t('chat.transcribing', 'Converting speech to text...')}</span>
             </div>
           )}
 
@@ -1775,11 +2633,6 @@ export default function ChatInterface({
               {speechError}
             </div>
           )}
-
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px', fontSize: 11.5, color: '#94a3b8' }}>
-            <span>{t('chat.press_enter', 'Press Enter ↵ to send')}</span>
-            <span>{t('chat.verified_data', 'Verified against official NSFDC scheme catalog data')}</span>
-          </div>
         </div>
       </div>
     </div>

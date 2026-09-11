@@ -87,7 +87,8 @@ export async function sendChat(
   detectedLanguageCode?: string | null,
   languageProbability?: number | null,
   category?: string | null,
-  schemeAction?: SchemeActionPayload
+  schemeAction?: SchemeActionPayload,
+  history?: { role: 'user' | 'assistant'; content: string }[]
 ): Promise<ChatResponse> {
   const res = await fetch(`${BASE}/chat`, {
     method: 'POST',
@@ -101,6 +102,7 @@ export async function sendChat(
       languageProbability,
       category,
       schemeAction,
+      history,
     }),
   });
   if (!res.ok) {
@@ -297,6 +299,65 @@ export async function getChat(id: string, token: string): Promise<{ chat: ChatSu
 export async function deleteChat(id: string, token: string): Promise<void> {
   const res = await fetch(`${BASE}/chats/${id}`, { method: 'DELETE', headers: userHeaders(token) });
   if (!res.ok) throw new Error('Failed to delete chat');
+}
+
+export async function importGuestChat(
+  clientChatId: string,
+  messages: Array<{
+    role: 'user' | 'assistant';
+    content?: string;
+    text?: string;
+    type?: string;
+    data?: Record<string, unknown>;
+    quickActions?: unknown;
+    quick_actions?: unknown;
+    disclaimer?: string;
+    speechText?: string;
+  }>,
+  token: string,
+  title?: string
+): Promise<{ id: string; title: string; ok: boolean; alreadyImported?: boolean }> {
+  const res = await fetch(`${BASE}/chats/import`, {
+    method: 'POST',
+    headers: userHeaders(token),
+    body: JSON.stringify({ clientChatId, messages, title }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Failed to import chat' }));
+    throw new Error(err.error || 'Failed to import chat');
+  }
+  return res.json();
+}
+
+export async function shareChat(
+  id: string,
+  token: string
+): Promise<{ ok: boolean; shareId: string; chatId: string }> {
+  const res = await fetch(`${BASE}/chats/${id}/share`, {
+    method: 'POST',
+    headers: userHeaders(token),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Failed to share chat' }));
+    throw new Error(err.error || 'Failed to share chat');
+  }
+  return res.json();
+}
+
+export async function getSharedChat(
+  shareId: string
+): Promise<{
+  chat: { title: string; created_at: string };
+  messages: ChatMessage[];
+}> {
+  const res = await fetch(`${BASE}/chats/shared/${encodeURIComponent(shareId)}`, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Shared conversation not found' }));
+    throw new Error(err.error || 'Shared conversation not found');
+  }
+  return res.json();
 }
 
 // ── Admin ─────────────────────────────────────────────────────────────────────
